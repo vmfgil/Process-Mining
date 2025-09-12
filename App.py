@@ -18,6 +18,8 @@ from io import StringIO, BytesIO
 import warnings
 from collections import Counter
 import base64
+import tempfile
+import os
 
 # Bibliotecas de Process Mining (PM4PY) e PDF
 try:
@@ -88,11 +90,6 @@ st.markdown("""
     /* Barra Lateral */
     [data-testid="stSidebar"] {
         background-color: #DBEAFE; /* Azul Claro */
-    }
-    /* Caixas de Expansão */
-    .stExpander {
-        border-radius: 10px;
-        border: 1px solid #BEE3F8;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -344,16 +341,14 @@ def generate_post_mining_visuals(dfs):
     milestone_pairs = []
     for _, group in df_milestones.groupby('project_id'):
         for i in range(len(group) - 1):
-            start_task = group.iloc[i]
-            end_task = group.iloc[i+1]
+            start_task, end_task = group.iloc[i], group.iloc[i+1]
             duration = (end_task['start_date'] - start_task['end_date']).total_seconds() / 3600
-            if duration >= 0:
-                milestone_pairs.append({'transition': f"{start_task['task_name']} -> {end_task['task_name']}", 'duration_hours': duration})
+            if duration >= 0: milestone_pairs.append({'transition': f"{start_task['task_name']} -> {end_task['task_name']}", 'duration_hours': duration})
     milestone_df = pd.DataFrame(milestone_pairs)
     if not milestone_df.empty:
         fig, ax = plt.subplots(figsize=(10, 6)); sns.boxplot(data=milestone_df, x='duration_hours', y='transition', ax=ax, orient='h', palette='viridis'); ax.set_title('Análise de Tempo entre Marcos do Processo'); results['chart_12_milestone_analysis'] = fig
     else:
-        fig, ax = plt.subplots(); ax.text(0.5, 0.5, 'Dados insuficientes para análise de marcos.', ha='center'); results['chart_12_milestone_analysis'] = fig
+        fig, ax = plt.subplots(figsize=(8,4)); ax.text(0.5, 0.5, 'Dados insuficientes para análise de marcos.', ha='center'); results['chart_12_milestone_analysis'] = fig
         
     df_tasks_sorted = df_tasks.sort_values(['project_id', 'start_date'])
     df_tasks_sorted['previous_end_date'] = df_tasks_sorted.groupby('project_id')['end_date'].shift(1)
@@ -380,34 +375,13 @@ def generate_post_mining_visuals(dfs):
     
     df_full_context = dfs['full_context']
     resource_role_counts = df_full_context.groupby(['resource_name', 'resource_type']).size().reset_index(name='count')
-    G_bipartite = nx.Graph(); resources = resource_role_counts['resource_name'].unique(); roles = resource_role_counts['resource_type'].unique()
-    G_bipartite.add_nodes_from(resources, bipartite=0); G_bipartite.add_nodes_from(roles, bipartite=1)
+    G_bipartite = nx.Graph(); resources_nodes = resource_role_counts['resource_name'].unique(); roles_nodes = resource_role_counts['resource_type'].unique()
+    G_bipartite.add_nodes_from(resources_nodes, bipartite=0); G_bipartite.add_nodes_from(roles_nodes, bipartite=1)
     for _, row in resource_role_counts.iterrows(): G_bipartite.add_edge(row['resource_name'], row['resource_type'], weight=row['count'])
-    pos = nx.bipartite_layout(G_bipartite, resources, align='vertical')
-    fig, ax = plt.subplots(figsize=(12, 10)); nx.draw_networkx_nodes(G_bipartite, pos, nodelist=resources, node_color='skyblue', node_size=2000, ax=ax); nx.draw_networkx_nodes(G_bipartite, pos, nodelist=roles, node_color='lightgreen', node_size=4000, ax=ax); nx.draw_networkx_edges(G_bipartite, pos, width=[d['weight']*0.1 for u,v,d in G_bipartite.edges(data=True)], edge_color='gray', ax=ax); nx.draw_networkx_labels(G_bipartite, pos, font_size=9); nx.draw_networkx_edge_labels(G_bipartite, pos, edge_labels={(u,v):d['weight'] for u,v,d in G_bipartite.edges(data=True)}); ax.set_title('Rede de Recursos por Função'); results['bipartite_network'] = fig
+    pos = nx.bipartite_layout(G_bipartite, resources_nodes, align='vertical')
+    fig, ax = plt.subplots(figsize=(12, 10)); nx.draw_networkx_nodes(G_bipartite, pos, nodelist=resources_nodes, node_color='skyblue', node_size=2000, ax=ax); nx.draw_networkx_nodes(G_bipartite, pos, nodelist=roles_nodes, node_color='lightgreen', node_size=4000, ax=ax); nx.draw_networkx_edges(G_bipartite, pos, width=[d['weight']*0.1 for u,v,d in G_bipartite.edges(data=True)], edge_color='gray', ax=ax); nx.draw_networkx_labels(G_bipartite, pos, font_size=9); nx.draw_networkx_edge_labels(G_bipartite, pos, edge_labels={(u,v):d['weight'] for u,v,d in G_bipartite.edges(data=True)}); ax.set_title('Rede de Recursos por Função'); results['bipartite_network'] = fig
 
     return results
-
-def generate_pdf_report(pre_res, post_res):
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", 'B', 16)
-    pdf.cell(0, 10, 'Relatório de Análise de Processos', 0, 1, 'C')
-    
-    all_results = {**pre_res, **post_res}
-    for name, fig in all_results.items():
-        if isinstance(fig, plt.Figure):
-            pdf.add_page()
-            pdf.set_font("Arial", 'B', 12)
-            title = name.replace('_', ' ').replace('plot', '').replace('chart', '').strip().title()
-            pdf.cell(0, 10, title, 0, 1, 'L')
-            
-            with BytesIO() as buffer:
-                fig.savefig(buffer, format="png", bbox_inches='tight')
-                buffer.seek(0)
-                pdf.image(buffer, x=10, y=30, w=190)
-
-    return pdf.output(dest='S').encode('latin-1')
 
 def run_full_analysis():
     with st.spinner('A processar os dados e a gerar as 46 análises... Por favor, aguarde.'):
@@ -420,8 +394,38 @@ def run_full_analysis():
         else:
             st.error("A análise falhou. Verifique os ficheiros e tente novamente.")
 
+def generate_pdf_report(pre_res, post_res):
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    
+    all_results = {**pre_res, **post_res}
+    
+    pdf.add_page()
+    pdf.set_font("Arial", 'B', 16)
+    pdf.cell(0, 10, 'Relatório de Análise de Processos', 0, 1, 'C')
+    
+    with tempfile.TemporaryDirectory() as temp_dir:
+        for name, fig in all_results.items():
+            if isinstance(fig, plt.Figure):
+                title = name.replace('_', ' ').replace('plot', '').replace('chart', '').strip().title()
+                try:
+                    path = os.path.join(temp_dir, f"{name}.png")
+                    fig.savefig(path, format="png", bbox_inches='tight', dpi=150)
+                    
+                    if pdf.get_y() > 180:
+                        pdf.add_page()
+                    
+                    pdf.set_font("Arial", 'B', 12)
+                    pdf.cell(0, 10, title, 0, 1, 'L')
+                    
+                    pdf.image(path, x=10, w=190)
+                except Exception as e:
+                    print(f"Error saving {name}: {e}")
+    
+    return pdf.output(dest='S').encode('latin-1')
+    
 # --- 5. LAYOUT DA APLICAÇÃO (UI) ---
-st.title("📊 Dashboard Completo de Análise de Processos")
+st.title("Dashboard Completo de Análise de Processos")
 st.sidebar.title("Painel de Controlo")
 menu_selection = st.sidebar.radio(
     "Menu", ["1. Carregar Dados", "2. Executar Análise", "3. Visualizar Resultados"],
@@ -437,7 +441,7 @@ if menu_selection == "1. Carregar Dados":
                 st.session_state.uploaded_files[name] = uploaded_file
                 df_preview = pd.read_csv(uploaded_file); uploaded_file.seek(0)
                 with st.expander(f"Pré-visualização de `{name}.csv`", expanded=False):
-                    st.dataframe(df_preview.head(), height=200)
+                    st.dataframe(df_preview.head(), height=210)
 
 elif menu_selection == "2. Executar Análise":
     st.header("2. Execução da Análise")
