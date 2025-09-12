@@ -133,7 +133,6 @@ def generate_pre_mining_visuals(dfs):
     df_full_context = dfs['full_context']
     df_tasks = dfs['tasks']
     df_resources = dfs['resources']
-    df_resource_allocations = dfs['resource_allocations']
     log_df = dfs['log_df']
     
     # KPIs
@@ -256,7 +255,7 @@ def generate_pre_mining_visuals(dfs):
     # plot_24_handoff_matrix_by_type
     fig, ax = plt.subplots(figsize=(10, 8)); sns.heatmap(handoff_matrix, annot=True, fmt=".0f", cmap="BuPu", ax=ax); ax.set_title("Matriz de Handoffs por Tipo de Equipa"); results['plot_24'] = fig
     
-    df_perf_full = perf_df.merge(df_projects, left_on='case:concept:name', right_on='project_id')
+    df_perf_full = perf_df.merge(df_projects, left_on='case:concept:name', right_on='project_id', how='left')
     # plot_25_throughput_benchmark_by_teamsize
     fig, ax = plt.subplots(figsize=(12, 7)); sns.boxplot(data=df_perf_full, x='team_size_bin', y='avg_throughput_hours', palette='plasma', ax=ax, hue='team_size_bin', legend=False); ax.set_title('Benchmark de Throughput por Tamanho da Equipa'); results['plot_25'] = fig
     
@@ -325,7 +324,7 @@ def generate_post_mining_visuals(dfs):
     # chart_09_deviation_scatter
     fig, ax = plt.subplots(figsize=(10, 6)); sns.scatterplot(x='fitness', y='deviations', data=deviations_df, alpha=0.6, ax=ax); ax.set_title('Diagrama de Dispersão (Fitness vs. Desvios)'); results['chart_09'] = fig
 
-    case_fitness_df = pd.DataFrame([{'project_id': trace.attributes['concept:name'].replace('Projeto ', ''), 'fitness': alignment['fitness']} for trace, alignment in zip(event_log, aligned_traces)])
+    case_fitness_df = pd.DataFrame([{'project_id': int(trace.attributes['concept:name'].replace('Projeto ', '')), 'fitness': alignment['fitness']} for trace, alignment in zip(event_log, aligned_traces)])
     case_fitness_df = case_fitness_df.merge(df_projects[['project_id', 'end_date']], on='project_id')
     case_fitness_df['end_month'] = case_fitness_df['end_date'].dt.to_period('M').astype(str)
     monthly_fitness = case_fitness_df.groupby('end_month')['fitness'].mean().reset_index()
@@ -341,10 +340,10 @@ def generate_post_mining_visuals(dfs):
     milestones = ['Analise e Design', 'Implementacao da Funcionalidade', 'Execucao de Testes', 'Deploy da Aplicacao']
     df_milestones = df_tasks[df_tasks['task_name'].isin(milestones)].sort_values(['project_id', 'start_date'])
     milestone_pairs = df_milestones.groupby('project_id').apply(lambda x: pd.Series({'transition': ' -> '.join(x['task_name']), 'duration_hours': (x['end_date'].max() - x['start_date'].min()).total_seconds() / 3600 if len(x)>1 else 0})).reset_index()
-    if not milestone_pairs.empty:
+    if not milestone_pairs.empty and 'duration_hours' in milestone_pairs.columns:
         fig, ax = plt.subplots(figsize=(14, 8)); sns.boxplot(data=milestone_pairs, x='duration_hours', y='transition', ax=ax, orient='h'); ax.set_title('Análise de Tempo entre Marcos do Processo'); results['chart_12'] = fig
     else:
-        results['chart_12'] = plt.figure()
+        fig, ax = plt.subplots(); ax.text(0.5, 0.5, 'Dados insuficientes para análise de marcos.', ha='center'); results['chart_12'] = fig
         
     df_tasks_sorted = df_tasks.sort_values(['project_id', 'start_date'])
     df_tasks_sorted['previous_end_date'] = df_tasks_sorted.groupby('project_id')['end_date'].shift(1)
@@ -414,61 +413,63 @@ elif menu_selection == "3. Visualizar Resultados":
 
         with tab1:
             with st.expander("Visão Geral e KPIs", expanded=True):
-                cols = st.columns(len(pre_res['kpis']))
-                for i, (metric, value) in enumerate(pre_res['kpis'].items()):
-                    cols[i].metric(label=metric, value=value)
-                st.pyplot(pre_res['plot_01'], use_container_width=True)
+                cols = st.columns(len(pre_res.get('kpis', {})))
+                for i, (metric, value) in enumerate(pre_res.get('kpis', {}).items()):
+                    cols[i].metric(label=metric, value=str(value))
+                if 'plot_01' in pre_res: st.pyplot(pre_res['plot_01'], use_container_width=True)
 
             with st.expander("Análise de Performance e Prazos"):
-                st.pyplot(pre_res['plot_02'], use_container_width=True)
-                st.pyplot(pre_res['plot_03'], use_container_width=True)
-                st.pyplot(pre_res['plot_04_05'], use_container_width=True)
-                st.pyplot(pre_res['plot_06'], use_container_width=True)
-                st.pyplot(pre_res['plot_17'], use_container_width=True)
-                st.pyplot(pre_res['plot_18'], use_container_width=True)
-                st.pyplot(pre_res['plot_25'], use_container_width=True)
-                st.pyplot(pre_res['plot_26'], use_container_width=True)
+                if 'plot_02' in pre_res: st.pyplot(pre_res['plot_02'], use_container_width=True)
+                if 'plot_03' in pre_res: st.pyplot(pre_res['plot_03'], use_container_width=True)
+                if 'plot_04_05' in pre_res: st.pyplot(pre_res['plot_04_05'], use_container_width=True)
+                if 'plot_06' in pre_res: st.pyplot(pre_res['plot_06'], use_container_width=True)
+                if 'plot_17' in pre_res: st.pyplot(pre_res['plot_17'], use_container_width=True)
+                if 'plot_18' in pre_res: st.pyplot(pre_res['plot_18'], use_container_width=True)
+                if 'plot_25' in pre_res: st.pyplot(pre_res['plot_25'], use_container_width=True)
+                if 'plot_26' in pre_res: st.pyplot(pre_res['plot_26'], use_container_width=True)
 
             with st.expander("Análise Organizacional, Atividades e Custos"):
-                st.pyplot(pre_res['plot_07'], use_container_width=True)
-                st.pyplot(pre_res['plot_10'], use_container_width=True)
-                st.pyplot(pre_res['plot_11'], use_container_width=True)
-                st.pyplot(pre_res['plot_12'], use_container_width=True)
-                st.pyplot(pre_res['plot_15'], use_container_width=True)
-                st.pyplot(pre_res['plot_19'], use_container_width=True)
-                st.pyplot(pre_res['plot_13'], use_container_width=True)
+                if 'plot_07' in pre_res: st.pyplot(pre_res['plot_07'], use_container_width=True)
+                if 'plot_10' in pre_res: st.pyplot(pre_res['plot_10'], use_container_width=True)
+                if 'plot_11' in pre_res: st.pyplot(pre_res['plot_11'], use_container_width=True)
+                if 'plot_12' in pre_res: st.pyplot(pre_res['plot_12'], use_container_width=True)
+                if 'plot_15' in pre_res: st.pyplot(pre_res['plot_15'], use_container_width=True)
+                if 'plot_19' in pre_res: st.pyplot(pre_res['plot_19'], use_container_width=True)
+                if 'plot_13' in pre_res: st.pyplot(pre_res['plot_13'], use_container_width=True)
 
             with st.expander("Análise de Gargalos e Handoffs"):
-                st.pyplot(pre_res['plot_08'], use_container_width=True)
-                st.pyplot(pre_res['plot_09'], use_container_width=True)
-                st.pyplot(pre_res['plot_14'], use_container_width=True)
-                st.pyplot(pre_res['plot_20'], use_container_width=True)
-                st.pyplot(pre_res['plot_21'], use_container_width=True)
-                st.pyplot(pre_res['plot_22'], use_container_width=True)
-                st.pyplot(pre_res['plot_23'], use_container_width=True)
-                st.pyplot(pre_res['plot_24'], use_container_width=True)
+                if 'plot_08' in pre_res: st.pyplot(pre_res['plot_08'], use_container_width=True)
+                if 'plot_09' in pre_res: st.pyplot(pre_res['plot_09'], use_container_width=True)
+                if 'plot_14' in pre_res: st.pyplot(pre_res['plot_14'], use_container_width=True)
+                if 'plot_20' in pre_res: st.pyplot(pre_res['plot_20'], use_container_width=True)
+                if 'plot_21' in pre_res: st.pyplot(pre_res['plot_21'], use_container_width=True)
+                if 'plot_22' in pre_res: st.pyplot(pre_res['plot_22'], use_container_width=True)
+                if 'plot_23' in pre_res: st.pyplot(pre_res['plot_23'], use_container_width=True)
+                if 'plot_24' in pre_res: st.pyplot(pre_res['plot_24'], use_container_width=True)
         
         with tab2:
             with st.expander("Descoberta de Modelos de Processo", expanded=True):
                 col1, col2 = st.columns(2)
-                with col1: st.graphviz_chart(post_res['model_01_inductive'], use_container_width=True)
-                with col2: st.graphviz_chart(post_res['model_02_heuristics'], use_container_width=True)
-                st.graphviz_chart(post_res['model_03_performance_dfg'], use_container_width=True)
+                with col1: 
+                    if 'model_01_inductive' in post_res: st.graphviz_chart(post_res['model_01_inductive'], use_container_width=True)
+                with col2:
+                    if 'model_02_heuristics' in post_res: st.graphviz_chart(post_res['model_02_heuristics'], use_container_width=True)
+                if 'model_03_performance_dfg' in post_res: st.graphviz_chart(post_res['model_03_performance_dfg'], use_container_width=True)
 
             with st.expander("Análise de Variantes e Conformidade"):
-                st.pyplot(post_res['chart_04'], use_container_width=True)
-                st.pyplot(post_res['chart_05'], use_container_width=True)
-                st.pyplot(post_res['chart_08'], use_container_width=True)
-                st.pyplot(post_res['chart_09'], use_container_width=True)
-                st.pyplot(post_res['chart_10'], use_container_width=True)
+                if 'chart_04' in post_res: st.pyplot(post_res['chart_04'], use_container_width=True)
+                if 'chart_05' in post_res: st.pyplot(post_res['chart_05'], use_container_width=True)
+                if 'chart_08' in post_res: st.pyplot(post_res['chart_08'], use_container_width=True)
+                if 'chart_09' in post_res: st.pyplot(post_res['chart_09'], use_container_width=True)
+                if 'chart_10' in post_res: st.pyplot(post_res['chart_10'], use_container_width=True)
 
             with st.expander("Análise Temporal e de Linha do Tempo"):
-                st.pyplot(post_res['chart_06'], use_container_width=True)
-                st.pyplot(post_res['chart_07'], use_container_width=True)
-                st.pyplot(post_res['chart_11'], use_container_width=True)
-                st.pyplot(post_res['chart_12'], use_container_width=True)
+                if 'chart_06' in post_res: st.pyplot(post_res['chart_06'], use_container_width=True)
+                if 'chart_07' in post_res: st.pyplot(post_res['chart_07'], use_container_width=True)
+                if 'chart_11' in post_res: st.pyplot(post_res['chart_11'], use_container_width=True)
+                if 'chart_12' in post_res: st.pyplot(post_res['chart_12'], use_container_width=True)
 
             with st.expander("Análise de Tempos de Espera"):
-                st.pyplot(post_res['chart_13'], use_container_width=True)
-                st.pyplot(post_res['chart_14'], use_container_width=True)
+                if 'chart_13' in post_res: st.pyplot(post_res['chart_13'], use_container_width=True)
+                if 'chart_14' in post_res: st.pyplot(post_res['chart_14'], use_container_width=True)
 
