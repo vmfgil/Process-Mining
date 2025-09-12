@@ -456,8 +456,8 @@ def generate_pdf_report(pre_res, post_res):
                     print(f"Error saving {name}: {e}")
     
     return pdf.output(dest='S').encode('latin-1')
-    
-# --- 5. LAYOUT DA APLICAÇÃO (UI REESTILIZADA) ---
+
+    # --- 5. LAYOUT DA APLIÇÃO (UI REESTILIZADA) ---
 st.title("✨ Dashboard de Análise de Processos")
 st.sidebar.title("Painel de Controlo")
 menu_selection = st.sidebar.radio(
@@ -510,7 +510,6 @@ elif menu_selection == "3. Visualizar Resultados":
             sections = ["Visão Geral e KPIs", "Performance e Prazos", "Organizacional e Custos", "Gargalos e Handoffs"]
             selected_section = st.sidebar.selectbox("Secção:", sections)
 
-            # NOVO LAYOUT: Uso de colunas e cards
             if selected_section == "Visão Geral e KPIs":
                 st.subheader("Visão Geral e KPIs")
                 cols = st.columns(len(pre_res.get('kpis', {})))
@@ -525,20 +524,20 @@ elif menu_selection == "3. Visualizar Resultados":
                 st.subheader("Análise de Performance e Prazos")
                 col1, col2 = st.columns(2)
                 with col1:
-                    if 'plot_02' in pre_res: 
+                    if 'plot_02' in pre_res:
                         with st.container(border=True): st.pyplot(pre_res['plot_02'])
-                    if 'plot_04_05' in pre_res: 
+                    if 'plot_04_05' in pre_res:
                         with st.container(border=True): st.pyplot(pre_res['plot_04_05'])
-                    if 'plot_17' in pre_res: 
+                    if 'plot_17' in pre_res:
                         with st.container(border=True): st.pyplot(pre_res['plot_17'])
                     if 'plot_25' in pre_res:
                          with st.container(border=True): st.pyplot(pre_res['plot_25'])
                 with col2:
-                    if 'plot_03' in pre_res: 
+                    if 'plot_03' in pre_res:
                         with st.container(border=True): st.pyplot(pre_res['plot_03'])
-                    if 'plot_06' in pre_res: 
+                    if 'plot_06' in pre_res:
                         with st.container(border=True): st.pyplot(pre_res['plot_06'])
-                    if 'plot_18' in pre_res: 
+                    if 'plot_18' in pre_res:
                         with st.container(border=True): st.pyplot(pre_res['plot_18'])
                     if 'plot_26' in pre_res:
                         with st.container(border=True): st.pyplot(pre_res['plot_26'])
@@ -547,28 +546,43 @@ elif menu_selection == "3. Visualizar Resultados":
                 st.subheader("Análise Organizacional, Atividades e Custos")
                 col1, col2 = st.columns(2)
                 with col1:
-                    if 'plot_07' in pre_res: with st.container(border=True): st.pyplot(pre_res['plot_07'])
-                    if 'plot_11' in pre_res: with st.container(border=True): st.pyplot(pre_res['plot_11'])
-                    if 'plot_15' in pre_res: with st.container(border=True): st.pyplot(pre_res['plot_15'])
+                    if 'plot_07' in pre_res:
+                        with st.container(border=True): st.pyplot(pre_res['plot_07'])
+                    if 'plot_11' in pre_res:
+                        with st.container(border=True): st.pyplot(pre_res['plot_11'])
+                    if 'plot_15' in pre_res:
+                        with st.container(border=True): st.pyplot(pre_res['plot_15'])
                 with col2:
-                    if 'plot_10' in pre_res: with st.container(border=True): st.pyplot(pre_res['plot_10'])
-                    if 'plot_12' in pre_res: with st.container(border=True): st.pyplot(pre_res['plot_12'])
-                    if 'plot_19' in pre_res: with st.container(border=True): st.pyplot(pre_res['plot_19'])
-                if 'plot_13' in pre_res: with st.container(border=True): st.pyplot(pre_res['plot_13'])
+                    if 'plot_10' in pre_res:
+                        with st.container(border=True): st.pyplot(pre_res['plot_10'])
+                    if 'plot_12' in pre_res:
+                        with st.container(border=True): st.pyplot(pre_res['plot_12'])
+                    if 'plot_19' in pre_res:
+                        with st.container(border=True): st.pyplot(pre_res['plot_19'])
+                if 'plot_13' in pre_res:
+                    with st.container(border=True): st.pyplot(pre_res['plot_13'])
 
             if selected_section == "Gargalos e Handoffs":
                 st.subheader("Análise de Gargalos e Handoffs")
                 col1, col2 = st.columns(2)
                 with col1:
-                    if 'plot_08' in pre_res: with st.container(border=True): st.pyplot(pre_res['plot_08'])
-                    if 'plot_14' in pre_res: with st.container(border=True): st.pyplot(pre_res['plot_14'])
-                    if 'plot_21' in pre_res: with st.container(border=True): st.pyplot(pre_res['plot_21'])
-                    if 'plot_23' in pre_res: with st.container(border=True): st.pyplot(pre_res['plot_23'])
+                    if 'plot_08' in pre_res:
+                        with st.container(border=True): st.pyplot(pre_res['plot_08'])
+                    if 'plot_14' in pre_res:
+                        with st.container(border=True): st.pyplot(pre_res['plot_14'])
+                    if 'plot_21' in pre_res:
+                        with st.container(border=True): st.pyplot(pre_res['plot_21'])
+                    if 'plot_23' in pre_res:
+                        with st.container(border=True): st.pyplot(pre_res['plot_23'])
                 with col2:
-                    if 'plot_09' in pre_res: with st.container(border=True): st.pyplot(pre_res['plot_09'])
-                    if 'plot_20' in pre_res: with st.container(border=True): st.pyplot(pre_res['plot_20'])
-                    if 'plot_22' in pre_res: with st.container(border=True): st.pyplot(pre_res['plot_22'])
-                if 'plot_24' in pre_res: with st.container(border=True): st.pyplot(pre_res['plot_24'])
+                    if 'plot_09' in pre_res:
+                        with st.container(border=True): st.pyplot(pre_res['plot_09'])
+                    if 'plot_20' in pre_res:
+                        with st.container(border=True): st.pyplot(pre_res['plot_20'])
+                    if 'plot_22' in pre_res:
+                        with st.container(border=True): st.pyplot(pre_res['plot_22'])
+                if 'plot_24' in pre_res:
+                    with st.container(border=True): st.pyplot(pre_res['plot_24'])
         
         if main_tab == "Análise de Processos (Pós-Mineração)":
             st.subheader("🗺️ Análise de Processos (Pós-Mineração)")
@@ -581,42 +595,62 @@ elif menu_selection == "3. Visualizar Resultados":
                 with col1:
                     with st.container(border=True):
                         st.markdown("##### Modelo com Inductive Miner")
-                        if 'model_01_inductive' in post_res: st.graphviz_chart(post_res['model_01_inductive'])
-                        if 'metrics_inductive' in post_res: st.pyplot(post_res['metrics_inductive'])
+                        if 'model_01_inductive' in post_res:
+                            st.graphviz_chart(post_res['model_01_inductive'])
+                        if 'metrics_inductive' in post_res:
+                            st.pyplot(post_res['metrics_inductive'])
                 with col2:
                     with st.container(border=True):
                         st.markdown("##### Modelo com Heuristics Miner")
-                        if 'model_02_heuristics' in post_res: st.graphviz_chart(post_res['model_02_heuristics'])
-                        if 'metrics_heuristics' in post_res: st.pyplot(post_res['metrics_heuristics'])
+                        if 'model_02_heuristics' in post_res:
+                            st.graphviz_chart(post_res['model_02_heuristics'])
+                        if 'metrics_heuristics' in post_res:
+                            st.pyplot(post_res['metrics_heuristics'])
                 st.markdown("---")
                 with st.container(border=True):
                     st.subheader("Mapa de Performance do Processo")
-                    if 'model_03_performance_dfg' in post_res: st.graphviz_chart(post_res['model_03_performance_dfg'])
+                    if 'model_03_performance_dfg' in post_res:
+                        st.graphviz_chart(post_res['model_03_performance_dfg'])
 
             if selected_section == "Variantes e Conformidade":
                 st.subheader("Análise de Variantes e Conformidade")
                 col1, col2 = st.columns(2)
                 with col1:
-                    if 'chart_04_variants_pie' in post_res: with st.container(border=True): st.pyplot(post_res['chart_04_variants_pie'])
-                    if 'chart_05_conformance_fitness' in post_res: with st.container(border=True): st.pyplot(post_res['chart_05_conformance_fitness'])
+                    if 'chart_04_variants_pie' in post_res:
+                        with st.container(border=True): st.pyplot(post_res['chart_04_variants_pie'])
+                    if 'chart_05_conformance_fitness' in post_res:
+                        with st.container(border=True): st.pyplot(post_res['chart_05_conformance_fitness'])
                 with col2:
-                    if 'chart_09_deviation_scatter' in post_res: with st.container(border=True): st.pyplot(post_res['chart_09_deviation_scatter'])
-                if 'chart_08_variant_duration' in post_res: with st.container(border=True): st.pyplot(post_res['chart_08_variant_duration'])
-                if 'chart_10_conformance_over_time' in post_res: with st.container(border=True): st.pyplot(post_res['chart_10_conformance_over_time'])
+                    if 'chart_09_deviation_scatter' in post_res:
+                        with st.container(border=True): st.pyplot(post_res['chart_09_deviation_scatter'])
+                if 'chart_08_variant_duration' in post_res:
+                    with st.container(border=True): st.pyplot(post_res['chart_08_variant_duration'])
+                if 'chart_10_conformance_over_time' in post_res:
+                    with st.container(border=True): st.pyplot(post_res['chart_10_conformance_over_time'])
 
             if selected_section == "Análise Temporal":
                 st.subheader("Análise Temporal e de Linha do Tempo")
-                if 'chart_06_kpi_time_series' in post_res: with st.container(border=True): st.pyplot(post_res['chart_06_kpi_time_series'])
-                if 'chart_11_cumulative_throughput' in post_res: with st.container(border=True): st.pyplot(post_res['chart_11_cumulative_throughput'])
-                if 'chart_12_milestone_analysis' in post_res: with st.container(border=True): st.pyplot(post_res['chart_12_milestone_analysis'])
-                if 'chart_07_gantt_chart' in post_res: with st.container(border=True): st.pyplot(post_res['chart_07_gantt_chart'])
+                if 'chart_06_kpi_time_series' in post_res:
+                    with st.container(border=True): st.pyplot(post_res['chart_06_kpi_time_series'])
+                if 'chart_11_cumulative_throughput' in post_res:
+                    with st.container(border=True): st.pyplot(post_res['chart_11_cumulative_throughput'])
+                if 'chart_12_milestone_analysis' in post_res:
+                    with st.container(border=True): st.pyplot(post_res['chart_12_milestone_analysis'])
+                if 'chart_07_gantt_chart' in post_res:
+                    with st.container(border=True): st.pyplot(post_res['chart_07_gantt_chart'])
 
             if selected_section == "Tempos de Espera e Recursos":
                 st.subheader("Análise de Tempos de Espera e Recursos")
                 col1, col2 = st.columns(2)
                 with col1:
-                     if 'chart_14_avg_wait_by_activity' in post_res: with st.container(border=True): st.pyplot(post_res['chart_14_avg_wait_by_activity'])
-                     if 'social_network' in post_res: with st.container(border=True): st.pyplot(post_res['social_network'])
+                     if 'chart_14_avg_wait_by_activity' in post_res:
+                         with st.container(border=True): st.pyplot(post_res['chart_14_avg_wait_by_activity'])
+                     if 'social_network' in post_res:
+                         with st.container(border=True): st.pyplot(post_res['social_network'])
                 with col2:
-                     if 'chart_13_waiting_time_matrix' in post_res: with st.container(border=True): st.pyplot(post_res['chart_13_waiting_time_matrix'])
-                     if 'bipartite_network' in post_res: with st.container(border=True): st.pyplot(post_res['bipartite_network'])
+                     if 'chart_13_waiting_time_matrix' in post_res:
+                         with st.container(border=True): st.pyplot(post_res['chart_13_waiting_time_matrix'])
+                     if 'bipartite_network' in post_res:
+                         with st.container(border=True): st.pyplot(post_res['bipartite_network'])
+    
+# --- 5. 
