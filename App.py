@@ -147,9 +147,10 @@ def generate_pre_mining_visuals(dfs):
     fig, ax = plt.subplots(figsize=(10, 4)); sns.histplot(lead_times["lead_time_days"], bins=20, kde=True, ax=ax); ax.set_title('Distribuição do Lead Time por Caso (dias)'); results['plot_03_lead_time_hist'] = fig
 
     # --- Secção 3: Análise de Atividades e Handoffs ---
-    service_times = df_full_context.groupby('concept:name')['hours_worked'].mean().reset_index()
+    # CORREÇÃO: Usar 'task_name' que existe em df_full_context, em vez de 'concept:name'
+    service_times = df_full_context.groupby('task_name')['hours_worked'].mean().reset_index()
     # plot_07_activity_service_times
-    fig, ax = plt.subplots(figsize=(10, 6)); sns.barplot(x='hours_worked', y='concept:name', data=service_times.sort_values('hours_worked', ascending=False).head(10), palette='viridis', ax=ax, hue='concept:name', legend=False); ax.set_title('Tempo Médio de Execução por Atividade (Horas)'); results['plot_07_activity_service_times'] = fig
+    fig, ax = plt.subplots(figsize=(10, 6)); sns.barplot(x='hours_worked', y='task_name', data=service_times.sort_values('hours_worked', ascending=False).head(10), palette='viridis', ax=ax, hue='task_name', legend=False); ax.set_title('Tempo Médio de Execução por Atividade (Horas)'); results['plot_07_activity_service_times'] = fig
 
     # --- Secção 4: Análise Organizacional (Recursos) ---
     # plot_10_top_activities_plot
