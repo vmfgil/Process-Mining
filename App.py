@@ -152,7 +152,7 @@ def generate_pre_mining_visuals(dfs):
     # plot_02_case_durations_boxplot
     fig, ax = plt.subplots(figsize=(10, 4)); sns.boxplot(x=df_projects['actual_duration_days'], color='skyblue', ax=ax); ax.set_title('Distribuição da Duração dos Projetos'); results['plot_02'] = fig
     
-    lead_times = log_df.groupby("case:concept:name")["time:timestamp"].agg(["min", "max"])
+    lead_times = log_df.groupby("case:concept:name")["time:timestamp"].agg(["min", "max"]).reset_index()
     lead_times["lead_time_days"] = (lead_times["max"] - lead_times["min"]).dt.days
     # plot_03_lead_time_hist
     fig, ax = plt.subplots(figsize=(10, 4)); sns.histplot(lead_times["lead_time_days"], bins=20, kde=True, ax=ax); ax.set_title('Distribuição do Lead Time por Caso (dias)'); results['plot_03'] = fig
@@ -161,7 +161,6 @@ def generate_pre_mining_visuals(dfs):
     # plot_04_throughput_hist & plot_05_throughput_boxplot
     fig, ax = plt.subplots(1, 2, figsize=(12, 4)); sns.histplot(throughput_per_case["avg_throughput_hours"], bins=20, kde=True, ax=ax[0], color='green'); ax[0].set_title('Distribuição do Throughput (horas)'); sns.boxplot(x=throughput_per_case["avg_throughput_hours"], ax=ax[1], color='lightgreen'); ax[1].set_title('Boxplot do Throughput (horas)'); fig.tight_layout(); results['plot_04_05'] = fig
     
-    lead_times['case:concept:name'] = lead_times.index
     perf_df = pd.merge(lead_times, throughput_per_case, on="case:concept:name")
     
     # plot_06_lead_time_vs_throughput
@@ -262,7 +261,6 @@ def generate_pre_mining_visuals(dfs):
     # plot_24_handoff_matrix_by_type
     fig, ax = plt.subplots(figsize=(10, 8)); sns.heatmap(handoff_matrix, annot=True, fmt=".0f", cmap="BuPu", ax=ax); ax.set_title("Matriz de Handoffs por Tipo de Equipa"); results['plot_24'] = fig
     
-    # CORREÇÃO: Usar a coluna 'project_id' para o merge
     perf_df['project_id'] = perf_df['case:concept:name'].str.replace('Projeto ', '')
     df_perf_full = perf_df.merge(df_projects, on='project_id', how='left')
     
