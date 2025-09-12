@@ -108,7 +108,6 @@ def load_and_preprocess_data(uploaded_files):
         df_projects['cost_diff'] = df_projects['total_actual_cost'] - df_projects['budget_impact']
         
         # Criação do DataFrame unificado
-        # CORREÇÃO DEFINITIVA: Remover 'project_id' de allocations para evitar colisão, como no notebook.
         allocations_to_merge = df_resource_allocations.drop(columns=['project_id'], errors='ignore')
         df_full_context = df_tasks.merge(df_projects, on='project_id', suffixes=('_task', '_project'))
         df_full_context = df_full_context.merge(allocations_to_merge, on='task_id')
@@ -116,10 +115,9 @@ def load_and_preprocess_data(uploaded_files):
         df_full_context['cost_of_work'] = df_full_context['hours_worked'] * df_full_context['cost_per_hour']
         
         # Criação do Log de Eventos para PM4PY
-        # CORREÇÃO DEFINITIVA: Lógica de merge alinhada com o notebook para evitar erro de 'project_id_x'
         log_df = df_tasks.merge(allocations_to_merge, on='task_id').merge(df_resources, on='resource_id')
         log_df.rename(columns={
-            'project_id': 'case:concept:name', # CORREÇÃO: Alterado de 'project_id_x' para 'project_id'
+            'project_id': 'case:concept:name',
             'task_name': 'concept:name',
             'end_date': 'time:timestamp',
             'resource_name': 'org:resource'
@@ -175,7 +173,9 @@ def discover_and_evaluate_models(event_log):
     results = {}
     
     # Inductive Miner
-    net_im, im_im, fm_im = inductive_miner.apply(event_log)
+    # CORREÇÃO: O Inductive Miner retorna uma 'Process Tree'. É preciso convertê-la para uma Petri Net.
+    process_tree_im = inductive_miner.apply(event_log)
+    net_im, im_im, fm_im = pm4py.convert_to_petri_net(process_tree_im)
     gviz_im = pn_visualizer.apply(net_im, im_im, fm_im)
     results['inductive_model'] = gviz_im
     
