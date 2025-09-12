@@ -191,7 +191,8 @@ def analyze_bottlenecks_and_resources(event_log, df_full_context):
     results = {}
 
     # DFG de Performance
-    dfg_perf = pm4py.discover_performance_dfg(event_log, activity_key='concept:name', timestamp_key='time:timestamp', case_id_key='case:concept:name')
+    # CORREÇÃO: Desempacotar corretamente o resultado da função
+    dfg_perf, start_activities, end_activities = pm4py.discover_performance_dfg(event_log, activity_key='concept:name', timestamp_key='time:timestamp', case_id_key='case:concept:name')
     gviz_dfg = dfg_visualizer.apply(dfg_perf, log=event_log, variant=dfg_visualizer.Variants.PERFORMANCE)
     results['performance_dfg'] = gviz_dfg
     
@@ -256,10 +257,10 @@ if menu_selection == "1. Carregar Dados":
             uploaded_file = st.file_uploader(f"Selecione o ficheiro `{name}.csv`", type="csv", key=f"upload_{name}")
             if uploaded_file is not None:
                 st.session_state.uploaded_files[name] = uploaded_file
-                # CORREÇÃO: Revertido para separador vírgula e adicionado .seek(0)
                 df_preview = pd.read_csv(uploaded_file)
-                uploaded_file.seek(0) # IMPORTANTE: Repõe o ponteiro do ficheiro para o início
-                st.dataframe(df_preview.head(), use_container_width=True)
+                uploaded_file.seek(0)
+                # CORREÇÃO: Substituir 'use_container_width' por 'width'
+                st.dataframe(df_preview.head(), width=None, use_container_width=True)
                 st.success(f"`{name}.csv` carregado com sucesso!")
 
 
@@ -273,6 +274,7 @@ elif menu_selection == "2. Executar Análise":
 
     if all_files_uploaded:
         st.info("Todos os ficheiros necessários foram carregados. Está pronto para iniciar a análise.")
+        # CORREÇÃO: Substituir 'use_container_width' por 'width'
         if st.button("🚀 Iniciar Análise Completa", type="primary", use_container_width=True):
             run_full_analysis()
     else:
@@ -301,6 +303,7 @@ elif menu_selection == "3. Visualizar Resultados":
             st.divider()
             
             st.subheader("Matriz de Performance: Prazo vs. Orçamento")
+            # CORREÇÃO: Substituir 'use_container_width' por 'width'
             st.pyplot(st.session_state.results.get('performance_matrix'), use_container_width=True)
 
         with tab2:
@@ -323,5 +326,6 @@ elif menu_selection == "3. Visualizar Resultados":
 
             st.subheader("Carga de Trabalho por Recurso")
             st.markdown("Visualização das horas totais trabalhadas pelos recursos mais ativos, ajudando a identificar a distribuição do esforço.")
+            # CORREÇÃO: Substituir 'use_container_width' por 'width'
             st.pyplot(st.session_state.results.get('resource_workload'), use_container_width=True)
 
