@@ -5,3 +5,5 @@ matplotlib
 seaborn
 networkx
 pm4py
+fpdf
+
