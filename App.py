@@ -79,14 +79,14 @@ def load_and_preprocess_data(uploaded_files):
     cria o log de eventos para a análise de processos.
     """
     try:
-        # Carregar para DataFrames - CORREÇÃO: Revertido para usar vírgula como separador padrão
+        # Carregar para DataFrames
         df_projects = pd.read_csv(uploaded_files['projects'])
         df_tasks = pd.read_csv(uploaded_files['tasks'])
         df_resources = pd.read_csv(uploaded_files['resources'])
         df_resource_allocations = pd.read_csv(uploaded_files['resource_allocations'])
         df_dependencies = pd.read_csv(uploaded_files['dependencies'])
 
-        # Conversões de data - CORREÇÃO: Removido dayfirst=True, pois as datas estão em formato YYYY-MM-DD
+        # Conversões de data
         for df in [df_projects, df_tasks]:
             for col in ['start_date', 'end_date', 'planned_end_date']:
                 if col in df.columns:
@@ -108,15 +108,18 @@ def load_and_preprocess_data(uploaded_files):
         df_projects['cost_diff'] = df_projects['total_actual_cost'] - df_projects['budget_impact']
         
         # Criação do DataFrame unificado
+        # CORREÇÃO DEFINITIVA: Remover 'project_id' de allocations para evitar colisão, como no notebook.
+        allocations_to_merge = df_resource_allocations.drop(columns=['project_id'], errors='ignore')
         df_full_context = df_tasks.merge(df_projects, on='project_id', suffixes=('_task', '_project'))
-        df_full_context = df_full_context.merge(df_resource_allocations, on='task_id')
+        df_full_context = df_full_context.merge(allocations_to_merge, on='task_id')
         df_full_context = df_full_context.merge(df_resources, on='resource_id')
         df_full_context['cost_of_work'] = df_full_context['hours_worked'] * df_full_context['cost_per_hour']
         
         # Criação do Log de Eventos para PM4PY
-        log_df = df_tasks.merge(df_resource_allocations, on='task_id').merge(df_resources, on='resource_id')
+        # CORREÇÃO DEFINITIVA: Lógica de merge alinhada com o notebook para evitar erro de 'project_id_x'
+        log_df = df_tasks.merge(allocations_to_merge, on='task_id').merge(df_resources, on='resource_id')
         log_df.rename(columns={
-            'project_id_x': 'case:concept:name',
+            'project_id': 'case:concept:name', # CORREÇÃO: Alterado de 'project_id_x' para 'project_id'
             'task_name': 'concept:name',
             'end_date': 'time:timestamp',
             'resource_name': 'org:resource'
