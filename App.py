@@ -79,14 +79,14 @@ def load_and_preprocess_data(uploaded_files):
     cria o log de eventos para a análise de processos.
     """
     try:
-        # Carregar para DataFrames
+        # Carregar para DataFrames - CORREÇÃO: Revertido para usar vírgula como separador padrão
         df_projects = pd.read_csv(uploaded_files['projects'])
         df_tasks = pd.read_csv(uploaded_files['tasks'])
         df_resources = pd.read_csv(uploaded_files['resources'])
         df_resource_allocations = pd.read_csv(uploaded_files['resource_allocations'])
         df_dependencies = pd.read_csv(uploaded_files['dependencies'])
 
-        # Conversões de data
+        # Conversões de data - CORREÇÃO: Removido dayfirst=True, pois as datas estão em formato YYYY-MM-DD
         for df in [df_projects, df_tasks]:
             for col in ['start_date', 'end_date', 'planned_end_date']:
                 if col in df.columns:
@@ -253,7 +253,9 @@ if menu_selection == "1. Carregar Dados":
             uploaded_file = st.file_uploader(f"Selecione o ficheiro `{name}.csv`", type="csv", key=f"upload_{name}")
             if uploaded_file is not None:
                 st.session_state.uploaded_files[name] = uploaded_file
+                # CORREÇÃO: Revertido para separador vírgula e adicionado .seek(0)
                 df_preview = pd.read_csv(uploaded_file)
+                uploaded_file.seek(0) # IMPORTANTE: Repõe o ponteiro do ficheiro para o início
                 st.dataframe(df_preview.head(), use_container_width=True)
                 st.success(f"`{name}.csv` carregado com sucesso!")
 
@@ -319,3 +321,4 @@ elif menu_selection == "3. Visualizar Resultados":
             st.subheader("Carga de Trabalho por Recurso")
             st.markdown("Visualização das horas totais trabalhadas pelos recursos mais ativos, ajudando a identificar a distribuição do esforço.")
             st.pyplot(st.session_state.results.get('resource_workload'), use_container_width=True)
+
