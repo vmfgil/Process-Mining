@@ -147,7 +147,6 @@ def generate_pre_mining_visuals(dfs):
     fig, ax = plt.subplots(figsize=(10, 4)); sns.histplot(lead_times["lead_time_days"], bins=20, kde=True, ax=ax); ax.set_title('Distribuição do Lead Time por Caso (dias)'); results['plot_03_lead_time_hist'] = fig
 
     # --- Secção 3: Análise de Atividades e Handoffs ---
-    # CORREÇÃO: Usar 'task_name' que existe em df_full_context, em vez de 'concept:name'
     service_times = df_full_context.groupby('task_name')['hours_worked'].mean().reset_index()
     # plot_07_activity_service_times
     fig, ax = plt.subplots(figsize=(10, 6)); sns.barplot(x='hours_worked', y='task_name', data=service_times.sort_values('hours_worked', ascending=False).head(10), palette='viridis', ax=ax, hue='task_name', legend=False); ax.set_title('Tempo Médio de Execução por Atividade (Horas)'); results['plot_07_activity_service_times'] = fig
@@ -168,8 +167,10 @@ def generate_pre_mining_visuals(dfs):
     bins = np.linspace(df_projects['num_resources'].min(), df_projects['num_resources'].max(), 5, dtype=int)
     df_projects['team_size_bin'] = pd.cut(df_projects['num_resources'], bins=bins, include_lowest=True, duplicates='drop').astype(str)
     fig, ax = plt.subplots(figsize=(10, 6)); sns.boxplot(data=df_projects, x='team_size_bin', y='days_diff', ax=ax, palette='flare', hue='team_size_bin', legend=False); ax.set_title('Impacto do Tamanho da Equipa no Atraso'); results['plot_17_delay_by_teamsize'] = fig
+    
     # plot_19_weekly_efficiency
-    df_full_context['day_of_week'] = df_full_context['time:timestamp'].dt.day_name()
+    # CORREÇÃO: Usar 'allocation_date' que existe em df_full_context
+    df_full_context['day_of_week'] = df_full_context['allocation_date'].dt.day_name()
     weekday_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
     weekly_hours = df_full_context.groupby('day_of_week')['hours_worked'].sum().reindex(weekday_order)
     fig, ax = plt.subplots(figsize=(10, 6)); sns.barplot(x=weekly_hours.index, y=weekly_hours.values, ax=ax, palette='plasma', hue=weekly_hours.index, legend=False); ax.set_title('Total de Horas Trabalhadas por Dia da Semana'); results['plot_19_weekly_efficiency'] = fig
@@ -183,7 +184,6 @@ def generate_post_mining_visuals(dfs):
     event_log = dfs['event_log']
     df_tasks = dfs['tasks']
     df_projects = dfs['projects']
-    log_df = dfs['log_df']
     
     # --- Modelos de Processo ---
     process_tree_im = inductive_miner.apply(event_log)
