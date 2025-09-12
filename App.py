@@ -64,6 +64,12 @@ def load_and_preprocess_data(uploaded_files):
     try:
         dfs = {name: pd.read_csv(file) for name, file in uploaded_files.items()}
 
+        # Garantir que IDs são do mesmo tipo (string) para evitar erros de merge
+        for name in ['projects', 'tasks', 'resources', 'resource_allocations', 'dependencies']:
+            for col in ['project_id', 'task_id', 'resource_id', 'allocation_id']:
+                if col in dfs[name].columns:
+                    dfs[name][col] = dfs[name][col].astype(str)
+
         # Conversões de data
         for df_name in ['projects', 'tasks']:
             for col in ['start_date', 'end_date', 'planned_end_date']:
@@ -72,14 +78,12 @@ def load_and_preprocess_data(uploaded_files):
         dfs['resource_allocations']['allocation_date'] = pd.to_datetime(dfs['resource_allocations']['allocation_date'], errors='coerce')
 
         # Engenharia de Funcionalidades (Features)
-        # Nível de Projeto
         df_projects = dfs['projects']
         df_projects['days_diff'] = (df_projects['end_date'] - df_projects['planned_end_date']).dt.days
         df_projects['actual_duration_days'] = (df_projects['end_date'] - df_projects['start_date']).dt.days
         df_projects['completion_month'] = df_projects['end_date'].dt.to_period('M').astype(str)
         df_projects['completion_quarter'] = df_projects['end_date'].dt.to_period('Q').astype(str)
         
-        # Nível de Tarefa
         df_tasks = dfs['tasks']
         df_tasks['task_duration_days'] = (df_tasks['end_date'] - df_tasks['start_date']).dt.days
 
@@ -156,8 +160,11 @@ def generate_pre_mining_visuals(dfs):
     throughput_per_case = log_df.groupby("case:concept:name").apply(lambda g: g['time:timestamp'].diff().mean().total_seconds() / 3600).reset_index(name="avg_throughput_hours")
     # plot_04_throughput_hist & plot_05_throughput_boxplot
     fig, ax = plt.subplots(1, 2, figsize=(12, 4)); sns.histplot(throughput_per_case["avg_throughput_hours"], bins=20, kde=True, ax=ax[0], color='green'); ax[0].set_title('Distribuição do Throughput (horas)'); sns.boxplot(x=throughput_per_case["avg_throughput_hours"], ax=ax[1], color='lightgreen'); ax[1].set_title('Boxplot do Throughput (horas)'); fig.tight_layout(); results['plot_04_05'] = fig
+    
+    lead_times['case:concept:name'] = lead_times.index
+    perf_df = pd.merge(lead_times, throughput_per_case, on="case:concept:name")
+    
     # plot_06_lead_time_vs_throughput
-    perf_df = pd.merge(lead_times.reset_index(), throughput_per_case, on="case:concept:name")
     fig, ax = plt.subplots(figsize=(8, 5)); sns.regplot(x="avg_throughput_hours", y="lead_time_days", data=perf_df, ax=ax); ax.set_title('Relação entre Lead Time e Throughput'); results['plot_06'] = fig
     
     service_times = df_full_context.groupby('task_name')['hours_worked'].mean().reset_index()
@@ -255,7 +262,10 @@ def generate_pre_mining_visuals(dfs):
     # plot_24_handoff_matrix_by_type
     fig, ax = plt.subplots(figsize=(10, 8)); sns.heatmap(handoff_matrix, annot=True, fmt=".0f", cmap="BuPu", ax=ax); ax.set_title("Matriz de Handoffs por Tipo de Equipa"); results['plot_24'] = fig
     
-    df_perf_full = perf_df.merge(df_projects, left_on='case:concept:name', right_on='project_id', how='left')
+    # CORREÇÃO: Usar a coluna 'project_id' para o merge
+    perf_df['project_id'] = perf_df['case:concept:name'].str.replace('Projeto ', '')
+    df_perf_full = perf_df.merge(df_projects, on='project_id', how='left')
+    
     # plot_25_throughput_benchmark_by_teamsize
     fig, ax = plt.subplots(figsize=(12, 7)); sns.boxplot(data=df_perf_full, x='team_size_bin', y='avg_throughput_hours', palette='plasma', ax=ax, hue='team_size_bin', legend=False); ax.set_title('Benchmark de Throughput por Tamanho da Equipa'); results['plot_25'] = fig
     
@@ -324,7 +334,7 @@ def generate_post_mining_visuals(dfs):
     # chart_09_deviation_scatter
     fig, ax = plt.subplots(figsize=(10, 6)); sns.scatterplot(x='fitness', y='deviations', data=deviations_df, alpha=0.6, ax=ax); ax.set_title('Diagrama de Dispersão (Fitness vs. Desvios)'); results['chart_09'] = fig
 
-    case_fitness_df = pd.DataFrame([{'project_id': int(trace.attributes['concept:name'].replace('Projeto ', '')), 'fitness': alignment['fitness']} for trace, alignment in zip(event_log, aligned_traces)])
+    case_fitness_df = pd.DataFrame([{'project_id': trace.attributes['concept:name'].replace('Projeto ', ''), 'fitness': alignment['fitness']} for trace, alignment in zip(event_log, aligned_traces)])
     case_fitness_df = case_fitness_df.merge(df_projects[['project_id', 'end_date']], on='project_id')
     case_fitness_df['end_month'] = case_fitness_df['end_date'].dt.to_period('M').astype(str)
     monthly_fitness = case_fitness_df.groupby('end_month')['fitness'].mean().reset_index()
