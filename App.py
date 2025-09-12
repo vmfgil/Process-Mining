@@ -169,7 +169,6 @@ def generate_pre_mining_visuals(dfs):
     fig, ax = plt.subplots(figsize=(10, 6)); sns.boxplot(data=df_projects, x='team_size_bin', y='days_diff', ax=ax, palette='flare', hue='team_size_bin', legend=False); ax.set_title('Impacto do Tamanho da Equipa no Atraso'); results['plot_17_delay_by_teamsize'] = fig
     
     # plot_19_weekly_efficiency
-    # CORREÇÃO: Usar 'allocation_date' que existe em df_full_context
     df_full_context['day_of_week'] = df_full_context['allocation_date'].dt.day_name()
     weekday_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
     weekly_hours = df_full_context.groupby('day_of_week')['hours_worked'].sum().reindex(weekday_order)
@@ -212,7 +211,8 @@ def generate_post_mining_visuals(dfs):
 
     # --- Análise de Variantes ---
     variants = pm4py.get_variants_as_tuples(event_log)
-    variants_df = pd.DataFrame.from_dict(variants, orient='index', columns=['count']).sort_values(by='count', ascending=False)
+    variants_counts = {k: len(v) for k, v in variants.items()}
+    variants_df = pd.DataFrame(list(variants_counts.items()), columns=['variant', 'count']).sort_values(by='count', ascending=False)
     fig, ax = plt.subplots(figsize=(10, 6)); ax.pie(variants_df['count'].head(7), labels=[f'Variante {i+1}' for i in range(7)], autopct='%1.1f%%', startangle=90); ax.set_title('Distribuição das 7 Variantes Mais Comuns'); results['variants_pie'] = fig
 
     # --- Análise de Conformidade ---
