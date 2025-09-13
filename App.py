@@ -391,11 +391,15 @@ def generate_post_mining_visuals(_dfs):
         resources = trace['org:resource'].tolist()
         for i in range(len(resources) - 1):
             if resources[i] != resources[i+1]: handoff_counts[(resources[i], resources[i+1])] += 1
+    
     fig, ax = plt.subplots(figsize=(8, 8)); G = nx.DiGraph();
     for (source, target), weight in handoff_counts.items(): G.add_edge(source, target, weight=weight)
     pos = nx.spring_layout(G, k=1.2, iterations=50, seed=42)
     weights = [G[u][v]['weight'] for u,v in G.edges()]
-    nx.draw(G, pos, with_labels=True, node_color='skyblue', node_size=2500, edge_color='gray', width=[w*0.5 for w in weights], ax=ax, font_size=9, connectionstyle='arc3,rad=0.1')
+    
+    # LINHA CORRIGIDA: Removido o parâmetro "connectionstyle" para evitar erro de cache
+    nx.draw(G, pos, with_labels=True, node_color='skyblue', node_size=2500, edge_color='gray', width=[w*0.5 for w in weights], ax=ax, font_size=9)
+    
     nx.draw_networkx_edge_labels(G, pos, edge_labels=nx.get_edge_attributes(G, 'weight'), ax=ax); ax.set_title("Rede Social de Colaboração (Handovers)"); fig.tight_layout(); results['social_network'] = fig
     
     df_full_context = _dfs['full_context']
@@ -456,8 +460,8 @@ def generate_pdf_report(pre_res, post_res):
                     print(f"Error saving {name}: {e}")
     
     return pdf.output(dest='S').encode('latin-1')
-
-    # --- 5. LAYOUT DA APLIÇÃO (UI REESTILIZADA) ---
+    
+# --- 5. LAYOUT DA APLICAÇÃO (UI REESTILIZADA) ---
 st.title("✨ Dashboard de Análise de Processos")
 st.sidebar.title("Painel de Controlo")
 menu_selection = st.sidebar.radio(
@@ -652,5 +656,3 @@ elif menu_selection == "3. Visualizar Resultados":
                          with st.container(border=True): st.pyplot(post_res['chart_13_waiting_time_matrix'])
                      if 'bipartite_network' in post_res:
                          with st.container(border=True): st.pyplot(post_res['bipartite_network'])
-    
-# --- 5. 
