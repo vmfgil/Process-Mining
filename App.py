@@ -1,258 +1,243 @@
 # streamlit_app.py
-# Streamlit app para executar o notebook e mostrar os artefactos gerados.
-# Coloca este ficheiro na raíz do repositório (junto do teu notebook).
-# Nome do notebook esperado (ajusta se necessário):
-NOTEBOOK_FILENAME = "PM_na_Gestão_de_recursos_de_IT_v5.0.ipynb"
+# Streamlit app to reproduce your notebook outputs (uploads -> run analyses -> results)
+# IMPORTANT: this app executes the notebook present at /mnt/data/PM_na_Gestão_de_recursos_de_IT_v5.0.ipynb
+# It saves uploaded files to the working directory, runs the notebook as a script, and then
+# collects the generated plots from the two report folders the notebook creates:
+#  - Process_Analysis_Dashboard (pre-mining / penultimate cell)
+#  - Relatorio_Unificado_Analise_Processos (post-mining / last cell)
 
 import streamlit as st
-import tempfile, os, uuid, json, shutil, nbformat, re
-from nbconvert.preprocessors import ExecutePreprocessor
+import os, sys, io, shutil, tempfile, subprocess
 from pathlib import Path
+import nbformat
+import pandas as pd
+from typing import List, Dict
 
-st.set_page_config(page_title="Analytica — App", layout="wide")
+# App config
+st.set_page_config(page_title='Process Mining Dashboard', layout='wide')
 
-# Helper UI
-st.sidebar.markdown("## Analytica — App")
-st.sidebar.write("Carrega os ficheiros com os nomes exatos que o notebook espera:")
-st.sidebar.markdown("""
-- **projects.csv**  
-- **tasks.csv**  
-- **resources.csv**  
-- **resource_allocations.csv**  
-- **dependencies.csv**
-""")
-st.sidebar.caption("Todos os dados processados no servidor Streamlit (ou local).")
+# Minimal CSS (uses single quotes to avoid JSON escape issues)
+st.markdown(
+    "<style>\n    .main > div {padding: 1rem 2rem;}\n    .card {background: linear-gradient(180deg, #ffffff, #f7f9fc); border-radius:12px; padding:1rem; box-shadow: 0 6px 18px rgba(20,30,60,0.08);}\n    .brand {font-weight:700; font-size:20px;}\n    .muted {color:#6b7280;}\n    </style>", unsafe_allow_html=True)
 
-st.title("Analytica — Upload • Execução • Resultados")
-st.write("Carrega os 5 ficheiros, clica em **Executar Análise** e espera a confirmação. Quando terminar encontrarás os artefactos gerados pelo notebook.")
+REQUIRED_FILENAMES = ['projects.csv', 'tasks.csv', 'resources.csv', 'resource_allocations.csv', 'dependencies.csv']
+NOTEBOOK_PATH = '/mnt/data/PM_na_GestÃ£o_de_recursos_de_IT_v5.0.ipynb'
+# fallback path (original upload)
+if not os.path.exists(NOTEBOOK_PATH):
+    NOTEBOOK_PATH = '/mnt/data/PM_na_Gestão_de_recursos_de_IT_v5.0.ipynb'
 
-# Upload widgets
-col1, col2 = st.columns(2)
-with col1:
-    f_projects = st.file_uploader("projects.csv", type=["csv"], key="projects")
-    f_tasks = st.file_uploader("tasks.csv", type=["csv"], key="tasks")
-with col2:
-    f_resources = st.file_uploader("resources.csv", type=["csv"], key="resources")
-    f_alloc = st.file_uploader("resource_allocations.csv", type=["csv"], key="resource_allocations")
-    f_deps = st.file_uploader("dependencies.csv", type=["csv"], key="dependencies")
+PREMINING_DIR = 'Process_Analysis_Dashboard'
+POSTMINING_DIR = 'Relatorio_Unificado_Analise_Processos'
 
-# Small preview function
-def preview_csv_bytes(b):
-    s = b.decode("utf-8", errors="ignore")
-    lines = s.splitlines()[:6]
-    return "<br>".join([st.markdown(l) for l in lines])
+def save_uploaded_files(uploaded_files: Dict[str, io.BytesIO], dest_dir: str = '.'):
+    os.makedirs(dest_dir, exist_ok=True)
+    saved = []
+    for name, up in uploaded_files.items():
+        path = os.path.join(dest_dir, name)
+        with open(path, 'wb') as f:
+            f.write(up.getbuffer())
+        saved.append(path)
+    return saved
 
-st.markdown("---")
-run_col, info_col = st.columns([1,3])
-with run_col:
-    run_button = st.button("▶️ Executar Análise")
-with info_col:
-    st.info("A execução pode demorar. Vais receber notificação quando o processo terminar.")
+def preview_uploaded(uploaded_files: Dict[str, io.BytesIO], nrows=5):
+    previews = {}
+    for name, up in uploaded_files.items():
+        try:
+            up.seek(0)
+            df = pd.read_csv(up)
+        except Exception:
+            try:
+                up.seek(0)
+                df = pd.read_excel(up)
+            except Exception:
+                df = None
+        previews[name] = df.head(nrows) if isinstance(df, pd.DataFrame) else None
+    return previews
 
-# Inject code that will be placed at top of notebook to capture artefacts
-INJECT_CODE = r'''
-import os, json, matplotlib
-report_dir = os.path.abspath('report_output')
-plots_dir = os.path.join(report_dir, 'plots')
-models_dir = os.path.join(report_dir, 'models')
-os.makedirs(plots_dir, exist_ok=True)
-os.makedirs(models_dir, exist_ok=True)
-manifest = []
-manifest_path = os.path.join(report_dir, 'manifest.json')
-plot_counter = 0
-
-def _sanitize_filename(s):
+def sanitize_and_write_script(nb_path: str, out_path: str):
+    nb = nbformat.read(nb_path, as_version=4)
+    code_cells = [c.source for c in nb.cells if c.cell_type == 'code']
+    combined = '\n\n# --- Cell boundary ---\n\n'.join(code_cells)
+    # Neutralize common interactive or install lines
+    combined = combined.replace('files.upload()', 'None  # neutralized')
+    combined = combined.replace("from google.colab import files", '# removed')
     import re
-    s = re.sub(r'[^0-9A-Za-z_\\-\\s]', '_', str(s))
-    s = s.strip().replace(' ', '_')
-    return s[:200]
+    combined = re.sub(r"(^|\n)\s*!pip\s+install[^\n]*", '\n# pip removed', combined)
+    combined = re.sub(r"(^|\n)\s*get_ipython\(\)\.system\([^\)]*\)", '\n# system call removed', combined)
+    with open(out_path, 'w', encoding='utf-8') as f:
+        f.write('# Auto-generated script from notebook for Streamlit execution\n')
+        f.write('import os\n')
+        f.write('\n')
+        f.write(combined)
+    return out_path
 
-def save_artefact_and_add_to_html_report(artefact, title, filename_base, artefact_type='plot', content_text=''):
-    global plot_counter, manifest
-    plot_counter += 1
-    filename_base_counted = f"{plot_counter:02d}_" + _sanitize_filename(filename_base)
-    directory = models_dir if artefact_type == 'model' else plots_dir
-    os.makedirs(directory, exist_ok=True)
-    png_path = os.path.join(directory, f"{filename_base_counted}.png")
+def run_script_and_wait(script_path: str, workdir: str = '.'):
     try:
-        if hasattr(artefact, 'savefig'):
-            artefact.savefig(png_path, bbox_inches='tight')
-        elif isinstance(artefact, matplotlib.figure.Figure):
-            artefact.savefig(png_path, bbox_inches='tight')
-        else:
-            import matplotlib.pyplot as plt
-            plt.savefig(png_path, bbox_inches='tight')
-        saved = png_path
+        proc = subprocess.run([sys.executable, script_path], cwd=workdir, capture_output=True, text=True, timeout=1800)
+        output = proc.stdout + '\n' + proc.stderr
+        success = proc.returncode == 0
+        return success, output
+    except subprocess.TimeoutExpired as e:
+        return False, f'Script timed out after {e.timeout} seconds'
     except Exception as e:
-        txt_path = os.path.join(directory, f"{filename_base_counted}.txt")
-        with open(txt_path, 'w', encoding='utf-8') as f:
-            f.write(str(content_text) or str(title) or str(e))
-        saved = txt_path
-    rel = os.path.relpath(saved, report_dir)
-    manifest.append({'name': title, 'file': rel, 'type': artefact_type})
-    with open(manifest_path, 'w', encoding='utf-8') as mf:
-        json.dump(manifest, mf, ensure_ascii=False)
+        return False, str(e)
 
-def save_plot_and_add_to_html_report(plot_obj, title, filename_base, artefact_type='plot', content_text=''):
-    global plot_counter, manifest
-    plot_counter += 1
-    filename_base_counted = f"{plot_counter:02d}_" + _sanitize_filename(filename_base)
-    directory = plots_dir
-    os.makedirs(directory, exist_ok=True)
-    png_path = os.path.join(directory, f"{filename_base_counted}.png")
-    try:
-        if hasattr(plot_obj, 'figure'):
-            fig = plot_obj.figure
-            fig.savefig(png_path, bbox_inches='tight')
-        elif hasattr(plot_obj, 'savefig'):
-            plot_obj.savefig(png_path, bbox_inches='tight')
-        else:
-            import matplotlib.pyplot as plt
-            plt.savefig(png_path, bbox_inches='tight')
-        saved = png_path
-    except Exception as e:
-        txt_path = os.path.join(directory, f"{filename_base_counted}.txt")
-        with open(txt_path, 'w', encoding='utf-8') as f:
-            f.write(str(content_text) or str(title) or str(e))
-        saved = txt_path
-    rel = os.path.relpath(saved, report_dir)
-    manifest.append({'name': title, 'file': rel, 'type': artefact_type})
-    with open(manifest_path, 'w', encoding='utf-8') as mf:
-        json.dump(manifest, mf, ensure_ascii=False)
-'''
+def collect_images_from_dir(base_dir: str):
+    imgs = []
+    base = Path(base_dir)
+    if not base.exists():
+        return imgs
+    for p in base.rglob('*'):
+        if p.suffix.lower() in ['.png', '.jpg', '.jpeg', '.svg', '.gif']:
+            imgs.append(str(p))
+    imgs.sort()
+    return imgs
 
-def save_uploaded_files_to_dir(run_dir):
-    # expects the five file objects; returns dict of saved names
-    mapping = {}
-    mapping['projects'] = None
-    mapping['tasks'] = None
-    mapping['resources'] = None
-    mapping['resource_allocations'] = None
-    mapping['dependencies'] = None
-    files = {
-        'projects': f_projects,
-        'tasks': f_tasks,
-        'resources': f_resources,
-        'resource_allocations': f_alloc,
-        'dependencies': f_deps
-    }
-    for key, f in files.items():
-        if f is None:
-            continue
-        saved_path = os.path.join(run_dir, f.name)
-        with open(saved_path, "wb") as out:
-            out.write(f.getbuffer())
-        mapping[key] = saved_path
+def build_subsections_from_headings(nb_path: str):
+    nb = nbformat.read(nb_path, as_version=4)
+    headings = []
+    for c in nb.cells:
+        if c.cell_type == 'markdown':
+            for line in c.source.splitlines():
+                line = line.strip()
+                if line and (line.startswith('#') or (line.isupper() and len(line) < 80)):
+                    h = line.lstrip('#').strip()
+                    if h and h not in headings:
+                        headings.append(h)
+    if not headings:
+        headings = ['Secção 1: Análises de Alto Nível e de Casos', 'Secção 2: Descida e Descoberta de Modelos']
+    return headings
+
+def match_images_to_sections(images: List[str], sections: List[str]):
+    mapping = {s: [] for s in sections}
+    others = []
+    for img in images:
+        name = os.path.basename(img).lower()
+        matched = False
+        for s in sections:
+            key = ''.join(ch.lower() for ch in s if ch.isalnum() or ch.isspace())
+            tokens = key.split()[:5]
+            if all(t in name for t in tokens if len(t) > 2):
+                mapping[s].append(img)
+                matched = True
+                break
+        if not matched:
+            others.append(img)
+    if others:
+        mapping['Outros'] = others
     return mapping
 
-# Run logic
-if run_button:
-    # Validate uploads
-    if not (f_projects and f_tasks and f_resources and f_alloc and f_deps):
-        st.error("Por favor carrega os 5 ficheiros obrigatórios antes de executar.")
+# UI
+st.sidebar.title('Navega\u00e7\u00e3o')
+page = st.sidebar.radio('', ['Upload & Pr\u00e9-visualiza\u00e7\u00e3o', 'Executar An\u00e1lises', 'Resultados'])
+
+st.sidebar.markdown('---')
+st.sidebar.markdown('Brand: Process Mining Studio')
+
+st.markdown('<div class="card"><div class="brand">Process Mining Dashboard</div><div class="muted">Upload, executar e explorar resultados</div></div>', unsafe_allow_html=True)
+
+if page == 'Upload & Pr\u00e9-visualiza\u00e7\u00e3o':
+    st.header('1) Upload dos 5 ficheiros (obrigat\u00f3rios)')
+    st.write('Os ficheiros que o notebook espera s\u00e3o:')
+    st.write(', '.join(REQUIRED_FILENAMES))
+    uploaded = {}
+    cols = st.columns(2)
+    i = 0
+    for fn in REQUIRED_FILENAMES:
+        c = cols[i % 2]
+        with c:
+            up = st.file_uploader(fn, type=['csv','xlsx','xls'], key=f'up_{fn}')
+            if up is not None:
+                uploaded[fn] = up
+        i += 1
+    if st.button('Guardar ficheiros no servidor'):
+        missing = [f for f in REQUIRED_FILENAMES if f not in uploaded]
+        if missing:
+            st.error(f'Faltam ficheiros: {missing} \u2014 carregue todos os 5 ficheiros antes de guardar.')
+        else:
+            saved = save_uploaded_files(uploaded, dest_dir='uploaded_data')
+            st.success('Ficheiros guardados: ' + ', '.join(os.path.basename(s) for s in saved))
+            st.info('Pode agora ir a "Executar An\u00e1lises" para correr o notebook e gerar os gr\u00e1ficos.')
+    st.markdown('---')
+    st.header('Pr\u00e9-visualiza\u00e7\u00e3o (primeiras linhas)')
+    previews = preview_uploaded(uploaded, nrows=5)
+    for name, df in previews.items():
+        st.subheader(name)
+        if df is None:
+            st.write('Formato n\u00e3o reconhecido.')
+        else:
+            st.dataframe(df)
+
+elif page == 'Executar An\u00e1lises':
+    st.header('2) Executar todas as an\u00e1lises (vai correr o notebook)')
+    st.write('Certifique-se que j\u00e1 guardou os ficheiros na p\u00e1gina de upload.')
+    if not os.path.exists('uploaded_data'):
+        st.warning('Pasta uploaded_data n\u00e3o encontrada. Faça o upload e guarde os ficheiros primeiro.')
     else:
-        run_id = uuid.uuid4().hex
-        st.info(f"Inicio da análise — run id: {run_id}")
-        tmp_root = tempfile.mkdtemp(prefix=f"run_{run_id}_")
+        st.write('Ficheiros guardados detectados:')
+        st.write(os.listdir('uploaded_data'))
+    col1, col2 = st.columns([1,3])
+    with col1:
+        run_btn = st.button('Executar Notebook')
+    with col2:
+        st.info('A execução pode demorar. Sa\u00edda e logs mostrados abaixo.')
+    if run_btn:
+        for fn in REQUIRED_FILENAMES:
+            src = os.path.join('uploaded_data', fn)
+            if os.path.exists(src):
+                shutil.copy(src, fn)
+        tmpdir = tempfile.mkdtemp(prefix='nb_exec_')
+        script_path = os.path.join(tmpdir, 'notebook_script.py')
         try:
-            # 1) salvar ficheiros
-            saved_map = save_uploaded_files_to_dir(tmp_root)
-
-            # 2) copy notebook into run dir
-            nb_src = Path(NOTEBOOK_FILENAME)
-            if not nb_src.exists():
-                st.error(f"Notebook não encontrado no servidor: {NOTEBOOK_FILENAME}")
-            else:
-                notebook_copy = os.path.join(tmp_root, nb_src.name)
-                shutil.copy2(str(nb_src), notebook_copy)
-
-                # 3) read notebook and inject code
-                nb = nbformat.read(notebook_copy, as_version=4)
-                injected = nbformat.v4.new_code_cell(INJECT_CODE)
-                nb.cells.insert(0, injected)
-                # write modified notebook
-                exec_nb_path = os.path.join(tmp_root, "executed_notebook.ipynb")
-                nbformat.write(nb, exec_nb_path)
-
-                # 4) execute notebook
-                with st.spinner("A executar o notebook (pode demorar alguns minutos)..."):
-                    ep = ExecutePreprocessor(timeout=3600, kernel_name='python3')
-                    # run in tmp_root so notebook encontra ficheiros
-                    cur = os.getcwd()
-                    os.chdir(tmp_root)
-                    try:
-                        ep.preprocess(nb, {'metadata': {'path': tmp_root}})
-                    finally:
-                        os.chdir(cur)
-
-                st.success("✅ Análise concluída. A carregar artefactos...")
-
-                # 5) load manifest and show artifacts
-                report_output_dir = os.path.join(tmp_root, "report_output")
-                manifest_path = os.path.join(report_output_dir, "manifest.json")
-                artifacts = []
-                if os.path.exists(manifest_path):
-                    with open(manifest_path, encoding="utf-8") as mf:
-                        artifacts = json.load(mf)
-                else:
-                    # fallback: list plots folder
-                    plots_dir = os.path.join(report_output_dir, "plots")
-                    if os.path.isdir(plots_dir):
-                        for fn in sorted(os.listdir(plots_dir)):
-                            artifacts.append({"name": fn, "file": f"plots/{fn}", "type": "plot"})
-
-                # 6) display artifacts in structured UI
-                if not artifacts:
-                    st.warning("Nenhum artefacto encontrado (verifica se o notebook chama as funções de 'save_artefact...' corretamente).")
-                else:
-                    st.markdown("### Artefactos gerados")
-                    # create categories by keyword
-                    categories = {
-                        "Performance & Métricas": [],
-                        "Processos & Modelos": [],
-                        "Gantt / Throughput": [],
-                        "Gargalos & Esperas": [],
-                        "Frequência & Ocorrências": [],
-                        "Outros": []
-                    }
-                    for a in artifacts:
-                        n = a["name"].lower()
-                        if re.search(r"matriz|métric|kpi|séries temporais|throughput", n):
-                            categories["Performance & Métricas"].append(a)
-                        elif re.search(r"processo|modelo|inductive|heuristics|variante|redis|rede social|dfg", n):
-                            categories["Processos & Modelos"].append(a)
-                        elif re.search(r"gantt|linha do tempo|throughput", n):
-                            categories["Gantt / Throughput"].append(a)
-                        elif re.search(r"gargalo|espera|handoff|ranking", n):
-                            categories["Gargalos & Esperas"].append(a)
-                        elif re.search(r"ocorr|frequência|dia da semana|tarefas que ocorrem", n):
-                            categories["Frequência & Ocorrências"].append(a)
-                        else:
-                            categories["Outros"].append(a)
-
-                    # show category tabs
-                    tabs = st.tabs(list(categories.keys()))
-                    for i, (cat, items) in enumerate(categories.items()):
-                        with tabs[i]:
-                            if not items:
-                                st.write("_(nenhum artefacto nesta categoria)_")
-                            else:
-                                for art in items:
-                                    st.markdown(f"**{art['name']}**")
-                                    target = os.path.join(report_output_dir, art['file'])
-                                    if os.path.exists(target) and target.lower().endswith((".png",".jpg",".jpeg",".gif")):
-                                        st.image(target, use_column_width=True)
-                                        st.download_button("Download imagem", target, file_name=os.path.basename(target))
-                                    else:
-                                        # show as link or text
-                                        if os.path.exists(target):
-                                            st.download_button("Download ficheiro", target, file_name=os.path.basename(target))
-                                        else:
-                                            st.write(f"Ficheiro referenciado não encontrado: {art['file']}")
-
+            sanitize_and_write_script(NOTEBOOK_PATH, script_path)
         except Exception as e:
-            st.error(f"Erro durante a execução: {e}")
-        finally:
-            st.caption(f"Run dir: {tmp_root} (mantido para debug).")
-            # opcional: eliminar tmp_root se quiseres
-            # shutil.rmtree(tmp_root, ignore_errors=True)
+            st.error('N\u00e3o foi poss\u00edvel preparar o script: ' + str(e))
+        st.info('A executar o script gerado a partir do notebook...')
+        with st.spinner('Executando...'):
+            success, output = run_script_and_wait(script_path, workdir='.')
+        if success:
+            st.success('Notebook executado com sucesso.')
+        else:
+            st.error('A execu\u00e7\u00e3o falhou. Ver logs.')
+        st.code(output[:20000])
+
+elif page == 'Resultados':
+    st.header('3) Resultados')
+    st.write('Duas sec\u00e7\u00f5es: Pr\u00e9-minera\u00e7\u00e3o e P\u00f3s-minera\u00e7\u00e3o')
+    pre_images = collect_images_from_dir(PREMINING_DIR)
+    post_images = collect_images_from_dir(POSTMINING_DIR)
+    st.markdown('---')
+    st.subheader('Pr\u00e9-minera\u00e7\u00e3o — Process_Analysis_Dashboard')
+    if not pre_images:
+        st.warning('Nenhuma imagem encontrada em "Process_Analysis_Dashboard". Execute o notebook primeiro.')
+    else:
+        headings = build_subsections_from_headings(NOTEBOOK_PATH)
+        mapping = match_images_to_sections(pre_images, headings)
+        for sec, imgs in mapping.items():
+            with st.expander(sec, expanded=False):
+                if not imgs:
+                    st.write('Sem imagens para esta subse\u00e7\u00e3o.')
+                else:
+                    cols = st.columns(3)
+                    for i, im in enumerate(imgs):
+                        with cols[i % 3]:
+                            st.image(im, use_column_width=True, caption=os.path.basename(im))
+    st.markdown('---')
+    st.subheader('P\u00f3s-minera\u00e7\u00e3o — Relatorio_Unificado_Analise_Processos')
+    if not post_images:
+        st.warning('Nenhuma imagem encontrada em "Relatorio_Unificado_Analise_Processos". Execute o notebook primeiro.')
+    else:
+        headings_post = build_subsections_from_headings(NOTEBOOK_PATH)
+        mapping_post = match_images_to_sections(post_images, headings_post)
+        for sec, imgs in mapping_post.items():
+            with st.expander(sec, expanded=False):
+                if not imgs:
+                    st.write('Sem imagens para esta subse\u00e7\u00e3o.')
+                else:
+                    cols = st.columns(3)
+                    for i, im in enumerate(imgs):
+                        with cols[i % 3]:
+                            st.image(im, use_column_width=True, caption=os.path.basename(im))
+
+    st.markdown('\n---\n')
+    st.write('Se quer que reorganize as subse\u00e7\u00f5es ou filtre imagens, diga-me como.')
