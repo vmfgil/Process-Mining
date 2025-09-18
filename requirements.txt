@@ -9,6 +9,8 @@ fpdf
 nbformat
 missingno
 nbconvert
+streamlit-option-menu
+
 
 
 
