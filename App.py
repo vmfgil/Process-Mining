@@ -106,16 +106,14 @@ def run_full_analysis(dfs):
     df_projects['cost_diff'] = df_projects['total_actual_cost'] - df_projects['budget_impact']
     
     # CRIAÇÃO DO DATAFRAME UNIFICADO (df_full_context) - VERSÃO CORRIGIDA E ROBUSTA
-    df_full_context = df_tasks.merge(df_resource_allocations, on='task_id', how='left')
-    df_full_context = df_full_context.merge(df_resources, on='resource_id', how='left')
-    df_full_context = df_full_context.merge(df_projects, on='project_id', how='left', suffixes=('_task', '_project'))
-    df_full_context['cost_of_work'] = df_full_context['hours_worked'] * df_full_context['cost_per_hour']
-
+    df_full_context = df_tasks.merge(df_alloc_costs, on=['project_id', 'task_id'], how='left')
+    df_full_context = df_full_context.merge(df_projects.add_suffix('_project'), left_on='project_id', right_on='project_id_project', how='left')
+    
     processed_data['df_projects'] = df_projects
     processed_data['df_full_context'] = df_full_context
 
     # --- LÓGICA DE PROCESS MINING E MODELOS ---
-    log_df = df_full_context.rename(columns={'project_id': 'case:concept:name', 'task_name': 'concept:name', 'end_date_task': 'time:timestamp', 'resource_name': 'org:resource'})
+    log_df = df_full_context.rename(columns={'project_id': 'case:concept:name', 'task_name': 'concept:name', 'end_date': 'time:timestamp', 'resource_name': 'org:resource'})
     log_df = log_df[['case:concept:name', 'concept:name', 'time:timestamp', 'org:resource']].dropna()
     log_df['lifecycle:transition'] = 'complete'
     event_log = pm4py.convert_to_event_log(log_df)
@@ -140,7 +138,6 @@ def run_full_analysis(dfs):
     processed_data['resource_network_adv'] = convert_fig_to_bytes(fig_net)
 
     return processed_data
-
 
 # --- LAYOUT DA APLICAÇÃO ---
 with st.sidebar:
@@ -288,3 +285,4 @@ elif page == "Resultados":
                 with c2:
                     st.markdown("<h4>Rede Social de Recursos</h4>", unsafe_allow_html=True)
                     st.image(st.session_state.processed_data['resource_network_adv'], use_container_width=True)
+
