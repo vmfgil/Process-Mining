@@ -367,11 +367,15 @@ def run_post_mining_analysis(log_df_pm4py_cached, dfs_cached):
     plots = {}
     metrics = {}
     
-    # Reconstituir objetos pm4py a partir de dataframes serializáveis se necessário
+    # Reconstituir objetos pm4py a partir de dataframes serializáveis
     log_df_final = log_df_pm4py_cached
     df_projects = dfs_cached['projects'].copy()
     df_tasks_raw = dfs_cached['tasks'].copy() # Usar o raw para certos cálculos
     df_resources = dfs_cached['resources'].copy()
+
+    # ***** LINHA DE CORREÇÃO ADICIONADA AQUI *****
+    # Garante que a coluna de ID do caso seja do tipo string antes de ser usada pelo pm4py
+    log_df_final['case:concept:name'] = log_df_final['case:concept:name'].astype(str)
     
     event_log_pm4py = pm4py.convert_to_event_log(log_df_final)
 
@@ -673,3 +677,4 @@ elif page == "Resultados da Análise":
                 st.pyplot(st.session_state.plots_post_mining['resource_network_adv'])
                 if 'resource_network_bipartite' in st.session_state.plots_post_mining:
                     st.pyplot(st.session_state.plots_post_mining['resource_network_bipartite'])
+
