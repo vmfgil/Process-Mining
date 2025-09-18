@@ -373,21 +373,14 @@ def run_post_mining_analysis(log_df_pm4py_cached, dfs_cached):
     df_tasks_raw = dfs_cached['tasks'].copy() # Usar o raw para certos cálculos
     df_resources = dfs_cached['resources'].copy()
 
-    # ***** INÍCIO DAS CORREÇÕES *****
-    # Garante que a coluna de ID do caso seja do tipo string
+    # Garantias de tipo de dados
     log_df_final['case:concept:name'] = log_df_final['case:concept:name'].astype(str)
-    
-    # Garante que as colunas de data sejam do tipo datetime
     df_tasks_raw['start_date'] = pd.to_datetime(df_tasks_raw['start_date'])
     df_tasks_raw['end_date'] = pd.to_datetime(df_tasks_raw['end_date'])
     df_projects['start_date'] = pd.to_datetime(df_projects['start_date'])
     df_projects['end_date'] = pd.to_datetime(df_projects['end_date'])
-    
-    # ***** NOVA CORREÇÃO ADICIONADA AQUI *****
-    # Garante que a chave de merge 'project_id' seja string em todos os DFs
     df_projects['project_id'] = df_projects['project_id'].astype(str)
     df_tasks_raw['project_id'] = df_tasks_raw['project_id'].astype(str)
-    # ***** FIM DAS CORREÇÕES *****
     
     event_log_pm4py = pm4py.convert_to_event_log(log_df_final)
 
@@ -444,6 +437,7 @@ def run_post_mining_analysis(log_df_pm4py_cached, dfs_cached):
     gviz_dfg = dfg_visualizer.apply(dfg_perf, log=event_log_pm4py, variant=dfg_visualizer.Variants.PERFORMANCE)
     plots['performance_heatmap'] = gviz_dfg
     
+    # ***** INÍCIO DA SECÇÃO CORRIGIDA *****
     # 4. Rede Social de Recursos
     handovers = {}
     for _, group in log_df_final.groupby('case:concept:name'):
@@ -452,15 +446,22 @@ def run_post_mining_analysis(log_df_pm4py_cached, dfs_cached):
             if resources[i] != resources[i+1]:
                 pair = (resources[i], resources[i+1])
                 handovers[pair] = handovers.get(pair, 0) + 1
-    fig, ax = plt.subplots(figsize=(14, 14))
+    
+    fig_net, ax_net = plt.subplots(figsize=(14, 14))
     G = nx.DiGraph()
     for (source, target), weight in handovers.items(): G.add_edge(source, target, weight=weight)
     pos = nx.spring_layout(G, k=0.9, iterations=50, seed=42)
     weights = [G[u][v]['weight'] for u,v in G.edges()]
-    nx.draw(G, pos, with_labels=True, node_color='skyblue', node_size=3000, edge_color='gray', width=[w*0.5 for w in weights], ax=ax, font_size=10, connectionstyle='arc3,rad=0.1')
-    nx.draw_networkx_edge_labels(G, pos, edge_labels=nx.get_edge_attributes(G, 'weight'), ax=ax)
-    ax.set_title('Rede Social de Recursos (Handover Network)')
-    plots['resource_network_adv'] = fig
+    nx.draw(G, pos, with_labels=True, node_color='skyblue', node_size=3000, edge_color='gray', width=[w*0.5 for w in weights], ax=ax_net, font_size=10, connectionstyle='arc3,rad=0.1')
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=nx.get_edge_attributes(G, 'weight'), ax=ax_net)
+    ax_net.set_title('Rede Social de Recursos (Handover Network)')
+    
+    # Converter a figura para bytes em vez de guardar o objeto
+    img_buf = io.BytesIO()
+    fig_net.savefig(img_buf, format='png', bbox_inches='tight')
+    plots['resource_network_adv'] = img_buf
+    plt.close(fig_net) # Fechar a figura para libertar memória
+    # ***** FIM DA SECÇÃO CORRIGIDA *****
     
     # 5. Gráfico de Variantes de Processo com Duração Média
     variants_df = log_df_final.groupby('case:concept:name').agg(
@@ -532,8 +533,12 @@ def run_post_mining_analysis(log_df_pm4py_cached, dfs_cached):
         edge_labels = nx.get_edge_attributes(G_bipartite, 'weight')
         nx.draw_networkx_edge_labels(G_bipartite, pos, edge_labels=edge_labels, ax=ax)
         ax.set_title('Rede de Recursos por Função (Grafo Bipartido)')
-        fig.tight_layout()
-        plots['resource_network_bipartite'] = fig
+        
+        # Converter para bytes
+        img_buf_bipartite = io.BytesIO()
+        fig.savefig(img_buf_bipartite, format='png', bbox_inches='tight')
+        plots['resource_network_bipartite'] = img_buf_bipartite
+        plt.close(fig)
     
     return plots, metrics
 
@@ -686,9 +691,10 @@ elif page == "Resultados da Análise":
                 # Adicionar aqui outros gráficos de variantes se existirem
 
             with st.expander("Análise de Recursos e Colaboração"):
-                st.pyplot(st.session_state.plots_post_mining['resource_network_adv'])
+                st.image(st.session_state.plots_post_mining['resource_network_adv'])
                 if 'resource_network_bipartite' in st.session_state.plots_post_mining:
-                    st.pyplot(st.session_state.plots_post_mining['resource_network_bipartite'])
+                    st.image(st.session_state.plots_post_mining['resource_network_bipartite'])
+
 
 
 
