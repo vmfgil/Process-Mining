@@ -106,6 +106,7 @@ def run_pre_mining_analysis(dfs):
     df_full_context = df_tasks.merge(df_projects, on='project_id', suffixes=('_task', '_project'))
     df_full_context = df_full_context.merge(df_resource_allocations.drop(columns=['project_id'], errors='ignore'), on='task_id')
     df_full_context = df_full_context.merge(df_resources, on='resource_id')
+    df_full_context['cost_of_work'] = df_full_context['hours_worked'] * df_full_context['cost_per_hour']
 
     log_df_final = df_full_context[['project_id', 'task_name', 'allocation_date', 'resource_name']].copy()
     log_df_final.rename(columns={'project_id': 'case:concept:name', 'task_name': 'concept:name', 'allocation_date': 'time:timestamp', 'resource_name': 'org:resource'}, inplace=True)
@@ -509,3 +510,4 @@ elif page == "Resultados da Análise":
                 c1, c2 = st.columns(2)
                 if 'waiting_time_matrix_plot' in st.session_state.plots_post_mining: c1.image(st.session_state.plots_post_mining['waiting_time_matrix_plot'], caption="Matriz de Tempo de Espera (horas)")
                 if 'avg_waiting_time_by_activity_plot' in st.session_state.plots_post_mining: c2.image(st.session_state.plots_post_mining['avg_waiting_time_by_activity_plot'], caption="Tempo de Espera Médio por Atividade")
+
