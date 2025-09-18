@@ -6,4 +6,6 @@ seaborn
 networkx
 pm4py
 fpdf
+nbformat
+
 
