@@ -382,6 +382,11 @@ def run_post_mining_analysis(log_df_pm4py_cached, dfs_cached):
     df_tasks_raw['end_date'] = pd.to_datetime(df_tasks_raw['end_date'])
     df_projects['start_date'] = pd.to_datetime(df_projects['start_date'])
     df_projects['end_date'] = pd.to_datetime(df_projects['end_date'])
+    
+    # ***** NOVA CORREÇÃO ADICIONADA AQUI *****
+    # Garante que a chave de merge 'project_id' seja string em todos os DFs
+    df_projects['project_id'] = df_projects['project_id'].astype(str)
+    df_tasks_raw['project_id'] = df_tasks_raw['project_id'].astype(str)
     # ***** FIM DAS CORREÇÕES *****
     
     event_log_pm4py = pm4py.convert_to_event_log(log_df_final)
@@ -531,7 +536,6 @@ def run_post_mining_analysis(log_df_pm4py_cached, dfs_cached):
         plots['resource_network_bipartite'] = fig
     
     return plots, metrics
-
 
 # --- 4. LAYOUT DA APLICAÇÃO (SIDEBAR E PÁGINAS) ---
 
@@ -685,6 +689,7 @@ elif page == "Resultados da Análise":
                 st.pyplot(st.session_state.plots_post_mining['resource_network_adv'])
                 if 'resource_network_bipartite' in st.session_state.plots_post_mining:
                     st.pyplot(st.session_state.plots_post_mining['resource_network_bipartite'])
+
 
 
 
