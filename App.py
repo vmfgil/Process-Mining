@@ -21,7 +21,7 @@ st.markdown(
     "<style>\n    .main > div {padding: 1rem 2rem;}\n    .card {background: linear-gradient(180deg, #ffffff, #f7f9fc); border-radius:12px; padding:1rem; box-shadow: 0 6px 18px rgba(20,30,60,0.08);}\n    .brand {font-weight:700; font-size:20px;}\n    .muted {color:#6b7280;}\n    </style>", unsafe_allow_html=True)
 
 REQUIRED_FILENAMES = ['projects.csv', 'tasks.csv', 'resources.csv', 'resource_allocations.csv', 'dependencies.csv']
-NOTEBOOK_PATH = '/mnt/data/PM_na_GestÃ£o_de_recursos_de_IT_v5.0.ipynb'
+NOTEBOOK_PATH = 'PM_na_Gestão_de_recursos_de_IT_v5.0.ipynb'
 # fallback path (original upload)
 if not os.path.exists(NOTEBOOK_PATH):
     NOTEBOOK_PATH = '/mnt/data/PM_na_Gestão_de_recursos_de_IT_v5.0.ipynb'
@@ -241,3 +241,4 @@ elif page == 'Resultados':
 
     st.markdown('\n---\n')
     st.write('Se quer que reorganize as subse\u00e7\u00f5es ou filtre imagens, diga-me como.')
+
