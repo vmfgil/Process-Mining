@@ -198,7 +198,7 @@ def run_full_analysis(dfs):
     processed_data['df_full_context'] = df_full_context
 
     # --- LÓGICA DE PROCESS MINING E MODELOS ---
-    log_df = df_full_context[['project_id', 'task_name', 'end_date', 'resource_name']].rename(columns={'project_id': 'case:concept:name', 'task_name': 'concept:name', 'end_date': 'time:timestamp', 'resource_name': 'org:resource'})
+    log_df = df_full_context[['project_id_task', 'task_name', 'end_date_task', 'resource_name']].rename(columns={'project_id_task': 'case:concept:name', 'task_name': 'concept:name', 'end_date_task': 'time:timestamp', 'resource_name': 'org:resource'})
     log_df['lifecycle:transition'] = 'complete'
     event_log = pm4py.convert_to_event_log(log_df)
     processed_data['event_log'] = log_df # Guardar o dataframe para filtragem posterior
@@ -307,7 +307,7 @@ elif page == "Resultados":
 
         if len(st.session_state.date_range) == 2:
             start_date, end_date = pd.to_datetime(st.session_state.date_range[0]), pd.to_datetime(st.session_state.date_range[1])
-            df_projects = df_projects[(df_projects['end_date'] >= start_date) & (df_projects['end_date'] <= end_date)]
+            df_projects = df_projects[(df_projects['end_date_project'] >= start_date) & (df_projects['end_date_project'] <= end_date)]
             df_full_context = df_full_context[(df_full_context['end_date_project'] >= start_date) & (df_full_context['end_date_project'] <= end_date)]
         
         # --- KPIs DINÂMICOS ---
@@ -391,3 +391,4 @@ elif page == "Resultados":
                 with c2:
                     st.markdown("<h4>Rede Social de Recursos</h4>", unsafe_allow_html=True)
                     st.image(st.session_state.processed_data['resource_network_adv'], use_container_width=True)
+
