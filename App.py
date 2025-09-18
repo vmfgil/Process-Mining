@@ -376,7 +376,13 @@ def run_post_mining_analysis(log_df_pm4py_cached, dfs_cached):
     # ***** LINHA DE CORREÇÃO ADICIONADA AQUI *****
     # Garante que a coluna de ID do caso seja do tipo string antes de ser usada pelo pm4py
     log_df_final['case:concept:name'] = log_df_final['case:concept:name'].astype(str)
-    
+
+	# Reconverter colunas de data que viraram string
+	df_tasks_raw['start_date'] = pd.to_datetime(df_tasks_raw['start_date'])
+	df_tasks_raw['end_date'] = pd.to_datetime(df_tasks_raw['end_date'])
+	df_projects['start_date'] = pd.to_datetime(df_projects['start_date'])
+	df_projects['end_date'] = pd.to_datetime(df_projects['end_date'])
+
     event_log_pm4py = pm4py.convert_to_event_log(log_df_final)
 
     # 1. Descoberta de Modelos
@@ -677,4 +683,5 @@ elif page == "Resultados da Análise":
                 st.pyplot(st.session_state.plots_post_mining['resource_network_adv'])
                 if 'resource_network_bipartite' in st.session_state.plots_post_mining:
                     st.pyplot(st.session_state.plots_post_mining['resource_network_bipartite'])
+
 
