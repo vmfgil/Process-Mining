@@ -120,7 +120,104 @@ if page == "2. Executar Análise":
             st.success("✅ Análise concluída! Veja “Resultados”.")
             st.balloons()
 
-#───────────────────────────────
+#────────────────────────────────────
 # 5. PAGE: RESULTADOS
-#───────────────────────────────
-if page == "3. Resultados
+#────────────────────────────────────
+import os
+from glob import glob
+
+if page == "3. Resultados":
+    st.header("🔎 Resultados")
+
+    # define os diretórios onde seus scripts salvam os plots
+    pre_dir  = "Process_Analysis_Dashboard/plots"
+    post_dir = "Relatorio_Unificado_Analise_Processos/plots"
+
+    def show_imgs(folder, pattern):
+        """Encontra e exibe, em ordem alfabética, todos os PNGs que batem com o pattern."""
+        for img in sorted(glob(os.path.join(folder, pattern))):
+            st.image(img, use_column_width=True)
+
+    # criamos duas tabs para Pré e Pós-Mineração
+    pre_tab, post_tab = st.tabs(["📊 Pré-Mineração", "🧩 Pós-Mineração"])
+
+    # ─────────────────────────────────
+    # Aba 1: PRÉ-MINERAÇÃO
+    # ─────────────────────────────────
+    with pre_tab:
+        # Secção 1
+        with st.expander("Secção 1: Análises de Alto Nível e de Casos", expanded=True):
+            show_imgs(pre_dir, "plot_01_*.png")
+            show_imgs(pre_dir, "plot_02_*.png")
+
+        # Secção 2
+        with st.expander("Secção 2: Análises de Performance Detalhada"):
+            for i in range(3, 7):
+                show_imgs(pre_dir, f"plot_{i:02d}_*.png")
+
+        # Secção 3
+        with st.expander("Secção 3: Análise de Atividades e Handoffs"):
+            for i in range(7, 10):
+                show_imgs(pre_dir, f"plot_{i:02d}_*.png")
+            # o gráfico 10 pertence à secção 4
+
+        # Secção 4
+        with st.expander("Secção 4: Análise Organizacional (Recursos)"):
+            for i in range(10, 15):
+                show_imgs(pre_dir, f"plot_{i:02d}_*.png")
+
+        # Secção 5
+        with st.expander("Secção 5: Análise de Variantes e Rework"):
+            show_imgs(pre_dir, "plot_16_*.png")
+
+        # Secção 6
+        with st.expander("Secção 6: Análise Aprofundada (Causa-Raiz, Financeira e Benchmarking)"):
+            for i in range(17, 27):
+                show_imgs(pre_dir, f"plot_{i:02d}_*.png")
+
+    # ─────────────────────────────────
+    # Aba 2: PÓS-MINERAÇÃO
+    # ─────────────────────────────────
+    with post_tab:
+        # Secção 1
+        with st.expander("Secção 1: Painel de KPIs e Análise de Alto Nível", expanded=True):
+            show_imgs(post_dir, "01_performance_matrix.png")
+
+        # Secção 2
+        with st.expander("Secção 2: Descoberta e Avaliação de Modelos de Processo"):
+            show_imgs(post_dir, "02_model_inductive_petrinet.png")
+            show_imgs(post_dir, "03_metrics_inductive.png")
+            show_imgs(post_dir, "04_model_heuristic_petrinet.png")
+            show_imgs(post_dir, "05_metrics_heuristic.png")
+
+        # Secção 3
+        with st.expander("Secção 3: Análise de Performance e Tempo de Ciclo (Avançada)"):
+            show_imgs(post_dir, "06_kpi_time_series.png")
+            show_imgs(post_dir, "07_gantt_chart_all_projects.png")
+
+        # Secção 4
+        with st.expander("Secção 4: Análise de Gargalos"):
+            show_imgs(post_dir, "08_bottleneck_ranking_adv.png")
+            show_imgs(post_dir, "09_performance_heatmap.png")
+            show_imgs(post_dir, "10_temporal_heatmap_fixed.png")
+
+        # Secção 5
+        with st.expander("Secção 5: Análise de Recursos"):
+            show_imgs(post_dir, "11_resource_network_adv.png")
+            show_imgs(post_dir, "12_skill_vs_performance_adv.png")
+
+        # Secção 6
+        with st.expander("Secção 6: Novas Análises e Visualizações"):
+            show_imgs(post_dir, "13_variant_duration_plot.png")
+            show_imgs(post_dir, "14_deviation_scatter_plot.png")
+            show_imgs(post_dir, "15_conformance_over_time_plot.png")
+            show_imgs(post_dir, "16_cost_per_day_time_series.png")
+            show_imgs(post_dir, "17_cumulative_throughput_plot.png")
+            show_imgs(post_dir, "18_custom_variants_sequence_plot.png")
+            show_imgs(post_dir, "19_milestone_time_analysis_plot.png")
+            show_imgs(post_dir, "20_waiting_time_matrix_plot.png")
+            show_imgs(post_dir, "21_resource_efficiency_plot.png")
+            show_imgs(post_dir, "22_avg_waiting_time_by_activity_plot.png")
+            show_imgs(post_dir, "23_resource_network_bipartite.png")
+
+
