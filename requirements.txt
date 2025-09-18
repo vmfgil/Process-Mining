@@ -8,6 +8,8 @@ pm4py
 fpdf
 nbformat
 missingno
+nbconvert
+
 
 
 
