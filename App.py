@@ -1,117 +1,126 @@
 import streamlit as st
-import os
-import nbformat
-from nbconvert import PythonExporter
-import subprocess
-import glob
 import pandas as pd
+import numpy as np
+import os
+import glob
 
-# Caminhos principais
-NOTEBOOK_PATH = "PM_na_Gestão_de_recursos_de_IT_v5.0.ipynb"
-UPLOAD_DIR = "uploaded_data"
+# Import your full analysis pipeline (unchanged) from a separate module.
+# E.g., put all notebook code into analysis.py with two functions:
+#   - run_pre_mining(df_projects, df_tasks, df_resources, df_allocs, df_deps)
+#   - run_post_mining(df_projects, df_tasks, df_resources, df_allocs, df_deps)
+import analysis  
 
-# Configuração da página
-st.set_page_config(page_title="Process Mining App", layout="wide")
+#───────────────────────────────
+# 1. CONFIGURAÇÃO & ESTILO
+#───────────────────────────────
+st.set_page_config(
+    page_title="IT Resource Mgmt Dashboard",
+    layout="wide",
+    page_icon="📊"
+)
 
-# Navegação lateral
+# Custom CSS for brand-like look (gradient header, modern font)
+st.markdown(
+    """
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+      html, body, #root, .viewerBadge_container {
+        font-family: 'Inter', sans-serif;
+      }
+      .css-18e3th9 {
+        background: linear-gradient(90deg, #0D47A1, #1976D2);
+      }
+      .css-1v0mbdj e1fqkh3o4 {
+        color: white;
+      }
+      .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
+        color: #0D47A1;
+      }
+      .sidebar .css-1d391kg {
+        font-weight: 600;
+      }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# Sidebar navigation
 st.sidebar.title("Navegação")
-page = st.sidebar.radio("Ir para:", ["Upload & Pré-visualização", "Executar Análises", "Resultados"])
+page = st.sidebar.radio("", [
+    "1. Carregar Dados",
+    "2. Executar Análise",
+    "3. Resultados"
+])
 
-# -------------------------------------------------------------------
-# 1. Upload & Pré-visualização
-# -------------------------------------------------------------------
-if page == "Upload & Pré-visualização":
-    st.title("Upload dos Ficheiros CSV")
-    uploaded_files = st.file_uploader(
-        "Carregue os 5 ficheiros CSV (projects, tasks, resources, resource_allocations, dependencies)",
+#───────────────────────────────
+# 2. SESSION STATE STORAGE
+#───────────────────────────────
+if "dfs" not in st.session_state:
+    st.session_state.dfs = {}
+
+#───────────────────────────────
+# 3. PAGE: CARREGAR DADOS
+#───────────────────────────────
+if page == "1. Carregar Dados":
+    st.header("📂 Carregar e Pré-visualizar Dados")
+    uploaded = st.file_uploader(
+        "Arraste os 5 CSVs ou selecione aqui:",
+        type="csv",
         accept_multiple_files=True,
-        type="csv"
+        key="file_uploader"
     )
-
-    if uploaded_files:
-        os.makedirs(UPLOAD_DIR, exist_ok=True)
-        for f in uploaded_files:
-            save_path = os.path.join(UPLOAD_DIR, f.name)
-            with open(save_path, "wb") as out:
-                out.write(f.read())
-            st.success(f"{f.name} guardado com sucesso.")
-            try:
-                df = pd.read_csv(save_path)
-                st.write(f"Pré-visualização de **{f.name}**:")
-                st.dataframe(df.head())
-            except Exception as e:
-                st.error(f"Erro ao ler {f.name}: {e}")
-
-# -------------------------------------------------------------------
-# 2. Executar análises (notebook -> script -> execução)
-# -------------------------------------------------------------------
-elif page == "Executar Análises":
-    st.title("Executar Notebook")
-
-    if st.button("Executar"):
-        if not os.path.exists(NOTEBOOK_PATH):
-            st.error("Notebook não encontrado no repositório.")
+    if uploaded:
+        # map filenames to dfs
+        required = {
+            "projects.csv": "projects",
+            "tasks.csv": "tasks",
+            "resources.csv": "resources",
+            "resource_allocations.csv": "allocs",
+            "dependencies.csv": "deps"
+        }
+        missing = set(required) - {f.name for f in uploaded}
+        if missing:
+            st.error(f"Faltam estes ficheiros: {', '.join(missing)}")
         else:
-            st.info("A converter notebook em script Python...")
-            with open(NOTEBOOK_PATH) as f:
-                nb = nbformat.read(f, as_version=4)
+            # read into session_state.dfs
+            for f in uploaded:
+                key = required[f.name]
+                st.session_state.dfs[key] = pd.read_csv(f)
+            st.success("📥 Ficheiros carregados com sucesso!")
+            # preview heads
+            for name, df in st.session_state.dfs.items():
+                st.subheader(f"Preview: {name}")
+                st.dataframe(df.head(), height=200)
 
-            exporter = PythonExporter()
-            source, _ = exporter.from_notebook_node(nb)
-
-            # --- Substituição do upload Colab pelos CSV da app ---
-            csv_loader = """import pandas as pd
-projects = pd.read_csv("uploaded_data/projects.csv")
-tasks = pd.read_csv("uploaded_data/tasks.csv")
-resources = pd.read_csv("uploaded_data/resources.csv")
-resource_allocations = pd.read_csv("uploaded_data/resource_allocations.csv")
-dependencies = pd.read_csv("uploaded_data/dependencies.csv")"""
-
-            source = source.replace("files.upload()", "# Substituído pelo Streamlit")
-            source = source.replace("uploaded", "# Substituído pelo Streamlit")
-            source = csv_loader + "\n\n" + source
-
-            # Guardar script convertido
-            script_path = "notebook_script.py"
-            with open(script_path, "w") as f:
-                f.write(source)
-
-            # Executar script
-            st.info("A executar o script gerado a partir do notebook...")
-            try:
-                result = subprocess.run(
-                    ["python", script_path],
-                    capture_output=True,
-                    text=True,
-                    check=True
+#───────────────────────────────
+# 4. PAGE: EXECUTAR ANÁLISE
+#───────────────────────────────
+if page == "2. Executar Análise":
+    st.header("⚙️ Executar Pipeline de Análise")
+    if len(st.session_state.dfs) < 5:
+        st.warning("Antes de executar, carregue todos os 5 ficheiros na secção “Carregar Dados”.")
+    else:
+        if st.button("▶️ Executar Análise Completa"):
+            with st.spinner("🔄 A correr análises pré-mineração…"):
+                analysis.run_pre_mining(
+                    st.session_state.dfs["projects"],
+                    st.session_state.dfs["tasks"],
+                    st.session_state.dfs["resources"],
+                    st.session_state.dfs["allocs"],
+                    st.session_state.dfs["deps"]
                 )
-                st.success("Notebook executado com sucesso.")
-                if result.stdout:
-                    st.code(result.stdout)
-            except subprocess.CalledProcessError as e:
-                st.error("Erro ao executar o notebook.")
-                st.code(e.stdout + "\n" + e.stderr)
+            with st.spinner("🔄 A correr análises pós-mineração…"):
+                analysis.run_post_mining(
+                    st.session_state.dfs["projects"],
+                    st.session_state.dfs["tasks"],
+                    st.session_state.dfs["resources"],
+                    st.session_state.dfs["allocs"],
+                    st.session_state.dfs["deps"]
+                )
+            st.success("✅ Análise concluída! Veja “Resultados”.")
+            st.balloons()
 
-# -------------------------------------------------------------------
-# 3. Resultados
-# -------------------------------------------------------------------
-elif page == "Resultados":
-    st.title("Resultados da Análise")
-
-    pre_dir = "Process_Analysis_Dashboard"
-    post_dir = "Relatorio_Unificado_Analise_Processos"
-
-    def show_images_from_dir(directory, titulo):
-        if os.path.exists(directory):
-            st.header(titulo)
-            imgs = glob.glob(os.path.join(directory, "*.png")) + glob.glob(os.path.join(directory, "*.jpg"))
-            if not imgs:
-                st.warning(f"Sem imagens encontradas em {directory}.")
-            for img in sorted(imgs):
-                st.image(img, use_column_width=True, caption=os.path.basename(img))
-        else:
-            st.warning(f"Diretório {directory} não encontrado.")
-
-    # Mostrar secções de resultados
-    show_images_from_dir(pre_dir, "Pré-Mineracão")
-    show_images_from_dir(post_dir, "Pós-Mineracão")
+#───────────────────────────────
+# 5. PAGE: RESULTADOS
+#───────────────────────────────
+if page == "3. Resultados
