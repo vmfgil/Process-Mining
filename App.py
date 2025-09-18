@@ -227,7 +227,8 @@ def run_pre_mining_analysis(dfs):
     log_df_final.rename(columns={'end_date': 'time:timestamp', 'task_name': 'concept:name', 'project_id': 'case:concept:name'}, inplace=True)
 
     df_handoff_analysis = log_df_final.copy()
-    df_handoff_analysis.sort_values(['case:concept:name', 'time:timestamp'], inplace=True, inplace=True)
+    # ***** LINHA CORRIGIDA AQUI *****
+    df_handoff_analysis.sort_values(['case:concept:name', 'time:timestamp'], inplace=True)
     df_handoff_analysis['previous_activity_end_time'] = df_handoff_analysis.groupby('case:concept:name')['time:timestamp'].shift(1)
     df_handoff_analysis['handoff_time_days'] = (df_handoff_analysis['time:timestamp'] - df_handoff_analysis['previous_activity_end_time']).dt.total_seconds() / (24*3600)
     df_handoff_analysis['previous_activity'] = df_handoff_analysis.groupby('case:concept:name')['concept:name'].shift(1)
@@ -669,3 +670,4 @@ elif page == "Resultados da Análise":
                 st.pyplot(st.session_state.plots_post_mining['resource_network_adv'])
                 if 'resource_network_bipartite' in st.session_state.plots_post_mining:
                     st.pyplot(st.session_state.plots_post_mining['resource_network_bipartite'])
+
