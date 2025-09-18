@@ -7,5 +7,7 @@ networkx
 pm4py
 fpdf
 nbformat
+missingno
+
 
 
