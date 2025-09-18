@@ -3,12 +3,27 @@ import pandas as pd
 import numpy as np
 import os
 import glob
+import nbformat
+from nbconvert import PythonExporter
 
-# Import your full analysis pipeline (unchanged) from a separate module.
-# E.g., put all notebook code into analysis.py with two functions:
-#   - run_pre_mining(df_projects, df_tasks, df_resources, df_allocs, df_deps)
-#   - run_post_mining(df_projects, df_tasks, df_resources, df_allocs, df_deps)
-import analysis  
+# 1) Aponte para o teu .ipynb
+notebook_path = "PM_na_Gestão_de_recursos_de_IT_v5.0.ipynb"
+
+# 2) Leia o notebook
+nb_node = nbformat.read(notebook_path, as_version=4)
+
+# 3) Converta-o para código Python
+py_exporter = PythonExporter()
+source, _ = py_exporter.from_notebook_node(nb_node)
+
+# 4) Execute o código num namespace próprio
+analysis_ns = {}
+exec(source, analysis_ns)
+
+# 5) Extraia as funções definidas no notebook
+run_pre_mining  = analysis_ns["run_pre_mining"]
+run_post_mining = analysis_ns["run_post_mining"]
+
 
 #───────────────────────────────
 # 1. CONFIGURAÇÃO & ESTILO
@@ -92,30 +107,28 @@ if page == "1. Carregar Dados":
                 st.subheader(f"Preview: {name}")
                 st.dataframe(df.head(), height=200)
 
-#───────────────────────────────
 # 4. PAGE: EXECUTAR ANÁLISE
-#───────────────────────────────
 if page == "2. Executar Análise":
     st.header("⚙️ Executar Pipeline de Análise")
     if len(st.session_state.dfs) < 5:
-        st.warning("Antes de executar, carregue todos os 5 ficheiros na secção “Carregar Dados”.")
+        st.warning("…")
     else:
         if st.button("▶️ Executar Análise Completa"):
             with st.spinner("🔄 A correr análises pré-mineração…"):
-                analysis.run_pre_mining(
+                run_pre_mining(
                     st.session_state.dfs["projects"],
                     st.session_state.dfs["tasks"],
                     st.session_state.dfs["resources"],
                     st.session_state.dfs["allocs"],
-                    st.session_state.dfs["deps"]
+                    st.session_state.dfs["deps"],
                 )
             with st.spinner("🔄 A correr análises pós-mineração…"):
-                analysis.run_post_mining(
+                run_post_mining(
                     st.session_state.dfs["projects"],
                     st.session_state.dfs["tasks"],
                     st.session_state.dfs["resources"],
                     st.session_state.dfs["allocs"],
-                    st.session_state.dfs["deps"]
+                    st.session_state.dfs["deps"],
                 )
             st.success("✅ Análise concluída! Veja “Resultados”.")
             st.balloons()
@@ -219,5 +232,6 @@ if page == "3. Resultados":
             show_imgs(post_dir, "21_resource_efficiency_plot.png")
             show_imgs(post_dir, "22_avg_waiting_time_by_activity_plot.png")
             show_imgs(post_dir, "23_resource_network_bipartite.png")
+
 
 
