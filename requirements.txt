@@ -5,11 +5,9 @@ matplotlib
 seaborn
 networkx
 pm4py
-fpdf
-nbformat
-missingno
-nbconvert
+altair
 streamlit-option-menu
+
 
 
 
