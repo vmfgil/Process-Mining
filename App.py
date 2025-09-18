@@ -528,53 +528,54 @@ elif page == "Resultados da Análise":
     else:
         tab1, tab2 = st.tabs(["📊 Análise Geral e Performance", "⛏️ Descoberta e Conformidade de Processos"])
 
+        # Aba 1: Pré-Mineração - COMPLETA
         with tab1:
-            st.markdown("### Métricas Chave do Processo")
-            kpi = st.session_state.kpi_data
-            c1, c2, c3, c4 = st.columns(4)
-            c1.metric("Total de Projetos", f"{kpi['total_projects']}", "Casos")
-            c2.metric("Total de Tarefas", f"{kpi['total_tasks']}", "Eventos")
-            c3.metric("Duração Média", f"{kpi['avg_duration']:.1f} dias", "Lead Time")
-            c4.metric("Custo Total", f"€ {kpi['total_cost']:,.0f}".replace(",", " "))
+            with st.expander(" KPIs de Alto Nível e Análise de Casos", expanded=True):
+                # Usando a tabela original pois os KPIs são mais que 4
+                st.markdown("<h4>Painel de KPIs</h4>", unsafe_allow_html=True)
+                # O seu KPI original era uma tabela, que é mais completa. Vamos mantê-la.
+                if 'kpi_df' in st.session_state.tables_pre_mining:
+                     st.table(st.session_state.tables_pre_mining['kpi_df'].set_index('Métrica'))
 
-            st.markdown("---")
-            c1, c2 = st.columns(2)
-            with c1:
-                with st.container(border=True):
-                    st.markdown("<h4>Matriz de Performance (Prazo vs. Custo)</h4>", unsafe_allow_html=True)
-                    st.image(st.session_state.plots_pre_mining['performance_matrix'], use_container_width=True)
-            with c2:
-                with st.container(border=True):
-                    st.markdown("<h4>Distribuição da Duração dos Projetos</h4>", unsafe_allow_html=True)
-                    st.image(st.session_state.plots_pre_mining['case_durations_boxplot'], use_container_width=True)
-            
-            c1, c2 = st.columns(2)
-            with c1:
-                with st.container(border=True):
-                    st.markdown("<h4>Top 5 Projetos Mais Longos</h4>", unsafe_allow_html=True)
-                    st.dataframe(st.session_state.tables_pre_mining['outlier_duration'])
-            with c2:
-                with st.container(border=True):
-                    st.markdown("<h4>Top 5 Projetos Mais Caros</h4>", unsafe_allow_html=True)
-                    st.dataframe(st.session_state.tables_pre_mining['outlier_cost'])
-            
-            with st.expander("Análise de Atividades, Esperas e Recursos"):
+                st.markdown("---")
                 c1, c2 = st.columns(2)
                 with c1:
                     with st.container(border=True):
-                        st.markdown("<h4>Transições com Maior Tempo de Espera</h4>", unsafe_allow_html=True)
-                        st.image(st.session_state.plots_pre_mining['top_handoffs'], use_container_width=True)
+                        st.markdown("<h4>Matriz de Performance (Prazo vs. Custo)</h4>", unsafe_allow_html=True)
+                        st.image(st.session_state.plots_pre_mining['performance_matrix'], use_container_width=True)
+                with c2:
+                    with st.container(border=True):
+                        st.markdown("<h4>Distribuição da Duração dos Projetos</h4>", unsafe_allow_html=True)
+                        st.image(st.session_state.plots_pre_mining['case_durations_boxplot'], use_container_width=True)
+                
+                c1, c2 = st.columns(2)
+                with c1:
+                    with st.container(border=True):
+                        st.markdown("<h4>Top 5 Projetos Mais Longos</h4>", unsafe_allow_html=True)
+                        st.dataframe(st.session_state.tables_pre_mining['outlier_duration'], use_container_width=True)
+                with c2:
+                    with st.container(border=True):
+                        st.markdown("<h4>Top 5 Projetos Mais Caros</h4>", unsafe_allow_html=True)
+                        st.dataframe(st.session_state.tables_pre_mining['outlier_cost'], use_container_width=True)
+
+            with st.expander("Análise de Atividades e Handoffs"):
+                c1, c2 = st.columns(2)
+                with c1:
                     with st.container(border=True):
                         st.markdown("<h4>Atividades Mais Frequentes</h4>", unsafe_allow_html=True)
                         st.image(st.session_state.plots_pre_mining['top_activities_plot'], use_container_width=True)
-                with c2:
                     with st.container(border=True):
-                        st.markdown("<h4>Transições com Maior Custo de Espera</h4>", unsafe_allow_html=True)
-                        st.image(st.session_state.plots_pre_mining['top_handoffs_cost'], use_container_width=True)
+                        st.markdown("<h4>Transições com Maior Tempo de Espera</h4>", unsafe_allow_html=True)
+                        st.image(st.session_state.plots_pre_mining['top_handoffs'], use_container_width=True)
+                with c2:
                     with st.container(border=True):
                         st.markdown("<h4>Atividades com Maior Tempo de Execução</h4>", unsafe_allow_html=True)
                         st.image(st.session_state.plots_pre_mining['activity_service_times'], use_container_width=True)
+                    with st.container(border=True):
+                        st.markdown("<h4>Transições com Maior Custo de Espera</h4>", unsafe_allow_html=True)
+                        st.image(st.session_state.plots_pre_mining['top_handoffs_cost'], use_container_width=True)
 
+            with st.expander("Análise Organizacional (Recursos)"):
                 c1, c2 = st.columns(2)
                 with c1:
                     with st.container(border=True):
@@ -588,42 +589,77 @@ elif page == "Resultados da Análise":
                 with st.container(border=True):
                     st.markdown("<h4>Heatmap de Esforço (Horas) por Recurso e Atividade</h4>", unsafe_allow_html=True)
                     st.image(st.session_state.plots_pre_mining['resource_activity_matrix'], use_container_width=True)
-
-        with tab2:
-            st.markdown("### Descoberta e Análise de Conformidade")
-            c1, c2 = st.columns(2)
-            with c1:
                 with st.container(border=True):
-                    st.markdown("<h4>Modelo de Processo (Inductive Miner)</h4>", unsafe_allow_html=True)
-                    st.image(st.session_state.plots_post_mining['model_inductive_petrinet'], use_container_width=True)
-                    st.markdown("<h6>Métricas de Qualidade</h6>", unsafe_allow_html=True)
-                    st.json(st.session_state.metrics['inductive_miner'])
-            with c2:
-                with st.container(border=True):
-                    st.markdown("<h4>Modelo de Processo (Heuristics Miner)</h4>", unsafe_allow_html=True)
-                    st.image(st.session_state.plots_post_mining['model_heuristic_petrinet'], use_container_width=True)
-                    st.markdown("<h6>Métricas de Qualidade</h6>", unsafe_allow_html=True)
-                    st.json(st.session_state.metrics['heuristics_miner'])
+                    st.markdown("<h4>Matriz de Handoffs por Tipo de Equipa</h4>", unsafe_allow_html=True)
+                    st.image(st.session_state.plots_pre_mining['handoff_matrix_by_type'], use_container_width=True)
 
-            with st.container(border=True):
-                st.markdown("<h4>Heatmap de Performance (Tempo Médio entre Atividades)</h4>", unsafe_allow_html=True)
-                st.image(st.session_state.plots_post_mining['performance_heatmap'], use_container_width=True)
-
-            with st.expander("Análise Detalhada de Variantes e Recursos"):
+            with st.expander("Análise Aprofundada (Causa-Raiz e Benchmarking)"):
                 c1, c2 = st.columns(2)
                 with c1:
                     with st.container(border=True):
-                        st.markdown("<h4>Duração das Variantes Mais Comuns</h4>", unsafe_allow_html=True)
-                        st.image(st.session_state.plots_post_mining['variant_duration_plot'], use_container_width=True)
-                    if 'milestone_time_analysis_plot' in st.session_state.plots_post_mining:
-                        with st.container(border=True):
-                            st.markdown("<h4>Tempo entre Marcos do Processo</h4>", unsafe_allow_html=True)
-                            st.image(st.session_state.plots_post_mining['milestone_time_analysis_plot'], use_container_width=True)
-
+                        st.markdown("<h4>Impacto do Tamanho da Equipa no Atraso</h4>", unsafe_allow_html=True)
+                        st.image(st.session_state.plots_pre_mining['delay_by_teamsize'], use_container_width=True)
+                    with st.container(border=True):
+                        st.markdown("<h4>Eficiência Semanal (Horas Trabalhadas)</h4>", unsafe_allow_html=True)
+                        st.image(st.session_state.plots_pre_mining['weekly_efficiency'], use_container_width=True)
                 with c2:
                     with st.container(border=True):
-                        st.markdown("<h4>Conformidade do Processo ao Longo do Tempo</h4>", unsafe_allow_html=True)
-                        st.image(st.session_state.plots_post_mining['conformance_over_time_plot'], use_container_width=True)
+                        st.markdown("<h4>Duração Mediana por Tamanho da Equipa</h4>", unsafe_allow_html=True)
+                        st.image(st.session_state.plots_pre_mining['median_duration_by_teamsize'], use_container_width=True)
                     with st.container(border=True):
-                        st.markdown("<h4>Rede Social de Colaboração (Handovers)</h4>", unsafe_allow_html=True)
-                        st.image(st.session_state.plots_post_mining['resource_network_adv'], use_container_width=True)
+                        st.markdown("<h4>Análise de Gargalos (Serviço vs. Espera)</h4>", unsafe_allow_html=True)
+                        st.image(st.session_state.plots_pre_mining['service_vs_wait_stacked'], use_container_width=True)
+
+        # Aba 2: Pós-Mineração - COMPLETA
+        with tab2:
+            with st.expander("Descoberta e Avaliação de Modelos de Processo", expanded=True):
+                c1, c2 = st.columns(2)
+                with c1:
+                    with st.container(border=True):
+                        st.markdown("<h4>Modelo de Processo (Inductive Miner)</h4>", unsafe_allow_html=True)
+                        st.image(st.session_state.plots_post_mining['model_inductive_petrinet'], use_container_width=True)
+                        st.markdown("<h6>Métricas de Qualidade</h6>", unsafe_allow_html=True)
+                        st.json(st.session_state.metrics['inductive_miner'])
+                with c2:
+                    with st.container(border=True):
+                        st.markdown("<h4>Modelo de Processo (Heuristics Miner)</h4>", unsafe_allow_html=True)
+                        st.image(st.session_state.plots_post_mining['model_heuristic_petrinet'], use_container_width=True)
+                        st.markdown("<h6>Métricas de Qualidade</h6>", unsafe_allow_html=True)
+                        st.json(st.session_state.metrics['heuristics_miner'])
+
+            with st.expander("Análise de Performance e Tempo de Ciclo"):
+                with st.container(border=True):
+                    st.markdown("<h4>Heatmap de Performance (Tempo Médio entre Atividades)</h4>", unsafe_allow_html=True)
+                    st.image(st.session_state.plots_post_mining['performance_heatmap'], use_container_width=True)
+                if 'milestone_time_analysis_plot' in st.session_state.plots_post_mining:
+                    with st.container(border=True):
+                        st.markdown("<h4>Análise de Tempo entre Marcos do Processo</h4>", unsafe_allow_html=True)
+                        st.image(st.session_state.plots_post_mining['milestone_time_analysis_plot'], use_container_width=True)
+                # O Gantt Chart foi omitido porque é demasiado grande para o layout, mas pode ser reativado se desejar.
+                # if 'gantt_chart_all_projects' in st.session_state.plots_post_mining:
+                #    st.image(st.session_state.plots_post_mining['gantt_chart_all_projects'], use_container_width=True)
+
+
+            with st.expander("Análise de Conformidade e Variantes"):
+                c1, c2 = st.columns(2)
+                with c1:
+                    with st.container(border=True):
+                        st.markdown("<h4>Score de Conformidade ao Longo do Tempo</h4>", unsafe_allow_html=True)
+                        st.image(st.session_state.plots_post_mining['conformance_over_time_plot'], use_container_width=True)
+                with c2:
+                    with st.container(border=True):
+                        st.markdown("<h4>Duração das Variantes Mais Comuns</h4>", unsafe_allow_html=True)
+                        st.image(st.session_state.plots_post_mining['variant_duration_plot'], use_container_width=True)
+                        
+            with st.expander("Análise de Recursos e Colaboração"):
+                c1, c2 = st.columns(2)
+                with c1:
+                    if 'resource_network_adv' in st.session_state.plots_post_mining:
+                         with st.container(border=True):
+                            st.markdown("<h4>Rede Social de Colaboração (Handovers)</h4>", unsafe_allow_html=True)
+                            st.image(st.session_state.plots_post_mining['resource_network_adv'], use_container_width=True)
+                with c2:
+                    if 'resource_network_bipartite' in st.session_state.plots_post_mining:
+                        with st.container(border=True):
+                            st.markdown("<h4>Rede de Recursos por Função</h4>", unsafe_allow_html=True)
+                            st.image(st.session_state.plots_post_mining['resource_network_bipartite'], use_container_width=True)
