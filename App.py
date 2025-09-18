@@ -528,12 +528,15 @@ st.sidebar.markdown("Navegue pelas secções da aplicação.")
 
 page = st.sidebar.radio("Selecione a Página", ["Upload de Ficheiros", "Executar Análise", "Resultados da Análise"])
 
+# ***** DEFINE file_names HERE SO ALL PAGES CAN ACCESS IT *****
+file_names = ['projects', 'tasks', 'resources', 'resource_allocations', 'dependencies']
+
 # --- PÁGINA 1: UPLOAD ---
 if page == "Upload de Ficheiros":
     st.header("1. Upload dos Ficheiros de Dados (.csv)")
     st.markdown("Por favor, carregue os 5 ficheiros CSV necessários para a análise.")
 
-    file_names = ['projects', 'tasks', 'resources', 'resource_allocations', 'dependencies']
+    # The list is now defined globally, no need to define it here again.
     
     cols = st.columns(3)
     for i, name in enumerate(file_names):
@@ -670,4 +673,3 @@ elif page == "Resultados da Análise":
                 st.pyplot(st.session_state.plots_post_mining['resource_network_adv'])
                 if 'resource_network_bipartite' in st.session_state.plots_post_mining:
                     st.pyplot(st.session_state.plots_post_mining['resource_network_bipartite'])
-
