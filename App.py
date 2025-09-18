@@ -36,98 +36,20 @@ st.set_page_config(
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
-
-    /* Fontes e Fundo Principal */
-    html, body, [class*="st-"] {
-        font-family: 'Poppins', sans-serif;
-    }
-    .stApp {
-        background-color: #F0F2F6;
-    }
-    .main .block-container {
-        padding: 1rem 2rem 2rem 2rem;
-    }
-
-    /* Barra Lateral */
-    [data-testid="stSidebar"] {
-        background-color: #0F172A;
-        border-right: none;
-    }
-
-    /* KPI Cards Personalizados */
-    .kpi-card {
-        background-color: #FFFFFF;
-        padding: 25px;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        text-align: center;
-        border: 1px solid #E2E8F0;
-    }
-    .kpi-card h3 {
-        color: #475569;
-        font-size: 1rem;
-        font-weight: 600;
-        margin: 0;
-        padding: 0;
-        text-transform: uppercase;
-    }
-    .kpi-card p {
-        color: #0F172A;
-        font-size: 2.5rem;
-        font-weight: 700;
-        margin: 5px 0 0 0;
-        padding: 0;
-        letter-spacing: -1px;
-    }
-
-    /* Títulos e Cabeçalhos */
-    h1 {
-        color: #0F172A;
-        font-weight: 700;
-        letter-spacing: -2px;
-    }
-    h2 {
-        color: #1E293B;
-        font-weight: 600;
-        border: none;
-        padding: 0;
-    }
-
-    /* Abas (Tabs) */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
-        border: none;
-    }
-    .stTabs [data-baseweb="tab"] {
-        height: 50px;
-        background-color: transparent;
-        border-radius: 8px;
-        padding: 10px 20px;
-        color: #475569;
-        border: none;
-        font-weight: 600;
-    }
-    .stTabs [aria-selected="true"] {
-        background-color: #FFFFFF;
-        color: #3B82F6;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-    }
-    
-    /* Expander */
-    .streamlit-expanderHeader {
-        background-color: #FFFFFF;
-        border: 1px solid #E2E8F0;
-        border-radius: 8px;
-        font-weight: 600;
-        color: #1E293B;
-    }
-    .streamlit-expanderContent {
-        border-left: 1px solid #E2E8F0;
-        border-right: 1px solid #E2E8F0;
-        border-bottom: 1px solid #E2E8F0;
-        border-radius: 0 0 8px 8px;
-        margin-top: -8px;
-    }
+    html, body, [class*="st-"] { font-family: 'Poppins', sans-serif; }
+    .stApp { background-color: #F0F2F6; }
+    .main .block-container { padding: 1rem 2rem 2rem 2rem; }
+    [data-testid="stSidebar"] { background-color: #0F172A; border-right: none; }
+    .kpi-card { background-color: #FFFFFF; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); text-align: center; border: 1px solid #E2E8F0; }
+    .kpi-card h3 { color: #475569; font-size: 1rem; font-weight: 600; margin: 0; padding: 0; text-transform: uppercase; }
+    .kpi-card p { color: #0F172A; font-size: 2.5rem; font-weight: 700; margin: 5px 0 0 0; padding: 0; letter-spacing: -1px; }
+    h1 { color: #0F172A; font-weight: 700; letter-spacing: -2px; }
+    h2 { color: #1E293B; font-weight: 600; border: none; padding: 0; }
+    .stTabs [data-baseweb="tab-list"] { gap: 8px; border: none; }
+    .stTabs [data-baseweb="tab"] { height: 50px; background-color: transparent; border-radius: 8px; padding: 10px 20px; color: #475569; border: none; font-weight: 600; }
+    .stTabs [aria-selected="true"] { background-color: #FFFFFF; color: #3B82F6; box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
+    .streamlit-expanderHeader { background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; font-weight: 600; color: #1E293B; }
+    .streamlit-expanderContent { border-left: 1px solid #E2E8F0; border-right: 1px solid #E2E8F0; border-bottom: 1px solid #E2E8F0; border-radius: 0 0 8px 8px; margin-top: -8px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -143,7 +65,6 @@ def convert_fig_to_bytes(fig):
 def convert_gviz_to_bytes(gviz):
     return io.BytesIO(gviz.pipe(format='png'))
 
-# Paleta de cores para os gráficos
 PALETA_CORES = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#6366F1"]
 
 # --- INICIALIZAÇÃO DO ESTADO DA SESSÃO ---
@@ -152,10 +73,10 @@ if 'dfs' not in st.session_state:
 if 'analysis_run' not in st.session_state: st.session_state.analysis_run = False
 if 'processed_data' not in st.session_state: st.session_state.processed_data = {}
 
-# --- FUNÇÕES DE ANÁLISE ---
+# --- FUNÇÃO DE ANÁLISE (REVISTA E CORRIGIDA) ---
 @st.cache_data
 def run_full_analysis(dfs):
-    # Esta função agora processa TUDO e retorna os DataFrames para a interface gerar os gráficos
+    processed_data = {}
     
     # --- PRÉ-PROCESSAMENTO ---
     df_projects = dfs['projects'].copy()
@@ -171,7 +92,7 @@ def run_full_analysis(dfs):
         for df in [df_projects, df_tasks, df_resources, df_resource_allocations]:
             if col in df.columns: df[col] = df[col].astype(str)
 
-    # --- ENRIQUECIMENTO DOS DADOS ---
+    # --- ENRIQUECIMENTO DOS DADOS (LÓGICA SIMPLIFICADA E CORRIGIDA) ---
     df_projects['days_diff'] = (df_projects['end_date'] - df_projects['planned_end_date']).dt.days
     df_projects['actual_duration_days'] = (df_projects['end_date'] - df_projects['start_date']).dt.days
     df_projects['project_type'] = df_projects['project_name'].str.extract(r'Projeto \d+: (.*?) ')
@@ -184,30 +105,22 @@ def run_full_analysis(dfs):
     df_projects = df_projects.merge(project_aggregates, on='project_id', how='left')
     df_projects['cost_diff'] = df_projects['total_actual_cost'] - df_projects['budget_impact']
     
-    # --- CRIAÇÃO DE DATAFRAMES PARA CADA ANÁLISE ---
-    processed_data = {}
-    processed_data['df_projects'] = df_projects
-    processed_data['df_tasks'] = df_tasks
-    processed_data['df_resources'] = df_resources
-    
-    # DataFrames para gráficos específicos...
-    df_full_context = df_tasks.merge(df_projects, on='project_id', suffixes=('_task', '_project'))
-    df_full_context.rename(columns={'project_id_task': 'project_id'}, inplace=True) # Temporarily rename to join
-    df_full_context = df_full_context.merge(df_resource_allocations.drop(columns=['project_id'], errors='ignore'), on='task_id')
-    df_full_context = df_full_context.merge(df_resources, on='resource_id')
-    df_full_context.rename(columns={'project_id': 'project_id_task'}, inplace=True) # Rename back
-    df_full_context = df_full_context.merge(df_resource_allocations.drop(columns=['project_id'], errors='ignore'), on='task_id')
-    df_full_context = df_full_context.merge(df_resources, on='resource_id')
+    # CRIAÇÃO DO DATAFRAME UNIFICADO (df_full_context) - VERSÃO CORRIGIDA E ROBUSTA
+    df_full_context = df_tasks.merge(df_resource_allocations, on='task_id', how='left')
+    df_full_context = df_full_context.merge(df_resources, on='resource_id', how='left')
+    df_full_context = df_full_context.merge(df_projects, on='project_id', how='left', suffixes=('_task', '_project'))
     df_full_context['cost_of_work'] = df_full_context['hours_worked'] * df_full_context['cost_per_hour']
+
+    processed_data['df_projects'] = df_projects
     processed_data['df_full_context'] = df_full_context
 
     # --- LÓGICA DE PROCESS MINING E MODELOS ---
-    log_df = df_full_context[['project_id_task', 'task_name', 'end_date_task', 'resource_name']].rename(columns={'project_id_task': 'case:concept:name', 'task_name': 'concept:name', 'end_date_task': 'time:timestamp', 'resource_name': 'org:resource'})
+    log_df = df_full_context.rename(columns={'project_id': 'case:concept:name', 'task_name': 'concept:name', 'end_date_task': 'time:timestamp', 'resource_name': 'org:resource'})
+    log_df = log_df[['case:concept:name', 'concept:name', 'time:timestamp', 'org:resource']].dropna()
     log_df['lifecycle:transition'] = 'complete'
     event_log = pm4py.convert_to_event_log(log_df)
-    processed_data['event_log'] = log_df # Guardar o dataframe para filtragem posterior
+    processed_data['event_log_df'] = log_df 
 
-    # Modelos Petri Net (são estáticos, gerados uma vez)
     variants = variants_filter.get_variants(event_log)
     top_3_variants = variants_filter.apply(event_log, sorted(variants, key=lambda k: len(variants[k]), reverse=True)[:3])
     
@@ -217,11 +130,9 @@ def run_full_analysis(dfs):
     net_hm, im_hm, fm_hm = heuristics_miner.apply(top_3_variants)
     processed_data['model_heuristic_petrinet'] = convert_gviz_to_bytes(pn_visualizer.apply(net_hm, im_hm, fm_hm))
 
-    # Heatmap de Performance (estático)
     dfg_perf, _, _ = pm4py.discover_performance_dfg(event_log)
     processed_data['performance_heatmap'] = convert_gviz_to_bytes(dfg_visualizer.apply(dfg_perf, log=event_log, variant=dfg_visualizer.Variants.PERFORMANCE))
     
-    # Rede de Recursos (Matplotlib/NetworkX) - estática
     handovers = Counter((log_df.iloc[i]['org:resource'], log_df.iloc[i+1]['org:resource']) for i in range(len(log_df)-1) if log_df.iloc[i]['case:concept:name'] == log_df.iloc[i+1]['case:concept:name'] and log_df.iloc[i]['org:resource'] != log_df.iloc[i+1]['org:resource'])
     fig_net, ax_net = plt.subplots(figsize=(10, 10)); G = nx.DiGraph();
     for (source, target), weight in handovers.items(): G.add_edge(str(source), str(target), weight=weight)
@@ -232,17 +143,12 @@ def run_full_analysis(dfs):
 
 
 # --- LAYOUT DA APLICAÇÃO ---
-
-# Barra Lateral (Sidebar) com Navegação Melhorada
 with st.sidebar:
     st.markdown("<h1 style='color: white; font-size: 24px; letter-spacing: -1px; text-align: center;'>Process Mining Dashboard</h1>", unsafe_allow_html=True)
     
     page = option_menu(
-        menu_title=None,
-        options=["Upload", "Resultados"],
-        icons=["cloud-upload", "bar-chart-line"],
-        menu_icon="cast",
-        default_index=0,
+        menu_title=None, options=["Upload", "Resultados"], icons=["cloud-upload", "bar-chart-line"],
+        menu_icon="cast", default_index=0,
         styles={
             "container": {"padding": "0!important", "background-color": "#0F172A"},
             "icon": {"color": "#94A3B8", "font-size": "20px"},
@@ -251,32 +157,20 @@ with st.sidebar:
         }
     )
     
-    # Filtros Dinâmicos
     if st.session_state.analysis_run:
         st.markdown("---")
         st.markdown("<h3 style='color: white; font-size: 18px;'>Filtros Dinâmicos</h3>", unsafe_allow_html=True)
-        
-        df_projects = st.session_state.processed_data.get('df_projects', pd.DataFrame())
-        
-        # Filtro por Tipo de Projeto
-        project_types = ['Todos'] + sorted(df_projects['project_type'].unique().tolist())
-        st.session_state.selected_type = st.selectbox("Tipo de Projeto", project_types)
-
-        # Filtro por Datas
-        min_date = df_projects['start_date'].min().date()
-        max_date = df_projects['end_date'].max().date()
-        st.session_state.date_range = st.date_input(
-            "Intervalo de Datas (Conclusão)",
-            value=(min_date, max_date),
-            min_value=min_date,
-            max_value=max_date
-        )
-
+        df_projects_filter = st.session_state.processed_data.get('df_projects', pd.DataFrame())
+        if not df_projects_filter.empty:
+            project_types = ['Todos'] + sorted(df_projects_filter['project_type'].unique().tolist())
+            st.session_state.selected_type = st.selectbox("Tipo de Projeto", project_types)
+            min_date = df_projects_filter['start_date'].min().date()
+            max_date = df_projects_filter['end_date'].max().date()
+            st.session_state.date_range = st.date_input("Intervalo de Datas (Conclusão)", value=(min_date, max_date), min_value=min_date, max_value=max_date)
 
 if page == "Upload":
     st.header("1. Upload dos Ficheiros de Dados (.csv)")
     st.markdown("Por favor, carregue os 5 ficheiros CSV necessários para a análise.")
-    
     file_names = ['projects', 'tasks', 'resources', 'resource_allocations', 'dependencies']
     cols = st.columns(3)
     for i, name in enumerate(file_names):
@@ -302,23 +196,24 @@ elif page == "Resultados":
         st.warning("A análise ainda não foi executada. Por favor, volte à página de 'Upload' e inicie o processo.")
     else:
         # --- LÓGICA DE FILTRAGEM ---
-        df_projects = st.session_state.processed_data['df_projects']
-        df_full_context = st.session_state.processed_data['df_full_context']
+        df_projects_f = st.session_state.processed_data['df_projects'].copy()
+        df_full_context_f = st.session_state.processed_data['df_full_context'].copy()
 
         if st.session_state.selected_type != 'Todos':
-            df_projects = df_projects[df_projects['project_type'] == st.session_state.selected_type]
-            df_full_context = df_full_context[df_full_context['project_type'] == st.session_state.selected_type]
+            df_projects_f = df_projects_f[df_projects_f['project_type'] == st.session_state.selected_type]
+            df_full_context_f = df_full_context_f[df_full_context_f['project_type'] == st.session_state.selected_type]
 
         if len(st.session_state.date_range) == 2:
             start_date, end_date = pd.to_datetime(st.session_state.date_range[0]), pd.to_datetime(st.session_state.date_range[1])
-            df_projects = df_projects[(df_projects['end_date_project'] >= start_date) & (df_projects['end_date_project'] <= end_date)]
-            df_full_context = df_full_context[(df_full_context['end_date_project'] >= start_date) & (df_full_context['end_date_project'] <= end_date)]
+            # CORREÇÃO FINAL AQUI:
+            df_projects_f = df_projects_f[(df_projects_f['end_date'] >= start_date) & (df_projects_f['end_date'] <= end_date)]
+            df_full_context_f = df_full_context_f[(df_full_context_f['end_date_project'] >= start_date) & (df_full_context_f['end_date_project'] <= end_date)]
         
         # --- KPIs DINÂMICOS ---
-        total_projetos = len(df_projects)
-        duracao_media = df_projects['actual_duration_days'].mean()
-        custo_total = df_projects['total_actual_cost'].sum()
-        desvio_prazo_medio = df_projects['days_diff'].mean()
+        total_projetos = len(df_projects_f) if not df_projects_f.empty else 0
+        duracao_media = df_projects_f['actual_duration_days'].mean() if not df_projects_f.empty else 0
+        custo_total = df_projects_f['total_actual_cost'].sum() if not df_projects_f.empty else 0
+        desvio_prazo_medio = df_projects_f['days_diff'].mean() if not df_projects_f.empty else 0
 
         c1, c2, c3, c4 = st.columns(4)
         with c1: st.markdown(f'<div class="kpi-card"><h3>Total de Projetos</h3><p>{total_projetos}</p></div>', unsafe_allow_html=True)
@@ -334,7 +229,7 @@ elif page == "Resultados":
             with st.expander("Análise de Performance e Casos", expanded=True):
                 c1, c2 = st.columns(2)
                 with c1:
-                    chart = alt.Chart(df_projects).mark_circle(size=100, opacity=0.7).encode(
+                    chart = alt.Chart(df_projects_f).mark_circle(size=100, opacity=0.7).encode(
                         x=alt.X('days_diff:Q', title='Desvio de Prazo (dias)'),
                         y=alt.Y('cost_diff:Q', title='Desvio de Custo (€)'),
                         color=alt.Color('project_type:N', title='Tipo de Projeto', scale=alt.Scale(range=PALETA_CORES)),
@@ -342,7 +237,7 @@ elif page == "Resultados":
                     ).properties(title="Matriz de Performance: Prazo vs. Custo").interactive()
                     st.altair_chart(chart, use_container_width=True)
                 with c2:
-                    chart = alt.Chart(df_projects).mark_boxplot(extent='min-max').encode(
+                    chart = alt.Chart(df_projects_f).mark_boxplot(extent='min-max').encode(
                         x=alt.X('actual_duration_days:Q', title='Duração dos Projetos (dias)'),
                         color=alt.value(PALETA_CORES[0])
                     ).properties(title="Distribuição da Duração dos Projetos")
@@ -351,8 +246,7 @@ elif page == "Resultados":
             with st.expander("Análise de Atividades e Gargalos"):
                 c1, c2 = st.columns(2)
                 with c1:
-                    # Tempo médio de execução
-                    service_times = df_full_context.groupby('task_name')['hours_worked'].mean().reset_index().nlargest(10, 'hours_worked')
+                    service_times = df_full_context_f.groupby('task_name')['hours_worked'].mean().reset_index().nlargest(10, 'hours_worked')
                     chart = alt.Chart(service_times).mark_bar().encode(
                         x=alt.X('hours_worked:Q', title='Horas Médias'),
                         y=alt.Y('task_name:N', title='Atividade', sort='-x'),
@@ -361,17 +255,16 @@ elif page == "Resultados":
                     ).properties(title='Atividades com Maior Tempo de Execução')
                     st.altair_chart(chart, use_container_width=True)
                 with c2:
-                    # Handoffs (tempo de espera)
-                    df_handoff = df_full_context.sort_values(['project_id', 'end_date_task'])
-                    df_handoff['previous_end_date'] = df_handoff.groupby('project_id')['end_date_task'].shift(1)
+                    df_handoff = df_full_context_f.sort_values(['project_id_task', 'end_date_task'])
+                    df_handoff['previous_end_date'] = df_handoff.groupby('project_id_task')['end_date_task'].shift(1)
                     df_handoff['handoff_hours'] = (df_handoff['start_date_task'] - df_handoff['previous_end_date']).dt.total_seconds() / 3600
                     df_handoff.loc[df_handoff['handoff_hours'] < 0, 'handoff_hours'] = 0
-                    df_handoff['previous_task'] = df_handoff.groupby('project_id')['task_name'].shift(1)
-                    handoff_stats = df_handoff.groupby(['previous_task', 'task_name'])['handoff_hours'].mean().reset_index().nlargest(10, 'handoff_hours')
+                    df_handoff['previous_task'] = df_handoff.groupby('project_id_task')['task_name'].shift(1)
+                    handoff_stats = df_handoff.dropna(subset=['previous_task']).groupby(['previous_task', 'task_name'])['handoff_hours'].mean().reset_index().nlargest(10, 'handoff_hours')
+                    
                     chart = alt.Chart(handoff_stats).mark_bar().encode(
                         x=alt.X('handoff_hours:Q', title='Horas de Espera'),
-                        y=alt.Y('previous_task:N', title='De', sort='-x'),
-                        y2=alt.Y2('task_name:N', title='Para'),
+                        y=alt.Y('previous_task:N', title=None, sort='-x'),
                         color=alt.value(PALETA_CORES[3]),
                         tooltip=['previous_task', 'task_name', 'handoff_hours']
                     ).properties(title="Maiores Tempos de Espera (Handoffs)")
@@ -395,5 +288,3 @@ elif page == "Resultados":
                 with c2:
                     st.markdown("<h4>Rede Social de Recursos</h4>", unsafe_allow_html=True)
                     st.image(st.session_state.processed_data['resource_network_adv'], use_container_width=True)
-
-
