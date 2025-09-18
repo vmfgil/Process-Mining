@@ -373,16 +373,17 @@ def run_post_mining_analysis(log_df_pm4py_cached, dfs_cached):
     df_tasks_raw = dfs_cached['tasks'].copy() # Usar o raw para certos cálculos
     df_resources = dfs_cached['resources'].copy()
 
-    # ***** LINHA DE CORREÇÃO ADICIONADA AQUI *****
-    # Garante que a coluna de ID do caso seja do tipo string antes de ser usada pelo pm4py
+    # ***** INÍCIO DAS CORREÇÕES *****
+    # Garante que a coluna de ID do caso seja do tipo string
     log_df_final['case:concept:name'] = log_df_final['case:concept:name'].astype(str)
-
-	# Reconverter colunas de data que viraram string
-	df_tasks_raw['start_date'] = pd.to_datetime(df_tasks_raw['start_date'])
-	df_tasks_raw['end_date'] = pd.to_datetime(df_tasks_raw['end_date'])
-	df_projects['start_date'] = pd.to_datetime(df_projects['start_date'])
-	df_projects['end_date'] = pd.to_datetime(df_projects['end_date'])
-
+    
+    # Garante que as colunas de data sejam do tipo datetime
+    df_tasks_raw['start_date'] = pd.to_datetime(df_tasks_raw['start_date'])
+    df_tasks_raw['end_date'] = pd.to_datetime(df_tasks_raw['end_date'])
+    df_projects['start_date'] = pd.to_datetime(df_projects['start_date'])
+    df_projects['end_date'] = pd.to_datetime(df_projects['end_date'])
+    # ***** FIM DAS CORREÇÕES *****
+    
     event_log_pm4py = pm4py.convert_to_event_log(log_df_final)
 
     # 1. Descoberta de Modelos
@@ -530,6 +531,7 @@ def run_post_mining_analysis(log_df_pm4py_cached, dfs_cached):
         plots['resource_network_bipartite'] = fig
     
     return plots, metrics
+
 
 # --- 4. LAYOUT DA APLICAÇÃO (SIDEBAR E PÁGINAS) ---
 
@@ -683,5 +685,6 @@ elif page == "Resultados da Análise":
                 st.pyplot(st.session_state.plots_post_mining['resource_network_adv'])
                 if 'resource_network_bipartite' in st.session_state.plots_post_mining:
                     st.pyplot(st.session_state.plots_post_mining['resource_network_bipartite'])
+
 
 
