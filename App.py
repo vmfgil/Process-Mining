@@ -252,11 +252,11 @@ elif page == "Resultados":
                     ).properties(title='Atividades com Maior Tempo de Execução')
                     st.altair_chart(chart, use_container_width=True)
                 with c2:
-                    df_handoff = df_full_context_f.sort_values(['project_id_task', 'end_date_task'])
-                    df_handoff['previous_end_date'] = df_handoff.groupby('project_id_task')['end_date_task'].shift(1)
+                    df_handoff = df_full_context_f.sort_values(['project_id', 'end_date_task'])
+                    df_handoff['previous_end_date'] = df_handoff.groupby('project_id')['end_date_task'].shift(1)
                     df_handoff['handoff_hours'] = (df_handoff['start_date_task'] - df_handoff['previous_end_date']).dt.total_seconds() / 3600
                     df_handoff.loc[df_handoff['handoff_hours'] < 0, 'handoff_hours'] = 0
-                    df_handoff['previous_task'] = df_handoff.groupby('project_id_task')['task_name'].shift(1)
+                    df_handoff['previous_task'] = df_handoff.groupby('project_id')['task_name'].shift(1)
                     handoff_stats = df_handoff.dropna(subset=['previous_task']).groupby(['previous_task', 'task_name'])['handoff_hours'].mean().reset_index().nlargest(10, 'handoff_hours')
                     
                     chart = alt.Chart(handoff_stats).mark_bar().encode(
@@ -285,4 +285,5 @@ elif page == "Resultados":
                 with c2:
                     st.markdown("<h4>Rede Social de Recursos</h4>", unsafe_allow_html=True)
                     st.image(st.session_state.processed_data['resource_network_adv'], use_container_width=True)
+
 
