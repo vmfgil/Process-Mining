@@ -192,6 +192,10 @@ def run_full_analysis(dfs):
     
     # DataFrames para gráficos específicos...
     df_full_context = df_tasks.merge(df_projects, on='project_id', suffixes=('_task', '_project'))
+    df_full_context.rename(columns={'project_id_task': 'project_id'}, inplace=True) # Temporarily rename to join
+    df_full_context = df_full_context.merge(df_resource_allocations.drop(columns=['project_id'], errors='ignore'), on='task_id')
+    df_full_context = df_full_context.merge(df_resources, on='resource_id')
+    df_full_context.rename(columns={'project_id': 'project_id_task'}, inplace=True) # Rename back
     df_full_context = df_full_context.merge(df_resource_allocations.drop(columns=['project_id'], errors='ignore'), on='task_id')
     df_full_context = df_full_context.merge(df_resources, on='resource_id')
     df_full_context['cost_of_work'] = df_full_context['hours_worked'] * df_full_context['cost_per_hour']
@@ -391,4 +395,5 @@ elif page == "Resultados":
                 with c2:
                     st.markdown("<h4>Rede Social de Recursos</h4>", unsafe_allow_html=True)
                     st.image(st.session_state.processed_data['resource_network_adv'], use_container_width=True)
+
 
