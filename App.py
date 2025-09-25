@@ -37,22 +37,57 @@ st.markdown("""
     .stApp { background-color: #F0F2F6; }
     .main .block-container { padding: 2rem 3rem; }
     [data-testid="stSidebar"] { background-color: #0F172A; }
-    /* ALTERAÇÃO 1: Estilo do texto da barra lateral */
-    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] p, [data-testid="stSidebar"] label {
-        color: white;
-        font-weight: 600;
-        font-size: 1.1rem;
+    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] label {
+        color: white; font-weight: 600; font-size: 1.1rem;
     }
+    /* ALTERAÇÃO 2: Reduzir texto de ajuda no painel lateral */
+    [data-testid="stSidebar"] p {
+        color: #d1d5db; font-size: 0.9rem;
+    }
+
     h1, h2, h3, h4 { color: #1E293B; font-weight: 600; }
     h2 { border-bottom: 2px solid #3B82F6; padding-bottom: 10px; margin-bottom: 20px; }
+    
+    /* ALTERAÇÃO 3: Estilo de "mini-cartão" para os títulos principais */
+    .custom-title-card {
+        background-color: #FFFFFF;
+        border-radius: 10px;
+        padding: 20px 25px;
+        margin-bottom: 25px;
+        box-shadow: 0 4px 8px 0 rgba(0,0,0,0.05);
+        border-left: 6px solid #3B82F6;
+    }
+    .custom-title-card h2 {
+        border-bottom: none;
+        padding-bottom: 0;
+        margin-bottom: 0;
+    }
+
     .card { background-color: #FFFFFF; border-radius: 10px; padding: 25px; margin-bottom: 20px; box-shadow: 0 4px 8px 0 rgba(0,0,0,0.05); }
     .stButton>button { background-color: #3B82F6; color: white; border-radius: 8px; border: none; padding: 10px 20px; width: 100%; }
     .stTabs [data-baseweb="tab-list"] { gap: 24px; border-bottom: 1px solid #e2e8f0; }
     .stTabs [data-baseweb="tab"] { height: 50px; background-color: transparent; padding: 10px 15px; color: #475569; }
     .stTabs [aria-selected="true"] { color: #3B82F6; font-weight: bold; border-bottom: 3px solid #3B82F6; }
     .streamlit-expanderHeader { background-color: #F8FAFC; color: #1E293B; border: 1px solid #E2E8F0; border-radius: 8px; }
+
+    /* ALTERAÇÃO 1: Estilos para a secção de upload */
+    .stFileUploader {
+        padding: 10px; border-radius: 8px; border: 1px dashed #b0b8c2;
+    }
+    .stFileUploader label {
+        font-size: 0.9rem;
+    }
+    .stFileUploader button {
+        background-color: #3B82F6; color: white; border-radius: 6px; border: none; padding: 4px 12px; font-size: 0.9rem;
+    }
+    [data-testid="stStatusWidget"] > div { /* Altera a cor de sucesso para azul */
+        background-color: rgba(59, 130, 246, 0.1);
+        color: #1d4ed8;
+        border: 1px solid rgba(59, 130, 246, 0.2);
+    }
 </style>
 """, unsafe_allow_html=True)
+
 
 # --- FUNÇÕES AUXILIARES ---
 def convert_fig_to_bytes(fig, format='png'):
@@ -78,10 +113,8 @@ if 'metrics' not in st.session_state: st.session_state.metrics = {}
 # --- FUNÇÕES DE ANÁLISE (VERSÃO COMPLETA E VALIDADA) ---
 @st.cache_data
 def run_pre_mining_analysis(dfs):
-    # --- INÍCIO DA MIGRAÇÃO DAS 26 ANÁLISES PRÉ-MINERAÇÃO (CÉLULA 2 DO NOTEBOOK) ---
     plots = {}
     tables = {}
-    
     df_projects = dfs['projects'].copy()
     df_tasks = dfs['tasks'].copy()
     df_resources = dfs['resources'].copy()
@@ -118,19 +151,20 @@ def run_pre_mining_analysis(dfs):
     log_df_final.rename(columns={'project_id': 'case:concept:name', 'task_name': 'concept:name', 'allocation_date': 'time:timestamp', 'resource_name': 'org:resource'}, inplace=True)
     log_df_final['lifecycle:transition'] = 'complete'
     event_log_pm4py = pm4py.convert_to_event_log(log_df_final)
-
-    # GRÁFICOS E TABELAS
     
-    # 1. KPIs & Outliers (2 plots, 3 tables)
-    tables['kpi_df'] = pd.DataFrame({'Métrica': ['Total de Projetos', 'Total de Tarefas', 'Total de Recursos', 'Duração Média (dias)'], 'Valor': [len(df_projects), len(df_tasks), len(df_resources), df_projects['actual_duration_days'].mean()]})
+    tables['kpi_data'] = {
+        'Total de Projetos': len(df_projects),
+        'Total de Tarefas': len(df_tasks),
+        'Total de Recursos': len(df_resources),
+        'Duração Média (dias)': f"{df_projects['actual_duration_days'].mean():.1f}"
+    }
     tables['outlier_duration'] = df_projects.sort_values('actual_duration_days', ascending=False).head(5)
     tables['outlier_cost'] = df_projects.sort_values('total_actual_cost', ascending=False).head(5)
     fig, ax = plt.subplots(figsize=(8, 5)); sns.scatterplot(data=df_projects, x='days_diff', y='cost_diff', hue='project_type', s=80, alpha=0.7, ax=ax); ax.axhline(0, color='black', ls='--'); ax.axvline(0, color='black', ls='--'); ax.set_title("Matriz de Performance")
     plots['performance_matrix'] = convert_fig_to_bytes(fig)
     fig, ax = plt.subplots(figsize=(8, 4)); sns.boxplot(x=df_projects['actual_duration_days'], ax=ax, color="skyblue"); sns.stripplot(x=df_projects['actual_duration_days'], color="blue", size=4, jitter=True, alpha=0.5, ax=ax); ax.set_title("Distribuição da Duração dos Projetos")
     plots['case_durations_boxplot'] = convert_fig_to_bytes(fig)
-
-    # 2. Performance Detalhada (4 plots, 1 table)
+    
     lead_times = log_df_final.groupby("case:concept:name")["time:timestamp"].agg(["min", "max"]).reset_index()
     lead_times["lead_time_days"] = (lead_times["max"] - lead_times["min"]).dt.total_seconds() / (24*60*60)
     def compute_avg_throughput(group):
@@ -148,8 +182,7 @@ def run_pre_mining_analysis(dfs):
     plots['throughput_boxplot'] = convert_fig_to_bytes(fig)
     fig, ax = plt.subplots(figsize=(8, 5)); sns.regplot(x="avg_throughput_hours", y="lead_time_days", data=perf_df, ax=ax); ax.set_title("Relação Lead Time vs Throughput")
     plots['lead_time_vs_throughput'] = convert_fig_to_bytes(fig)
-
-    # 3. Atividades e Handoffs (3 plots)
+    
     service_times = df_full_context.groupby('task_name')['hours_worked'].mean().reset_index()
     service_times['service_time_days'] = service_times['hours_worked'] / 8
     fig, ax = plt.subplots(figsize=(8, 5)); sns.barplot(x='service_time_days', y='task_name', data=service_times.sort_values('service_time_days', ascending=False).head(10), ax=ax, hue='task_name', legend=False, palette='viridis'); ax.set_title("Tempo Médio de Execução por Atividade")
@@ -166,7 +199,6 @@ def run_pre_mining_analysis(dfs):
     fig, ax = plt.subplots(figsize=(8, 5)); sns.barplot(data=handoff_stats.sort_values('estimated_cost_of_wait', ascending=False).head(10), y='transition', x='estimated_cost_of_wait', ax=ax, hue='transition', legend=False, palette='Reds_r'); ax.set_title("Top 10 Handoffs por Custo de Espera")
     plots['top_handoffs_cost'] = convert_fig_to_bytes(fig)
 
-    # 4. Análise Organizacional (6 plots)
     activity_counts = df_tasks["task_name"].value_counts()
     fig, ax = plt.subplots(figsize=(8, 5)); sns.barplot(x=activity_counts.head(10).values, y=activity_counts.head(10).index, ax=ax); ax.set_title("Atividades Mais Frequentes")
     plots['top_activities_plot'] = convert_fig_to_bytes(fig)
@@ -188,8 +220,7 @@ def run_pre_mining_analysis(dfs):
     cost_by_resource_type = df_full_context.groupby('resource_type')['cost_of_work'].sum().sort_values(ascending=False).reset_index()
     fig, ax = plt.subplots(figsize=(8, 4)); sns.barplot(data=cost_by_resource_type, x='cost_of_work', y='resource_type', ax=ax, hue='resource_type', legend=False, palette='magma'); ax.set_title("Custo por Tipo de Recurso")
     plots['cost_by_resource_type'] = convert_fig_to_bytes(fig)
-
-    # 5. Variantes e Rework (1 plot, 2 tables)
+    
     variants_df = log_df_final.groupby('case:concept:name')['concept:name'].apply(list).reset_index(name='trace')
     variants_df['variant_str'] = variants_df['trace'].apply(lambda x: ' -> '.join(x))
     variant_analysis = variants_df['variant_str'].value_counts().reset_index(name='frequency')
@@ -200,7 +231,6 @@ def run_pre_mining_analysis(dfs):
     rework_loops = Counter(f"{trace[i]} -> {trace[i+1]} -> {trace[i]}" for trace in variants_df['trace'] for i in range(len(trace) - 2) if trace[i] == trace[i+2] and trace[i] != trace[i+1])
     tables['rework_loops_table'] = pd.DataFrame(rework_loops.most_common(10), columns=['rework_loop', 'frequency'])
     
-    # 6. Análise Aprofundada (9 plots, 1 table)
     delayed_projects = df_projects[df_projects['days_diff'] > 0]
     tables['cost_of_delay_kpis'] = pd.DataFrame({'Métrica': ['Custo Total Projetos Atrasados', 'Atraso Médio (dias)', 'Custo Médio/Dia Atraso'], 'Valor': [delayed_projects['total_actual_cost'].sum(), delayed_projects['days_diff'].mean(), (delayed_projects.get('total_actual_cost', 0) / delayed_projects['days_diff']).mean()]})
     min_res, max_res = df_projects['num_resources'].min(), df_projects['num_resources'].max()
@@ -251,11 +281,9 @@ def run_pre_mining_analysis(dfs):
 
 @st.cache_data
 def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_resources, _df_full_context):
-    # --- INÍCIO DA MIGRAÇÃO DAS 23 ANÁLISES PÓS-MINERAÇÃO (CÉLULA 3 DO NOTEBOOK) ---
     plots = {}
     metrics = {}
     
-    # Gerar log completo com start/complete para certas análises
     df_start_events = _df_tasks_raw[['project_id', 'task_id', 'task_name', 'start_date']].rename(columns={'start_date': 'time:timestamp', 'task_name': 'concept:name', 'project_id': 'case:concept:name'})
     df_start_events['lifecycle:transition'] = 'start'
     df_complete_events = _df_tasks_raw[['project_id', 'task_id', 'task_name', 'end_date']].rename(columns={'end_date': 'time:timestamp', 'task_name': 'concept:name', 'project_id': 'case:concept:name'})
@@ -263,7 +291,6 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
     log_df_full_lifecycle = pd.concat([df_start_events, df_complete_events]).sort_values('time:timestamp')
     log_full_pm4py = pm4py.convert_to_event_log(log_df_full_lifecycle)
 
-    # 1. Descoberta de Modelos e Métricas (4 artefactos)
     variants_dict = variants_filter.get_variants(_event_log_pm4py)
     top_variants_list = sorted(variants_dict.items(), key=lambda x: len(x[1]), reverse=True)[:3]
     top_variant_names = [v[0] for v in top_variants_list]
@@ -291,8 +318,7 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
     metrics_hm = {"Fitness": replay_fitness_evaluator.apply(log_top_3_variants, net_hm, im_hm, fm_hm, variant=replay_fitness_evaluator.Variants.TOKEN_BASED).get('average_trace_fitness', 0), "Precisão": precision_evaluator.apply(log_top_3_variants, net_hm, im_hm, fm_hm), "Generalização": generalization_evaluator.apply(log_top_3_variants, net_hm, im_hm, fm_hm), "Simplicidade": simplicity_evaluator.apply(net_hm)}
     plots['metrics_heuristic'] = convert_fig_to_bytes(plot_metrics_chart(metrics_hm, 'Métricas de Qualidade (Heuristics Miner)'))
     metrics['heuristics_miner'] = metrics_hm
-
-    # 2. Performance e Tempo (4 artefactos)
+    
     kpi_temporal = _df_projects.groupby('completion_month').agg(avg_lead_time=('actual_duration_days', 'mean'), throughput=('project_id', 'count')).reset_index()
     fig, ax1 = plt.subplots(figsize=(12, 6)); ax1.plot(kpi_temporal['completion_month'], kpi_temporal['avg_lead_time'], marker='o', color='b', label='Lead Time'); ax2 = ax1.twinx(); ax2.bar(kpi_temporal['completion_month'], kpi_temporal['throughput'], color='g', alpha=0.6, label='Throughput'); fig.suptitle('Séries Temporais de KPIs de Performance'); fig.legend()
     plots['kpi_time_series'] = convert_fig_to_bytes(fig)
@@ -308,8 +334,7 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
     
     fig, ax = plt.subplots(figsize=(8, 4)); log_df_full_lifecycle['weekday'] = log_df_full_lifecycle['time:timestamp'].dt.day_name(); weekday_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]; heatmap_data = log_df_full_lifecycle.groupby('weekday')['case:concept:name'].count().reindex(weekday_order).fillna(0); sns.barplot(x=heatmap_data.index, y=heatmap_data.values, ax=ax, hue=heatmap_data.index, legend=False, palette='viridis'); ax.set_title('Ocorrências de Atividades por Dia da Semana'); plt.xticks(rotation=45)
     plots['temporal_heatmap_fixed'] = convert_fig_to_bytes(fig)
-
-    # 3. Análise de Recursos (3 artefactos)
+    
     log_df_complete = pm4py.convert_to_dataframe(_event_log_pm4py)
     handovers = Counter((log_df_complete.iloc[i]['org:resource'], log_df_complete.iloc[i+1]['org:resource']) for i in range(len(log_df_complete)-1) if log_df_complete.iloc[i]['case:concept:name'] == log_df_complete.iloc[i+1]['case:concept:name'] and log_df_complete.iloc[i]['org:resource'] != log_df_complete.iloc[i+1]['org:resource'])
     fig_net, ax_net = plt.subplots(figsize=(10, 10)); G = nx.DiGraph();
@@ -330,7 +355,6 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
         fig, ax = plt.subplots(figsize=(12, 10)); pos = nx.bipartite_layout(G_bipartite, resources_nodes); nx.draw(G_bipartite, pos, with_labels=True, node_color=['skyblue' if node in resources_nodes else 'lightgreen' for node in G_bipartite.nodes()], node_size=2000, ax=ax, font_size=8); edge_labels = nx.get_edge_attributes(G_bipartite, 'weight'); nx.draw_networkx_edge_labels(G_bipartite, pos, edge_labels=edge_labels, ax=ax); ax.set_title('Rede de Recursos por Função')
         plots['resource_network_bipartite'] = convert_fig_to_bytes(fig)
 
-    # 4. Novas Análises e Visualizações (12 artefactos)
     variants_df = log_df_full_lifecycle.groupby('case:concept:name').agg(variant=('concept:name', lambda x: tuple(x)), start_timestamp=('time:timestamp', 'min'), end_timestamp=('time:timestamp', 'max')).reset_index()
     variants_df['duration_hours'] = (variants_df['end_timestamp'] - variants_df['start_timestamp']).dt.total_seconds() / 3600
     variant_durations = variants_df.groupby('variant').agg(count=('case:concept:name', 'count'), avg_duration_hours=('duration_hours', 'mean')).reset_index().sort_values(by='count', ascending=False).head(10)
@@ -407,11 +431,16 @@ page = st.sidebar.radio("Selecione a Página", ["Upload de Ficheiros", "Executar
 file_names = ['projects', 'tasks', 'resources', 'resource_allocations', 'dependencies']
 
 if page == "Upload de Ficheiros":
-    st.header("1. Upload dos Ficheiros de Dados (.csv)")
+    # ALTERAÇÃO 3.1: Título em formato de cartão e sem numeração
+    st.markdown('<div class="custom-title-card"><h2>Upload dos Ficheiros de Dados (.csv)</h2></div>', unsafe_allow_html=True)
     st.markdown("Por favor, carregue os 5 ficheiros CSV necessários para a análise.")
-    cols = st.columns(3)
+    
+    # ALTERAÇÃO 1.1: Melhorar uso do espaço na secção de upload
+    col1, col2, col3 = st.columns(3)
+    cols = [col1, col2, col3, col1, col2] # Reutilizar as colunas para os 5 ficheiros
+    
     for i, name in enumerate(file_names):
-        with cols[i % 3]:
+        with cols[i]:
             uploaded_file = st.file_uploader(f"Carregar `{name}.csv`", type="csv", key=f"upload_{name}")
             if uploaded_file:
                 st.session_state.dfs[name] = pd.read_csv(uploaded_file)
@@ -423,13 +452,14 @@ if page == "Upload de Ficheiros":
             with st.expander(f"Visualizar as primeiras 5 linhas de `{name}.csv`"): st.dataframe(df.head())
 
 elif page == "Executar Análise":
-    st.header("2. Execução da Análise de Processos")
+    # ALTERAÇÃO 3.2: Título em formato de cartão e sem numeração
+    st.markdown('<div class="custom-title-card"><h2>Execução da Análise de Processos</h2></div>', unsafe_allow_html=True)
+
     if not all(st.session_state.dfs[name] is not None for name in file_names):
         st.warning("Por favor, carregue todos os 5 ficheiros CSV na página de 'Upload' antes de continuar.")
     else:
         st.info("Todos os ficheiros estão carregados. Clique no botão abaixo para iniciar a análise completa.")
         if st.button("🚀 Iniciar Análise Completa"):
-            # ALTERAÇÃO 2: Unificar a mensagem do spinner
             with st.spinner("Os dados estão a ser analisados. Assim que forem concluídos pode navegar para 'Resultados da Análise'."):
                 plots_pre, tables_pre, event_log, df_p, df_t, df_r, df_fc = run_pre_mining_analysis(st.session_state.dfs)
                 st.session_state.plots_pre_mining = plots_pre
@@ -448,40 +478,63 @@ elif page == "Executar Análise":
             st.balloons()
 
 elif page == "Resultados da Análise":
-    st.header("Resultados da Análise de Processos")
+    # ALTERAÇÃO 3.3: Título em formato de cartão
+    st.markdown('<div class="custom-title-card"><h2>Resultados da Análise de Processos</h2></div>', unsafe_allow_html=True)
     if not st.session_state.analysis_run:
         st.warning("A análise ainda não foi executada. Por favor, vá à página 'Executar Análise'.")
     else:
-        # ALTERAÇÃO 3: Remover texto extra dos nomes das abas
         tab1, tab2 = st.tabs(["📊 Análise Pré-Mineração", "⛏️ Análise Pós-Mineração"])
         
         with tab1:
-            # ALTERAÇÃO 4: Remover texto extra do título da aba
             st.subheader("Análise Pré-Mineração")
             with st.expander("Secção 1: Análises de Alto Nível e de Casos", expanded=True):
-                st.markdown("<h4>Painel de KPIs</h4>", unsafe_allow_html=True); st.table(st.session_state.tables_pre_mining['kpi_df'].set_index('Métrica'))
+                # ALTERAÇÃO 4.a: Transformar tabela de KPIs em cartões st.metric
+                st.markdown("<h4>Painel de KPIs</h4>", unsafe_allow_html=True)
+                kpi_data = st.session_state.tables_pre_mining['kpi_data']
+                kpi_cols = st.columns(4)
+                kpi_cols[0].metric(label="Total de Projetos", value=kpi_data['Total de Projetos'])
+                kpi_cols[1].metric(label="Total de Tarefas", value=kpi_data['Total de Tarefas'])
+                kpi_cols[2].metric(label="Total de Recursos", value=kpi_data['Total de Recursos'])
+                kpi_cols[3].metric(label="Duração Média", value=kpi_data['Duração Média (dias)'], help="em dias")
+                st.divider()
+
                 c1, c2 = st.columns(2)
                 c1.image(st.session_state.plots_pre_mining['performance_matrix'], caption="Matriz de Performance"); c1.markdown("<h4>Top 5 Projetos Mais Longos</h4>", unsafe_allow_html=True); c1.dataframe(st.session_state.tables_pre_mining['outlier_duration'])
                 c2.image(st.session_state.plots_pre_mining['case_durations_boxplot'], caption="Distribuição da Duração"); c2.markdown("<h4>Top 5 Projetos Mais Caros</h4>", unsafe_allow_html=True); c2.dataframe(st.session_state.tables_pre_mining['outlier_cost'])
+            
             with st.expander("Secção 2: Análises de Performance Detalhada"):
-                st.markdown("<h4>Estatísticas de Lead Time e Throughput</h4>", unsafe_allow_html=True); st.dataframe(st.session_state.tables_pre_mining['perf_stats'])
+                # ALTERAÇÃO 4.b: Ajustar largura da tabela de performance
+                col_table, col_empty = st.columns([1.5, 1])
+                with col_table:
+                    st.markdown("<h4>Estatísticas de Lead Time e Throughput</h4>", unsafe_allow_html=True); 
+                    st.dataframe(st.session_state.tables_pre_mining['perf_stats'])
+                
                 c1, c2 = st.columns(2)
                 c1.image(st.session_state.plots_pre_mining['lead_time_hist'], caption="Distribuição do Lead Time"); c2.image(st.session_state.plots_pre_mining['throughput_hist'], caption="Distribuição do Throughput")
                 c1.image(st.session_state.plots_pre_mining['throughput_boxplot'], caption="Boxplot do Throughput"); c2.image(st.session_state.plots_pre_mining['lead_time_vs_throughput'], caption="Relação Lead Time vs Throughput")
+            
             with st.expander("Secção 3: Análise de Atividades e Handoffs"):
                 c1, c2 = st.columns(2)
                 c1.image(st.session_state.plots_pre_mining['activity_service_times'], caption="Tempo Médio de Execução"); c2.image(st.session_state.plots_pre_mining['top_handoffs'], caption="Top Handoffs por Tempo")
-                st.image(st.session_state.plots_pre_mining['top_handoffs_cost'], caption="Top Handoffs por Custo")
+                # ALTERAÇÃO 4.c: Ajustar tamanho da imagem de custo de handoff
+                c3, c4 = st.columns(2)
+                c3.image(st.session_state.plots_pre_mining['top_handoffs_cost'], caption="Top Handoffs por Custo")
+
             with st.expander("Secção 4: Análise Organizacional (Recursos)"):
                 c1, c2 = st.columns(2)
                 c1.image(st.session_state.plots_pre_mining['top_activities_plot'], caption="Atividades Mais Frequentes"); c2.image(st.session_state.plots_pre_mining['resource_workload'], caption="Top Recursos por Horas")
                 c1.image(st.session_state.plots_pre_mining['resource_avg_events'], caption="Recursos por Média de Tarefas"); c2.image(st.session_state.plots_pre_mining['resource_handoffs'], caption="Top Handoffs entre Recursos")
-                st.image(st.session_state.plots_pre_mining['cost_by_resource_type'], caption="Custo por Tipo de Recurso")
+                # ALTERAÇÃO 4.d: Ajustar tamanho das últimas imagens
+                c3, c4 = st.columns(2)
+                c3.image(st.session_state.plots_pre_mining['cost_by_resource_type'], caption="Custo por Tipo de Recurso")
                 st.image(st.session_state.plots_pre_mining['resource_activity_matrix'], caption="Heatmap de Esforço")
+            
             with st.expander("Secção 5: Análise de Variantes e Rework"):
-                c1, c2 = st.columns(2)
-                with c1: st.markdown("<h4>Top 10 Variantes</h4>", unsafe_allow_html=True); st.dataframe(st.session_state.tables_pre_mining['variants_table']); st.markdown("<h4>Principais Loops de Rework</h4>", unsafe_allow_html=True); st.dataframe(st.session_state.tables_pre_mining['rework_loops_table'])
-                with c2: st.image(st.session_state.plots_pre_mining['variants_frequency'], caption="Frequência das Variantes")
+                # ALTERAÇÃO 4.e: Remover tabela e expandir gráfico
+                st.markdown("<h4>Principais Loops de Rework</h4>", unsafe_allow_html=True)
+                st.dataframe(st.session_state.tables_pre_mining['rework_loops_table'])
+                st.image(st.session_state.plots_pre_mining['variants_frequency'], caption="Frequência das Variantes")
+
             with st.expander("Secção 6: Análise Aprofundada e Benchmarking"):
                 st.markdown("<h4>Custo do Atraso</h4>", unsafe_allow_html=True); st.table(st.session_state.tables_pre_mining['cost_of_delay_kpis'].set_index('Métrica'))
                 c1, c2 = st.columns(2)
@@ -489,33 +542,58 @@ elif page == "Resultados da Análise":
                 c1.image(st.session_state.plots_pre_mining['weekly_efficiency'], caption="Eficiência Semanal"); c2.image(st.session_state.plots_pre_mining['bottleneck_by_resource'], caption="Recursos com Maior Espera")
                 c1.image(st.session_state.plots_pre_mining['service_vs_wait_stacked'], caption="Serviço vs Espera"); c2.image(st.session_state.plots_pre_mining['wait_vs_service_scatter'], caption="Espera vs Execução")
                 c1.image(st.session_state.plots_pre_mining['wait_time_evolution'], caption="Evolução da Espera"); c2.image(st.session_state.plots_pre_mining['throughput_benchmark_by_teamsize'], caption="Benchmark de Throughput")
-                st.image(st.session_state.plots_pre_mining['cycle_time_breakdown'], caption="Duração Média por Fase")
+                # ALTERAÇÃO 4.f: Ajustar tamanho do último gráfico
+                c3, c4 = st.columns(2)
+                c3.image(st.session_state.plots_pre_mining['cycle_time_breakdown'], caption="Duração Média por Fase")
 
         with tab2:
-            # ALTERAÇÃO 4: Remover texto extra do título da aba
             st.subheader("Análise Pós-Mineração")
             with st.expander("Secção 1: Descoberta e Avaliação de Modelos", expanded=True):
+                # ALTERAÇÃO 4.g: Reorganizar layout dos modelos e métricas
+                st.markdown("<h5>Modelo - Inductive Miner</h5>", unsafe_allow_html=True)
                 c1, c2 = st.columns(2)
-                c1.image(st.session_state.plots_post_mining['model_inductive_petrinet'], caption="Modelo (Inductive Miner)"); c2.image(st.session_state.plots_post_mining['metrics_inductive'], caption="Métricas (Inductive Miner)")
-                c1.image(st.session_state.plots_post_mining['model_heuristic_petrinet'], caption="Modelo (Heuristics Miner)"); c2.image(st.session_state.plots_post_mining['metrics_heuristic'], caption="Métricas (Heuristics Miner)")
+                c1.image(st.session_state.plots_post_mining['model_inductive_petrinet'], caption="Modelo de Processo (Petri Net)")
+                c2.image(st.session_state.plots_post_mining['metrics_inductive'], caption="Métricas de Qualidade")
+                st.divider()
+                st.markdown("<h5>Modelo - Heuristics Miner</h5>", unsafe_allow_html=True)
+                c3, c4 = st.columns(2)
+                c3.image(st.session_state.plots_post_mining['model_heuristic_petrinet'], caption="Modelo de Processo (Petri Net)")
+                c4.image(st.session_state.plots_post_mining['metrics_heuristic'], caption="Métricas de Qualidade")
+
             with st.expander("Secção 2: Performance, Tempo de Ciclo e Gargalos"):
                  c1, c2 = st.columns(2)
                  c1.image(st.session_state.plots_post_mining['kpi_time_series'], caption="Séries Temporais de KPIs"); c2.image(st.session_state.plots_post_mining['temporal_heatmap_fixed'], caption="Atividades por Dia da Semana")
                  st.image(st.session_state.plots_post_mining['performance_heatmap'], caption="Heatmap de Performance no Processo")
                  if 'gantt_chart_all_projects' in st.session_state.plots_post_mining: st.image(st.session_state.plots_post_mining['gantt_chart_all_projects'], caption="Gantt Chart de Todos os Projetos")
+            
             with st.expander("Secção 3: Análise de Recursos Avançada"):
                 c1, c2 = st.columns(2)
                 c1.image(st.session_state.plots_post_mining['resource_network_adv'], caption="Rede Social de Recursos")
                 if 'skill_vs_performance_adv' in st.session_state.plots_post_mining: c2.image(st.session_state.plots_post_mining['skill_vs_performance_adv'], caption="Skill vs Performance")
-                if 'resource_network_bipartite' in st.session_state.plots_post_mining: st.image(st.session_state.plots_post_mining['resource_network_bipartite'], caption="Rede de Recursos por Função")
-                if 'resource_efficiency_plot' in st.session_state.plots_post_mining: st.image(st.session_state.plots_post_mining['resource_efficiency_plot'], caption="Eficiência Individual por Recurso")
+                # ALTERAÇÃO 4.h: Ajustar tamanho das imagens de recursos
+                c3, c4 = st.columns(2)
+                if 'resource_network_bipartite' in st.session_state.plots_post_mining: c3.image(st.session_state.plots_post_mining['resource_network_bipartite'], caption="Rede de Recursos por Função")
+                if 'resource_efficiency_plot' in st.session_state.plots_post_mining: c4.image(st.session_state.plots_post_mining['resource_efficiency_plot'], caption="Eficiência Individual por Recurso")
+            
             with st.expander("Secção 4: Análise de Variantes, Conformidade e Aprofundada"):
+                # ALTERAÇÃO 4.j: Corrigir alinhamento horizontal dos gráficos
                 c1, c2 = st.columns(2)
-                c1.image(st.session_state.plots_post_mining['variant_duration_plot'], caption="Duração Média das Variantes"); c2.image(st.session_state.plots_post_mining['deviation_scatter_plot'], caption="Dispersão: Fitness vs Desvios")
-                c1.image(st.session_state.plots_post_mining['conformance_over_time_plot'], caption="Conformidade ao Longo do Tempo"); c2.image(st.session_state.plots_post_mining['cost_per_day_time_series'], caption="Custo por Dia ao Longo do Tempo")
-                c1.image(st.session_state.plots_post_mining['cumulative_throughput_plot'], caption="Throughput Acumulado")
-                if 'milestone_time_analysis_plot' in st.session_state.plots_post_mining: c2.image(st.session_state.plots_post_mining['milestone_time_analysis_plot'], caption="Análise de Tempo entre Marcos")
-                if 'custom_variants_sequence_plot' in st.session_state.plots_post_mining: st.image(st.session_state.plots_post_mining['custom_variants_sequence_plot'], caption="Sequência de Atividades das Variantes")
-                c1, c2 = st.columns(2)
-                if 'waiting_time_matrix_plot' in st.session_state.plots_post_mining: c1.image(st.session_state.plots_post_mining['waiting_time_matrix_plot'], caption="Matriz de Tempo de Espera (horas)")
-                if 'avg_waiting_time_by_activity_plot' in st.session_state.plots_post_mining: c2.image(st.session_state.plots_post_mining['avg_waiting_time_by_activity_plot'], caption="Tempo de Espera Médio por Atividade")
+                c1.image(st.session_state.plots_post_mining['variant_duration_plot'], caption="Duração Média das Variantes")
+                c2.image(st.session_state.plots_post_mining['deviation_scatter_plot'], caption="Dispersão: Fitness vs Desvios")
+                
+                c3, c4 = st.columns(2)
+                c3.image(st.session_state.plots_post_mining['conformance_over_time_plot'], caption="Conformidade ao Longo do Tempo")
+                c4.image(st.session_state.plots_post_mining['cost_per_day_time_series'], caption="Custo por Dia ao Longo do Tempo")
+                
+                c5, c6 = st.columns(2)
+                c5.image(st.session_state.plots_post_mining['cumulative_throughput_plot'], caption="Throughput Acumulado")
+                if 'milestone_time_analysis_plot' in st.session_state.plots_post_mining: c6.image(st.session_state.plots_post_mining['milestone_time_analysis_plot'], caption="Análise de Tempo entre Marcos")
+
+                # ALTERAÇÃO 4.i: Ajustar tamanho da imagem de sequência
+                if 'custom_variants_sequence_plot' in st.session_state.plots_post_mining:
+                    c7, c8 = st.columns([2, 0.5]) # Coluna para forçar um tamanho menor
+                    c7.image(st.session_state.plots_post_mining['custom_variants_sequence_plot'], caption="Sequência de Atividades das Variantes")
+                
+                c9, c10 = st.columns(2)
+                if 'waiting_time_matrix_plot' in st.session_state.plots_post_mining: c9.image(st.session_state.plots_post_mining['waiting_time_matrix_plot'], caption="Matriz de Tempo de Espera (horas)")
+                if 'avg_waiting_time_by_activity_plot' in st.session_state.plots_post_mining: c10.image(st.session_state.plots_post_mining['avg_waiting_time_by_activity_plot'], caption="Tempo de Espera Médio por Atividade")
