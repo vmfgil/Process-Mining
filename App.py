@@ -34,75 +34,102 @@ st.set_page_config(
 # Estilo CSS para replicar a estética da app de referência
 st.markdown("""
 <style>
-    .stApp { background-color: #F0F2F6; }
-    .main .block-container { padding: 2rem 3rem; }
-    [data-testid="stSidebar"] { background-color: #0F172A; }
-    
-    /* ALTERAÇÃO FINAL (CORREÇÃO): Forçar texto principal da sidebar a ser branco */
-    [data-testid="stSidebar"] h1 {
-        color: white !important;
+    /* ================================================ */
+    /* ESTILOS GERAIS DA APLICAÇÃO                      */
+    /* ================================================ */
+    .stApp {
+        background-color: #F0F2F6;
     }
-    /* Apanha o texto dentro das opções do menu rádio */
-    [data-testid="stSidebar"] label > div > span > p {
+    .main .block-container {
+        padding: 2rem 3rem;
+    }
+    h1, h2, h3, h4 {
+        color: #1E293B;
+        font-weight: 600;
+    }
+    h2 {
+        border-bottom: 2px solid #3B82F6;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+    }
+    .custom-title-card {
+        background-color: #FFFFFF;
+        border-radius: 10px;
+        padding: 20px 25px;
+        margin-bottom: 25px;
+        box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.05);
+        border-left: 6px solid #3B82F6;
+    }
+    .custom-title-card h2 {
+        border-bottom: none;
+        padding-bottom: 0;
+        margin-bottom: 0;
+    }
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 24px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .stTabs [data-baseweb="tab"] {
+        height: 50px;
+        background-color: transparent;
+        padding: 10px 15px;
+        color: #475569;
+    }
+    .stTabs [aria-selected="true"] {
+        color: #3B82F6;
+        font-weight: bold;
+        border-bottom: 3px solid #3B82F6;
+    }
+
+    /* ================================================ */
+    /* PAINEL LATERAL (SIDEBAR) - VERSÃO CORRIGIDA      */
+    /* ================================================ */
+    [data-testid="stSidebar"] {
+        background-color: #0F172A;
+    }
+
+    /* 1. Força o texto das OPÇÕES DE NAVEGAÇÃO a ser BRANCO e com o estilo correto */
+    [data-testid="stSidebar"] [data-testid="stRadio"] p {
         color: white !important;
         font-weight: 600 !important;
         font-size: 1.1rem !important;
     }
-    /* Classe específica para o texto de ajuda ser pequeno e cinza claro */
-    .sidebar-note {
-        color: #a0aec0 !important; /* Cinza mais claro */
+
+    /* 2. Classe específica APENAS para a nota de ajuda cinzenta */
+    .sidebar-note p {
+        color: #a0aec0 !important;
         font-size: 0.9rem !important;
         font-weight: 400 !important;
     }
 
-    h1, h2, h3, h4 { color: #1E293B; font-weight: 600; }
-    h2 { border-bottom: 2px solid #3B82F6; padding-bottom: 10px; margin-bottom: 20px; }
+    /* ================================================ */
+    /* ÁREA DE UPLOAD - VERSÃO CORRIGIDA                */
+    /* ================================================ */
     
-    .custom-title-card {
-        background-color: #FFFFFF; border-radius: 10px; padding: 20px 25px; margin-bottom: 25px;
-        box-shadow: 0 4px 8px 0 rgba(0,0,0,0.05); border-left: 6px solid #3B82F6;
-    }
-    .custom-title-card h2 { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
-
-    .card { background-color: #FFFFFF; border-radius: 10px; padding: 25px; margin-bottom: 20px; box-shadow: 0 4px 8px 0 rgba(0,0,0,0.05); }
-    .stButton>button { background-color: #3B82F6; color: white; border-radius: 8px; border: none; padding: 10px 20px; width: 100%; }
-    .stTabs [data-baseweb="tab-list"] { gap: 24px; border-bottom: 1px solid #e2e8f0; }
-    .stTabs [data-baseweb="tab"] { height: 50px; background-color: transparent; padding: 10px 15px; color: #475569; }
-    .stTabs [aria-selected="true"] { color: #3B82F6; font-weight: bold; border-bottom: 3px solid #3B82F6; }
-    
-    /* ALTERAÇÃO FINAL (CORREÇÃO): Garantir que texto do expander não é verde/azul */
-    .streamlit-expanderHeader {
-        background-color: #F8FAFC;
-        color: #1E293B !important;
-        border: 1px solid #E2E8F0;
-        border-radius: 8px;
-    }
-
-    /* ALTERAÇÃO FINAL (CORREÇÃO): Estilos para a secção de upload com CSS FORÇADO */
-    .stFileUploader {
-        padding: 10px; border-radius: 8px; border: 1px dashed #b0b8c2;
-    }
-    /* Garantir que o label do uploader (Carregar '... .csv') tem cor escura e não verde/azul */
+    /* 1. Garante que os labels ("Carregar ...") são escuros e não herdam outras cores */
     .stFileUploader label {
+        color: #1E293B !important;
         font-size: 0.9rem;
+    }
+
+    /* 2. Garante que os cabeçalhos da pré-visualização ("Visualizar ...") são escuros */
+    .streamlit-expanderHeader {
         color: #1E293B !important;
     }
-    .stFileUploader button {
-        background-color: #3B82F6; color: white; border-radius: 6px; border: none; padding: 4px 12px; font-size: 0.9rem;
-    }
-    /* Forçar a cor azul nas mensagens de sucesso e texto */
+
+    /* 3. FORÇA a cor AZUL em todas as partes da mensagem de sucesso */
     [data-testid="stAlert"][data-st-alert-type="success"] {
         background-color: rgba(59, 130, 246, 0.1) !important;
         border: 1px solid rgba(59, 130, 246, 0.2) !important;
     }
-    [data-testid="stAlert"][data-st-alert-type="success"] svg { color: #1d4ed8 !important; }
-    [data-testid="stAlert"][data-st-alert-type="success"] [data-testid="stMarkdownContainer"] p { color: #1d4ed8 !important; }
-    
-    /* Forçar a cor azul no nome do ficheiro carregado */
-    section[data-testid="stFileUploadDropzone"] div[data-testid="stMarkdownContainer"] p {
+    [data-testid="stAlert"][data-st-alert-type="success"] p {
         color: #1d4ed8 !important;
     }
 
+    /* 4. FORÇA a cor AZUL no nome do ficheiro após o upload */
+    section[data-testid="stFileUploadDropzone"] div[data-testid="stMarkdownContainer"] p {
+        color: #1d4ed8 !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -459,7 +486,8 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
 
 # --- 4. LAYOUT DA APLICAÇÃO ---
 st.sidebar.title("Painel de Análise de Processos")
-st.sidebar.markdown('<p class="sidebar-note">Navegue pelas secções da aplicação.</p>', unsafe_allow_html=True)
+# Adicionar div com classe para controlo específico via CSS
+st.sidebar.markdown('<div class="sidebar-note"><p>Navegue pelas secções da aplicação.</p></div>', unsafe_allow_html=True)
 
 page = st.sidebar.radio(
     "Selecione a Página", 
