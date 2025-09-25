@@ -38,16 +38,17 @@ st.markdown("""
     .main .block-container { padding: 2rem 3rem; }
     [data-testid="stSidebar"] { background-color: #0F172A; }
     
-    /* ALTERAÇÃO 2 (REFINAMENTO): Aumentar a letra das opções de navegação */
-    [data-testid="stSidebar"] label {
-        color: white; font-weight: 600; font-size: 1.1rem;
+    /* ALTERAÇÃO FINAL 3: Forçar texto principal da sidebar a ser branco e grande */
+    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] label span p {
+        color: white !important;
+        font-weight: 600 !important;
+        font-size: 1.1rem !important;
     }
-    [data-testid="stSidebar"] h1 {
-        color: white; font-weight: 600; font-size: 1.3rem;
-    }
-    /* Classe específica para o texto de ajuda ser pequeno */
+    /* Classe específica para o texto de ajuda ser pequeno e cinza claro */
     .sidebar-note {
-        color: #d1d5db; font-size: 0.9rem;
+        color: #a0aec0 !important; /* Cinza mais claro */
+        font-size: 0.9rem !important;
+        font-weight: 400 !important;
     }
 
     h1, h2, h3, h4 { color: #1E293B; font-weight: 600; }
@@ -66,7 +67,7 @@ st.markdown("""
     .stTabs [aria-selected="true"] { color: #3B82F6; font-weight: bold; border-bottom: 3px solid #3B82F6; }
     .streamlit-expanderHeader { background-color: #F8FAFC; color: #1E293B; border: 1px solid #E2E8F0; border-radius: 8px; }
 
-    /* ALTERAÇÃO 1 (REFINAMENTO): Estilos para a secção de upload */
+    /* ALTERAÇÃO FINAL 1: Estilos para a secção de upload com CSS FORÇADO */
     .stFileUploader {
         padding: 10px; border-radius: 8px; border: 1px dashed #b0b8c2;
     }
@@ -75,13 +76,17 @@ st.markdown("""
         background-color: #3B82F6; color: white; border-radius: 6px; border: none; padding: 4px 12px; font-size: 0.9rem;
     }
     /* Forçar a cor azul nas mensagens de sucesso e texto */
-    [data-testid="stSuccess"] {
-        background-color: rgba(59, 130, 246, 0.1);
-        border: 1px solid rgba(59, 130, 246, 0.2);
+    [data-testid="stAlert"] {
+        background-color: rgba(59, 130, 246, 0.1) !important;
+        border: 1px solid rgba(59, 130, 246, 0.2) !important;
     }
-    [data-testid="stSuccess"] svg { color: #1d4ed8; }
-    [data-testid="stSuccess"] [data-testid="stMarkdownContainer"] { color: #1d4ed8 !important; }
-    section[data-testid="stFileUploadDropzone"] div[data-testid="stMarkdownContainer"] p { color: #1d4ed8 !important; }
+    [data-testid="stAlert"] svg { color: #1d4ed8 !important; }
+    [data-testid="stAlert"] [data-testid="stMarkdownContainer"] p { color: #1d4ed8 !important; }
+    
+    /* Forçar a cor azul no nome do ficheiro carregado */
+    section[data-testid="stFileUploadDropzone"] div[data-testid="stMarkdownContainer"] p {
+        color: #1d4ed8 !important;
+    }
 
 </style>
 """, unsafe_allow_html=True)
@@ -387,12 +392,11 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
     fig, ax = plt.subplots(figsize=(10, 5)); sns.lineplot(x='end_date', y='cumulative_throughput', data=df_projects_sorted, ax=ax); ax.set_title('Gráfico Acumulado de Throughput'); fig.tight_layout()
     plots['cumulative_throughput_plot'] = convert_fig_to_bytes(fig)
     
-    # ALTERAÇÃO 6 (REFINAMENTO): Reduzir a altura do gráfico de variantes
     def generate_custom_variants_plot(event_log):
         variants = variants_filter.get_variants(event_log)
         top_variants = sorted(variants.items(), key=lambda item: len(item[1]), reverse=True)[:10]
         variant_sequences = {f"V{i+1} ({len(v)} casos)": [str(a) for a in k] for i, (k, v) in enumerate(top_variants)}
-        # Alterar o figsize para reduzir a altura (de 12,8 para 12,6)
+        # ALTERAÇÃO FINAL 6: Reduzir a altura do gráfico (de 12,8 para 12,6)
         fig, ax = plt.subplots(figsize=(12, 6)) 
         all_activities = sorted(list(set([act for seq in variant_sequences.values() for act in seq])))
         activity_to_y = {activity: i for i, activity in enumerate(all_activities)}
@@ -441,22 +445,21 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
 
 # --- 4. LAYOUT DA APLICAÇÃO ---
 st.sidebar.title("Painel de Análise de Processos")
-# ALTERAÇÃO 2 (REFINAMENTO): Usar classe CSS para controlar o tamanho do texto de ajuda
 st.sidebar.markdown('<p class="sidebar-note">Navegue pelas secções da aplicação.</p>', unsafe_allow_html=True)
 
-# ALTERAÇÃO 2 (REFINAMENTO): Adicionar ícones às opções do rádio
+# ALTERAÇÃO FINAL 2: Utilizar ícones Unicode mais modernos
 page = st.sidebar.radio(
     "Selecione a Página", 
-    ["📥 Upload de Ficheiros", "🚀 Executar Análise", "📊 Resultados da Análise"], 
+    ["📁 Upload de Ficheiros", "▶️ Executar Análise", "📈 Resultados da Análise"], 
     label_visibility="hidden"
 )
 file_names = ['projects', 'tasks', 'resources', 'resource_allocations', 'dependencies']
 
-if page == "📥 Upload de Ficheiros":
+if page == "📁 Upload de Ficheiros":
     st.markdown('<div class="custom-title-card"><h2>Upload dos Ficheiros de Dados (.csv)</h2></div>', unsafe_allow_html=True)
     st.markdown("Por favor, carregue os 5 ficheiros CSV necessários para a análise.")
     
-    # ALTERAÇÃO 1 (REFINAMENTO): Layout mais compacto para evitar scroll
+    # ALTERAÇÃO FINAL 1: Layout mais compacto para evitar scroll
     col1, col2 = st.columns(2)
     
     with col1:
@@ -464,28 +467,28 @@ if page == "📥 Upload de Ficheiros":
             uploaded_file = st.file_uploader(f"Carregar `{name}.csv`", type="csv", key=f"upload_{name}")
             if uploaded_file:
                 st.session_state.dfs[name] = pd.read_csv(uploaded_file)
-                st.success(f"`{name}.csv` carregado.", icon="✅")
+                st.success(f"`{name}.csv` carregado.")
     
     with col2:
         for name in file_names[3:]:
             uploaded_file = st.file_uploader(f"Carregar `{name}.csv`", type="csv", key=f"upload_{name}")
             if uploaded_file:
                 st.session_state.dfs[name] = pd.read_csv(uploaded_file)
-                st.success(f"`{name}.csv` carregado.", icon="✅")
+                st.success(f"`{name}.csv` carregado.")
 
     if all(st.session_state.dfs[name] is not None for name in file_names):
         st.subheader("Pré-visualização dos Dados Carregados")
         for name, df in st.session_state.dfs.items():
             with st.expander(f"Visualizar as primeiras 5 linhas de `{name}.csv`"): st.dataframe(df.head())
 
-elif page == "🚀 Executar Análise":
+elif page == "▶️ Executar Análise":
     st.markdown('<div class="custom-title-card"><h2>Execução da Análise de Processos</h2></div>', unsafe_allow_html=True)
 
     if not all(st.session_state.dfs[name] is not None for name in file_names):
         st.warning("Por favor, carregue todos os 5 ficheiros CSV na página de 'Upload' antes de continuar.")
     else:
         st.info("Todos os ficheiros estão carregados. Clique no botão abaixo para iniciar a análise completa.")
-        if st.button("🚀 Iniciar Análise Completa"):
+        if st.button("▶️ Iniciar Análise Completa"):
             with st.spinner("Os dados estão a ser analisados. Assim que forem concluídos pode navegar para 'Resultados da Análise'."):
                 plots_pre, tables_pre, event_log, df_p, df_t, df_r, df_fc = run_pre_mining_analysis(st.session_state.dfs)
                 st.session_state.plots_pre_mining = plots_pre
@@ -503,7 +506,7 @@ elif page == "🚀 Executar Análise":
             st.success("✅ Análise completa concluída com sucesso! Navegue para 'Resultados da Análise'.")
             st.balloons()
 
-elif page == "📊 Resultados da Análise":
+elif page == "📈 Resultados da Análise":
     st.markdown('<div class="custom-title-card"><h2>Resultados da Análise de Processos</h2></div>', unsafe_allow_html=True)
     if not st.session_state.analysis_run:
         st.warning("A análise ainda não foi executada. Por favor, vá à página 'Executar Análise'.")
@@ -557,7 +560,7 @@ elif page == "📊 Resultados da Análise":
                 c2.image(st.session_state.plots_pre_mining['resource_handoffs'], caption="Top Handoffs entre Recursos")
                 c3, c4 = st.columns(2)
                 c3.image(st.session_state.plots_pre_mining['cost_by_resource_type'], caption="Custo por Tipo de Recurso")
-                # ALTERAÇÃO 3 (REFINAMENTO): Colocar heatmap numa coluna para limitar a largura
+                # ALTERAÇÃO FINAL 3: Colocar heatmap numa coluna para limitar a largura
                 c5, c6 = st.columns([2, 1])
                 c5.image(st.session_state.plots_pre_mining['resource_activity_matrix'], caption="Heatmap de Esforço")
             
@@ -567,7 +570,7 @@ elif page == "📊 Resultados da Análise":
                 st.image(st.session_state.plots_pre_mining['variants_frequency'], caption="Frequência das Variantes")
 
             with st.expander("Secção 6: Análise Aprofundada e Benchmarking"):
-                # ALTERAÇÃO 4 (REFINAMENTO): Converter tabela "Custo do Atraso" em st.metric
+                # ALTERAÇÃO FINAL 4: Converter tabela "Custo do Atraso" em st.metric
                 st.markdown("<h4>Custo do Atraso</h4>", unsafe_allow_html=True)
                 delay_kpis = st.session_state.tables_pre_mining['cost_of_delay_kpis']
                 kpi_cols = st.columns(3)
@@ -591,7 +594,7 @@ elif page == "📊 Resultados da Análise":
         with tab2:
             st.subheader("Análise Pós-Mineração")
             with st.expander("Secção 1: Descoberta e Avaliação de Modelos", expanded=True):
-                # ALTERAÇÃO 5 (REFINAMENTO): Novo layout para os modelos e métricas
+                # ALTERAÇÃO FINAL 5: Novo layout para os modelos e métricas
                 st.markdown("<h5>Modelo - Inductive Miner</h5>", unsafe_allow_html=True)
                 st.image(st.session_state.plots_post_mining['model_inductive_petrinet'], caption="Modelo de Processo (Petri Net) - Inductive Miner")
                 
