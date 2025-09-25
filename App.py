@@ -26,12 +26,12 @@ from pm4py.algo.conformance.alignments.petri_net import algorithm as alignments_
 
 # --- 1. CONFIGURAÇÃO DA PÁGINA E ESTILO ---
 st.set_page_config(
-    page_title="Painel de Análise de Processos de IT",
+    page_title="Transformação inteligente de processos",
     page_icon="✨",
     layout="wide"
 )
 
-# --- ESTILO CSS GERAL (PARA A APLICAÇÃO APÓS LOGIN) ---
+# --- ESTILO CSS (VERSÃO FINAL E CORRIGIDA) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
@@ -41,11 +41,11 @@ st.markdown("""
     }
 
     :root {
-        --primary-color: #EF4444; /* Cor primária/ativa passa a ser o vermelho */
-        --secondary-color: #3B82F6; /* Cor secundária azul */
+        --primary-color: #EF4444; /* Vermelho para botões ativos */
+        --secondary-color: #3B82F6; /* Azul bebé para destaque */
         --background-color: #0F172A;
         --sidebar-background: #1E293B;
-        --text-color-dark-bg: #FFFFFF; /* Branco puro para máxima legibilidade */
+        --text-color-dark-bg: #FFFFFF;
         --border-color: #334155;
         --card-background-color: #FFFFFF;
         --card-text-color: #0F172A;
@@ -72,17 +72,17 @@ st.markdown("""
     [data-testid="stTextInput"] label { color: var(--text-color-dark-bg) !important; font-weight: 600 !important; }
 
     /* Estilo para botões de navegação (ativos e inativos) */
-    /* Botão Inativo (secundário) */
     .stButton>button:not(.st-emotion-cache-19n6bn1) {
         border: 1px solid var(--border-color) !important;
         background-color: var(--sidebar-background) !important;
         color: var(--text-color-dark-bg) !important;
+        font-weight: 600;
     }
-    /* Botão Ativo (primário) */
     .stButton>button.st-emotion-cache-19n6bn1 {
         background-color: var(--primary-color) !important;
         color: var(--text-color-dark-bg) !important;
         border: 1px solid var(--primary-color) !important;
+        font-weight: 600;
     }
     .stButton>button:hover {
         border-color: var(--primary-color) !important;
@@ -107,7 +107,7 @@ st.markdown("""
     }
     .card-header { padding-bottom: 10px; border-bottom: 1px solid var(--card-border-color); }
     .card .card-header h4 { color: var(--card-text-color); font-size: 1.1rem; margin: 0; display: flex; align-items: center; gap: 8px; }
-    .card-body { flex-grow: 1; }
+    .card-body { flex-grow: 1; padding-top: 15px; }
 
     /* Cartões de KPI com fundo branco */
     [data-testid="stMetric"] {
@@ -119,18 +119,34 @@ st.markdown("""
     [data-testid="stMetric"] label { color: #64748B; }
     [data-testid="stMetric"] [data-testid="stMetricValue"] { color: var(--card-text-color); }
 
-    /* Caixas de Alerta com bom contraste */
-    [data-testid="stAlert"] { border-radius: 8px; border-width: 1px; border-style: solid; }
-    [data-testid="stAlert"][data-baseweb="notification-warning"] { background-color: #FFFBEB; border-color: #FBBF24; }
-    [data-testid="stAlert"][data-baseweb="notification-warning"] div, [data-testid="stAlert"][data-baseweb="notification-warning"] p { color: #92400E; }
-    [data-testid="stAlert"][data-baseweb="notification-positive"] { background-color: #F0FDF4; border-color: #4ADE80; }
-    [data-testid="stAlert"][data-baseweb="notification-positive"] div, [data-testid="stAlert"][data-baseweb="notification-positive"] p { color: #166534; }
-    [data-testid="stAlert"][data-baseweb="notification-info"] { background-color: #EFF6FF; border-color: #60A5FA; }
-    [data-testid="stAlert"][data-baseweb="notification-info"] div, [data-testid="stAlert"][data-baseweb="notification-info"] p { color: #1E40AF; }
+    /* Caixas de Alerta (agora em azul bebé com texto branco) */
+    [data-testid="stAlert"] {
+        border-radius: 8px;
+        border: 1px solid var(--secondary-color);
+        background-color: rgba(59, 130, 246, 0.15); /* Fundo azul bebé transparente */
+    }
+    [data-testid="stAlert"] div, [data-testid="stAlert"] p {
+        color: var(--text-color-dark-bg) !important; /* Texto branco */
+    }
 
-    /* Botão "Browse files" com cor */
+    /* Área de Upload de Ficheiros mais compacta */
+    [data-testid="stFileUploader"] {
+        padding-top: 5px;
+        padding-bottom: 5px;
+    }
+    [data-testid="stFileUploader"] label, [data-testid="stFileUploader"] span, [data-testid="stFileUploader"] small {
+        color: var(--text-color-dark-bg) !important;
+        font-size: 0.9rem; /* Diminuir tamanho da fonte */
+    }
     [data-testid="stFileUploader"] button { background-color: var(--secondary-color); color: white; border: none; border-radius: 6px; }
     [data-testid="stFileUploader"] button:hover { background-color: #2563EB; color: white; }
+    
+    /* Botão de Iniciar Análise com destaque azul bebé */
+    #iniciar-analise-button .stButton>button {
+        background-color: var(--secondary-color) !important;
+        color: white !important;
+        border: 1px solid var(--secondary-color) !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -479,9 +495,9 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
 
 # --- PÁGINA DE LOGIN ---
 def login_page():
-    # Esta função agora só precisa de criar a caixa, o centramento é feito pelo CSS injetado no main()
-    st.markdown('<div class="login-box">', unsafe_allow_html=True)
-    st.markdown("<h2>✨ Painel de Análise de Processos</h2>", unsafe_allow_html=True)
+    st.markdown(f'<div class="login-box">', unsafe_allow_html=True)
+    # Título alterado e caixa vazia removida
+    st.markdown("<h2>✨ Transformação inteligente de processos</h2>", unsafe_allow_html=True)
     username = st.text_input("Utilizador", placeholder="admin", value="admin")
     password = st.text_input("Senha", type="password", placeholder="admin", value="admin")
     if st.button("Entrar", use_container_width=True):
@@ -514,10 +530,21 @@ def settings_page():
             if uploaded_file:
                 st.session_state.dfs[name] = pd.read_csv(uploaded_file)
                 st.success(f"`{name}.csv` carregado.")
-    if all(st.session_state.dfs[name] is not None for name in file_names):
+
+    all_files_uploaded = all(st.session_state.dfs[name] is not None for name in file_names)
+    
+    # Pré-visualização dos dados restaurada
+    if all_files_uploaded:
+        st.header("Pré-visualização dos Dados Carregados")
+        for name, df in st.session_state.dfs.items():
+            with st.expander(f"Visualizar as primeiras 5 linhas de `{name}.csv`"):
+                st.dataframe(df.head())
+        
         st.header("Execução da Análise")
         st.success("Todos os ficheiros estão carregados. Pode iniciar a análise.")
-        if st.button("🚀 Iniciar Análise Completa", use_container_width=True, type="primary"):
+        
+        st.markdown('<div id="iniciar-analise-button">', unsafe_allow_html=True)
+        if st.button("🚀 Iniciar Análise Completa", use_container_width=True):
             with st.spinner("A analisar os dados... Este processo pode demorar alguns minutos."):
                 plots_pre, tables_pre, event_log, df_p, df_t, df_r, df_fc = run_pre_mining_analysis(st.session_state.dfs)
                 st.session_state.plots_pre_mining = plots_pre
@@ -532,6 +559,8 @@ def settings_page():
             st.session_state.analysis_run = True
             st.success("✅ Análise concluída com sucesso! Navegue para o 'Dashboard Geral'.")
             st.balloons()
+        st.markdown('</div>', unsafe_allow_html=True)
+            
     else:
         st.warning("Aguardando o carregamento de todos os ficheiros CSV para poder iniciar a análise.")
 
@@ -599,9 +628,9 @@ def render_pre_mining_dashboard():
         c1, c2 = st.columns(2)
         with c1:
             create_card("Tempo Médio de Execução por Atividade", "🛠️", chart_bytes=plots['activity_service_times'], key_suffix="ast")
+            create_card("Top 10 Handoffs por Custo de Espera", "💸", chart_bytes=plots['top_handoffs_cost'], key_suffix="thc")
         with c2:
             create_card("Top 10 Handoffs por Tempo de Espera", "⏳", chart_bytes=plots['top_handoffs'], key_suffix="tht")
-        create_card("Top 10 Handoffs por Custo de Espera", "💸", chart_bytes=plots['top_handoffs_cost'], key_suffix="thc")
     elif st.session_state.current_section == "resources":
         c1, c2 = st.columns(2)
         with c1:
@@ -646,12 +675,9 @@ def render_post_mining_dashboard():
         c1, c2 = st.columns(2)
         with c1:
             create_card("Modelo - Inductive Miner", "🧭", chart_bytes=plots['model_inductive_petrinet'], key_suffix="mip")
-        with c2:
-            create_card("Modelo - Heuristics Miner", "🛠️", chart_bytes=plots['model_heuristic_petrinet'], key_suffix="mhp")
-        c1, c2 = st.columns(2)
-        with c1:
             create_card("Métricas (Inductive Miner)", "📊", chart_bytes=plots['metrics_inductive'], key_suffix="mi")
         with c2:
+            create_card("Modelo - Heuristics Miner", "🛠️", chart_bytes=plots['model_heuristic_petrinet'], key_suffix="mhp")
             create_card("Métricas (Heuristics Miner)", "📈", chart_bytes=plots['metrics_heuristic'], key_suffix="mh")
     elif st.session_state.current_section == "performance":
         create_card("Heatmap de Performance no Processo", "🔥", chart_bytes=plots['performance_heatmap'], key_suffix="ph")
@@ -675,7 +701,7 @@ def render_post_mining_dashboard():
 # --- CONTROLO PRINCIPAL DA APLICAÇÃO ---
 def main():
     if not st.session_state.authenticated:
-        # ALTERAÇÃO FINAL: Injeta CSS específico para centrar a página de login
+        # Injeta CSS específico para centrar a página de login
         st.markdown("""
             <style>
                 [data-testid="stAppViewContainer"] > .main {
@@ -683,6 +709,8 @@ def main():
                     flex-direction: column;
                     justify-content: center;
                     align-items: center;
+                    padding-top: 0rem;
+                    padding-bottom: 0rem;
                 }
             </style>
             """, unsafe_allow_html=True)
