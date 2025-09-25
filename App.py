@@ -37,6 +37,12 @@ st.markdown("""
     .stApp { background-color: #F0F2F6; }
     .main .block-container { padding: 2rem 3rem; }
     [data-testid="stSidebar"] { background-color: #0F172A; }
+    /* ALTERAÇÃO 1: Estilo do texto da barra lateral */
+    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] p, [data-testid="stSidebar"] label {
+        color: white;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
     h1, h2, h3, h4 { color: #1E293B; font-weight: 600; }
     h2 { border-bottom: 2px solid #3B82F6; padding-bottom: 10px; margin-bottom: 20px; }
     .card { background-color: #FFFFFF; border-radius: 10px; padding: 25px; margin-bottom: 20px; box-shadow: 0 4px 8px 0 rgba(0,0,0,0.05); }
@@ -423,14 +429,14 @@ elif page == "Executar Análise":
     else:
         st.info("Todos os ficheiros estão carregados. Clique no botão abaixo para iniciar a análise completa.")
         if st.button("🚀 Iniciar Análise Completa"):
-            with st.spinner("A executar a análise pré-mineração (26 gráficos)... Isto pode demorar um momento."):
+            # ALTERAÇÃO 2: Unificar a mensagem do spinner
+            with st.spinner("Os dados estão a ser analisados. Assim que forem concluídos pode navegar para 'Resultados da Análise'."):
                 plots_pre, tables_pre, event_log, df_p, df_t, df_r, df_fc = run_pre_mining_analysis(st.session_state.dfs)
                 st.session_state.plots_pre_mining = plots_pre
                 st.session_state.tables_pre_mining = tables_pre
                 st.session_state.event_log_for_cache = pm4py.convert_to_dataframe(event_log)
                 st.session_state.dfs_for_cache = {'projects': df_p, 'tasks_raw': df_t, 'resources': df_r, 'full_context': df_fc}
-            
-            with st.spinner("A executar a análise de Process Mining (23 artefactos)... Esta é a parte mais demorada."):
+
                 log_from_df = pm4py.convert_to_event_log(st.session_state.event_log_for_cache)
                 dfs_cache = st.session_state.dfs_for_cache
                 plots_post, metrics = run_post_mining_analysis(log_from_df, dfs_cache['projects'], dfs_cache['tasks_raw'], dfs_cache['resources'], dfs_cache['full_context'])
@@ -446,10 +452,12 @@ elif page == "Resultados da Análise":
     if not st.session_state.analysis_run:
         st.warning("A análise ainda não foi executada. Por favor, vá à página 'Executar Análise'.")
     else:
-        tab1, tab2 = st.tabs(["📊 Análise Pré-Mineração (Célula 2)", "⛏️ Análise Pós-Mineração (Célula 3)"])
+        # ALTERAÇÃO 3: Remover texto extra dos nomes das abas
+        tab1, tab2 = st.tabs(["📊 Análise Pré-Mineração", "⛏️ Análise Pós-Mineração"])
         
         with tab1:
-            st.subheader("Análise Pré-Mineração (26 Gráficos + Tabelas)")
+            # ALTERAÇÃO 4: Remover texto extra do título da aba
+            st.subheader("Análise Pré-Mineração")
             with st.expander("Secção 1: Análises de Alto Nível e de Casos", expanded=True):
                 st.markdown("<h4>Painel de KPIs</h4>", unsafe_allow_html=True); st.table(st.session_state.tables_pre_mining['kpi_df'].set_index('Métrica'))
                 c1, c2 = st.columns(2)
@@ -484,7 +492,8 @@ elif page == "Resultados da Análise":
                 st.image(st.session_state.plots_pre_mining['cycle_time_breakdown'], caption="Duração Média por Fase")
 
         with tab2:
-            st.subheader("Análise Pós-Mineração (23 Artefactos)")
+            # ALTERAÇÃO 4: Remover texto extra do título da aba
+            st.subheader("Análise Pós-Mineração")
             with st.expander("Secção 1: Descoberta e Avaliação de Modelos", expanded=True):
                 c1, c2 = st.columns(2)
                 c1.image(st.session_state.plots_post_mining['model_inductive_petrinet'], caption="Modelo (Inductive Miner)"); c2.image(st.session_state.plots_post_mining['metrics_inductive'], caption="Métricas (Inductive Miner)")
@@ -510,4 +519,3 @@ elif page == "Resultados da Análise":
                 c1, c2 = st.columns(2)
                 if 'waiting_time_matrix_plot' in st.session_state.plots_post_mining: c1.image(st.session_state.plots_post_mining['waiting_time_matrix_plot'], caption="Matriz de Tempo de Espera (horas)")
                 if 'avg_waiting_time_by_activity_plot' in st.session_state.plots_post_mining: c2.image(st.session_state.plots_post_mining['avg_waiting_time_by_activity_plot'], caption="Tempo de Espera Médio por Atividade")
-
