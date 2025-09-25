@@ -31,18 +31,14 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- ESTILO CSS (VERSÃO FINAL E CORRIGIDA) ---
+# --- ESTILO CSS ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
-
-    html, body, [class*="st-"] {
-        font-family: 'Poppins', sans-serif;
-    }
-
+    html, body, [class*="st-"] { font-family: 'Poppins', sans-serif; }
     :root {
-        --primary-color: #EF4444; /* Vermelho para botões ativos */
-        --secondary-color: #3B82F6; /* Azul bebé para destaque */
+        --primary-color: #EF4444;
+        --secondary-color: #3B82F6;
         --background-color: #0F172A;
         --sidebar-background: #1E293B;
         --text-color-dark-bg: #FFFFFF;
@@ -51,102 +47,36 @@ st.markdown("""
         --card-text-color: #0F172A;
         --card-border-color: #E2E8F0;
     }
-
-    .stApp {
-        background-color: var(--background-color);
-        color: var(--text-color-dark-bg);
-    }
-    
+    .stApp { background-color: var(--background-color); color: var(--text-color-dark-bg); }
     h1, h2, h3 { color: var(--text-color-dark-bg); font-weight: 600; }
-    
-    .login-box {
-        background-color: var(--sidebar-background);
-        padding: 40px;
-        border-radius: 12px;
-        border: 1px solid var(--border-color);
-        width: 100%;
-        max-width: 400px;
-    }
+    .login-box { background-color: var(--sidebar-background); padding: 40px; border-radius: 12px; border: 1px solid var(--border-color); width: 100%; max-width: 400px; }
     .login-box h2 { color: var(--text-color-dark-bg); text-align: center; margin-bottom: 25px; }
     .login-box .stButton>button { background-color: var(--primary-color); color: white; font-weight: 600; border: none; }
     [data-testid="stTextInput"] label { color: var(--text-color-dark-bg) !important; font-weight: 600 !important; }
-
-    /* Estilo para botões de navegação (ativos e inativos) */
-    .stButton>button:not(.st-emotion-cache-19n6bn1) {
-        border: 1px solid var(--border-color) !important;
-        background-color: var(--sidebar-background) !important;
-        color: var(--text-color-dark-bg) !important;
-        font-weight: 600;
-    }
-    .stButton>button.st-emotion-cache-19n6bn1 {
-        background-color: var(--primary-color) !important;
-        color: var(--text-color-dark-bg) !important;
-        border: 1px solid var(--primary-color) !important;
-        font-weight: 600;
-    }
-    .stButton>button:hover {
-        border-color: var(--primary-color) !important;
-        opacity: 0.8;
-    }
-    
-    /* Painel Lateral */
+    .stButton>button:not(.st-emotion-cache-19n6bn1) { border: 1px solid var(--border-color) !important; background-color: var(--sidebar-background) !important; color: var(--text-color-dark-bg) !important; font-weight: 600; }
+    .stButton>button.st-emotion-cache-19n6bn1 { background-color: var(--primary-color) !important; color: var(--text-color-dark-bg) !important; border: 1px solid var(--primary-color) !important; font-weight: 600; }
+    .stButton>button:hover { border-color: var(--primary-color) !important; opacity: 0.8; }
     [data-testid="stSidebar"] { background-color: var(--sidebar-background); border-right: 1px solid var(--border-color); }
     [data-testid="stSidebar"] h3 { color: var(--text-color-dark-bg); }
     [data-testid="stSidebar"] .stButton>button { border: none; background-color: transparent; }
-
-    /* Cartões com fundo branco e altura igual */
-    .card {
-        background-color: var(--card-background-color);
-        color: var(--card-text-color);
-        border-radius: 12px;
-        padding: 20px 25px;
-        border: 1px solid var(--card-border-color);
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-    }
+    [data-testid="stSidebar"] .stButton>button:hover, [data-testid="stSidebar"] .stButton>button:focus { background-color: var(--card-background-color) !important; color: var(--card-text-color) !important; }
+    .card { background-color: var(--card-background-color); color: var(--card-text-color); border-radius: 12px; padding: 20px 25px; border: 1px solid var(--card-border-color); height: 100%; display: flex; flex-direction: column; }
     .card-header { padding-bottom: 10px; border-bottom: 1px solid var(--card-border-color); }
     .card .card-header h4 { color: var(--card-text-color); font-size: 1.1rem; margin: 0; display: flex; align-items: center; gap: 8px; }
     .card-body { flex-grow: 1; padding-top: 15px; }
-
-    /* Cartões de KPI com fundo branco */
-    [data-testid="stMetric"] {
-        background-color: var(--card-background-color);
-        border: 1px solid var(--card-border-color);
-        border-radius: 12px;
-        padding: 15px 20px;
-    }
+    [data-testid="stMetric"] { background-color: var(--card-background-color); border: 1px solid var(--card-border-color); border-radius: 12px; padding: 15px 20px; }
     [data-testid="stMetric"] label { color: #64748B; }
     [data-testid="stMetric"] [data-testid="stMetricValue"] { color: var(--card-text-color); }
-
-    /* Caixas de Alerta (agora em azul bebé com texto branco) */
-    [data-testid="stAlert"] {
-        border-radius: 8px;
-        border: 1px solid var(--secondary-color);
-        background-color: rgba(59, 130, 246, 0.15); /* Fundo azul bebé transparente */
-    }
-    [data-testid="stAlert"] div, [data-testid="stAlert"] p {
-        color: var(--text-color-dark-bg) !important; /* Texto branco */
-    }
-
-    /* Área de Upload de Ficheiros mais compacta */
-    [data-testid="stFileUploader"] {
-        padding-top: 5px;
-        padding-bottom: 5px;
-    }
-    [data-testid="stFileUploader"] label, [data-testid="stFileUploader"] span, [data-testid="stFileUploader"] small {
-        color: var(--text-color-dark-bg) !important;
-        font-size: 0.9rem; /* Diminuir tamanho da fonte */
-    }
+    [data-testid="stAlert"] { border-radius: 8px; border: 1px solid var(--secondary-color); background-color: rgba(59, 130, 246, 0.15); }
+    [data-testid="stAlert"] div, [data-testid="stAlert"] p { color: var(--text-color-dark-bg) !important; }
+    section[data-testid="stFileUploader"] { background-color: var(--sidebar-background); border-radius: 8px; padding: 10px; }
+    [data-testid="stFileUploader"] label, [data-testid="stFileUploader"] span, [data-testid="stFileUploader"] small { color: var(--text-color-dark-bg) !important; font-size: 0.9rem; }
     [data-testid="stFileUploader"] button { background-color: var(--secondary-color); color: white; border: none; border-radius: 6px; }
     [data-testid="stFileUploader"] button:hover { background-color: #2563EB; color: white; }
-    
-    /* Botão de Iniciar Análise com destaque azul bebé */
-    #iniciar-analise-button .stButton>button {
-        background-color: var(--secondary-color) !important;
-        color: white !important;
-        border: 1px solid var(--secondary-color) !important;
-    }
+    #iniciar-analise-button .stButton>button { background-color: var(--secondary-color) !important; color: white !important; border: 1px solid var(--secondary-color) !important; }
+    .st-expander, .st-expander header { border-radius: 8px !important; }
+    .st-expander header { background-color: var(--sidebar-background) !important; color: var(--text-color-dark-bg) !important; }
+    .st-expander p { color: var(--text-color-dark-bg); }
 </style>
 """, unsafe_allow_html=True)
 
@@ -178,14 +108,19 @@ def convert_df_to_csv(df):
     return df.to_csv(index=False).encode('utf-8')
 
 def create_card(title, icon, chart_bytes=None, dataframe=None, key_suffix=""):
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.markdown(f'<div class="card-header"><h4>{icon} {title}</h4></div>', unsafe_allow_html=True)
-    st.markdown('<div class="card-body">', unsafe_allow_html=True)
-    if chart_bytes:
-        st.image(chart_bytes, use_container_width=True)
-    elif dataframe is not None:
-        st.dataframe(dataframe, use_container_width=True)
-    st.markdown('</div></div>', unsafe_allow_html=True)
+    with st.container():
+        st.markdown(f"""
+        <div class="card">
+            <div class="card-header"><h4>{icon} {title}</h4></div>
+            <div class="card-body">
+        """, unsafe_allow_html=True)
+
+        if chart_bytes:
+            st.image(chart_bytes, use_container_width=True)
+        elif dataframe is not None:
+            st.dataframe(dataframe, use_container_width=True)
+        
+        st.markdown('</div></div>', unsafe_allow_html=True)
 
 
 # --- INICIALIZAÇÃO DO ESTADO DA SESSÃO ---
@@ -410,7 +345,7 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
     fig_net, ax_net = plt.subplots(figsize=(10, 10)); G = nx.DiGraph();
     for (source, target), weight in handovers.items(): G.add_edge(str(source), str(target), weight=weight)
     pos = nx.spring_layout(G, k=0.9, iterations=50, seed=42); weights = [G[u][v]['weight'] for u,v in G.edges()]; nx.draw(G, pos, with_labels=True, node_color='skyblue', node_size=3000, edge_color='gray', width=[w*0.5 for w in weights], ax=ax_net, font_size=10, connectionstyle='arc3,rad=0.1'); nx.draw_networkx_edge_labels(G, pos, edge_labels=nx.get_edge_attributes(G, 'weight'), ax=ax_net); ax_net.set_title('Rede Social de Recursos (Handover Network)')
-    plots['resource_network_adv'] = convert_gviz_to_bytes(fig_net)
+    plots['resource_network_adv'] = convert_fig_to_bytes(fig_net) # ERRO ACONTECE AQUI
     if 'skill_level' in _df_resources.columns:
         perf_recursos = _df_full_context.groupby('resource_id').agg(total_hours=('hours_worked', 'sum'), total_tasks=('task_id', 'nunique')).reset_index()
         perf_recursos['avg_hours_per_task'] = perf_recursos['total_hours'] / perf_recursos['total_tasks']
@@ -513,7 +448,7 @@ def login_page():
 def settings_page():
     st.title("⚙️ Configurações e Upload de Dados")
     st.markdown("---")
-    st.header("Upload dos Ficheiros de Dados (.csv)")
+    st.subheader("Upload dos Ficheiros de Dados (.csv)")
     st.info("Por favor, carregue os 5 ficheiros CSV necessários para a análise.")
     file_names = ['projects', 'tasks', 'resources', 'resource_allocations', 'dependencies']
     col1, col2 = st.columns(2)
@@ -533,12 +468,13 @@ def settings_page():
     all_files_uploaded = all(st.session_state.dfs[name] is not None for name in file_names)
     
     if all_files_uploaded:
-        st.header("Pré-visualização dos Dados Carregados")
-        for name, df in st.session_state.dfs.items():
-            with st.expander(f"Visualizar as primeiras 5 linhas de `{name}.csv`"):
+        st.subheader("Pré-visualização dos Dados Carregados")
+        with st.expander("Visualizar as primeiras 5 linhas dos ficheiros"):
+            for name, df in st.session_state.dfs.items():
+                st.markdown(f"**{name}.csv**")
                 st.dataframe(df.head())
         
-        st.header("Execução da Análise")
+        st.subheader("Execução da Análise")
         st.success("Todos os ficheiros estão carregados. Pode iniciar a análise.")
         
         st.markdown('<div id="iniciar-analise-button">', unsafe_allow_html=True)
@@ -645,11 +581,11 @@ def render_pre_mining_dashboard():
         with c2:
             create_card("Principais Loops de Rework", "🔁", dataframe=tables['rework_loops_table'], key_suffix="rlt")
     elif st.session_state.current_section == "advanced":
-        delay_kpis = tables['cost_of_delay_kpis']
+        kpi_data = tables['cost_of_delay_kpis']
         kpi_cols = st.columns(3)
-        kpi_cols[0].metric(label="Custo Total em Atraso", value=delay_kpis['Custo Total Projetos Atrasados'])
-        kpi_cols[1].metric(label="Atraso Médio", value=delay_kpis['Atraso Médio (dias)'])
-        kpi_cols[2].metric(label="Custo Médio/Dia de Atraso", value=delay_kpis['Custo Médio/Dia Atraso'])
+        kpi_cols[0].metric(label="Custo Total em Atraso", value=kpi_data['Custo Total Projetos Atrasados'])
+        kpi_cols[1].metric(label="Atraso Médio", value=kpi_data['Atraso Médio (dias)'])
+        kpi_cols[2].metric(label="Custo Médio/Dia de Atraso", value=kpi_data['Custo Médio/Dia Atraso'])
         st.markdown("<br>", unsafe_allow_html=True)
         c1, c2 = st.columns(2)
         with c1:
@@ -736,3 +672,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+}
