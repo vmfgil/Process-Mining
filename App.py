@@ -7,6 +7,7 @@ import seaborn as sns
 import networkx as nx
 from collections import Counter
 import io
+import base64
 
 # Imports de Process Mining (PM4PY)
 import pm4py
@@ -31,14 +32,14 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- ESTILO CSS (VERSÃO FINAL E CORRIGIDA) ---
+# --- ESTILO CSS ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
     html, body, [class*="st-"] { font-family: 'Poppins', sans-serif; }
     :root {
-        --primary-color: #EF4444;
-        --secondary-color: #3B82F6;
+        --primary-color: #EF4444; /* Vermelho para botões ativos */
+        --secondary-color: #3B82F6; /* Azul bebé para destaque */
         --background-color: #0F172A;
         --sidebar-background: #1E293B;
         --text-color-dark-bg: #FFFFFF;
@@ -48,15 +49,16 @@ st.markdown("""
         --card-border-color: #E2E8F0;
     }
     .stApp { background-color: var(--background-color); color: var(--text-color-dark-bg); }
-    h1, h2, h3, h4, h5 { color: var(--text-color-dark-bg); font-weight: 600; }
-    
-    /* Login */
+    h1, h2, h3 { color: var(--text-color-dark-bg); font-weight: 600; }
+    h1 { margin-bottom: 0.5rem; }
+    h3 { margin-top: 1rem; margin-bottom: 0.5rem; }
+
     .login-box { background-color: var(--sidebar-background); padding: 40px; border-radius: 12px; border: 1px solid var(--border-color); width: 100%; max-width: 400px; margin: 0 auto; }
     .login-box h2 { color: var(--text-color-dark-bg); text-align: center; margin-bottom: 25px; }
     .login-box .stButton>button { background-color: var(--primary-color); color: white; font-weight: 600; border: none; }
     [data-testid="stTextInput"] label { color: var(--text-color-dark-bg) !important; font-weight: 600 !important; }
 
-    /* Botões de Navegação (Dashboard) */
+    /* Estilo para botões de navegação (ativos e inativos) */
     .stButton>button:not(.st-emotion-cache-19n6bn1) { border: 1px solid var(--border-color) !important; background-color: var(--sidebar-background) !important; color: var(--text-color-dark-bg) !important; font-weight: 600; }
     .stButton>button.st-emotion-cache-19n6bn1 { background-color: var(--primary-color) !important; color: var(--text-color-dark-bg) !important; border: 1px solid var(--primary-color) !important; font-weight: 600; }
     .stButton>button:hover { border-color: var(--primary-color) !important; opacity: 0.8; }
@@ -84,6 +86,7 @@ st.markdown("""
 
     /* Upload de Ficheiros */
     section[data-testid="stFileUploader"] { background-color: var(--sidebar-background); border-radius: 8px; padding: 10px; border: 1px dashed var(--border-color); }
+    section[data-testid="stFileUploader"] [data-testid="stMarkdownContainer"] p { color: #94A3B8 !important; } /* Texto cinza no upload */
     [data-testid="stFileUploader"] label, [data-testid="stFileUploader"] span, [data-testid="stFileUploader"] small { color: var(--text-color-dark-bg) !important; font-size: 0.9rem; }
     [data-testid="stFileUploader"] button { background-color: var(--secondary-color); color: white; border: none; border-radius: 6px; }
     [data-testid="stFileUploader"] button:hover { background-color: #2563EB; color: white; }
@@ -126,22 +129,24 @@ def convert_df_to_csv(df):
     return df.to_csv(index=False).encode('utf-8')
 
 def create_card(title, icon, chart_bytes=None, dataframe=None, key_suffix=""):
-    # Usar st.container para garantir que tudo fica dentro da mesma "caixa" lógica
-    with st.container():
-        # A classe 'card' é aplicada ao container implicitamente por ser um elemento de bloco
-        # Esta abordagem é mais robusta que múltiplos st.markdown
-        st.markdown(f"""
-        <div class="card">
-            <div class="card-header"><h4>{icon} {title}</h4></div>
-            <div class="card-body">
-        """, unsafe_allow_html=True)
+    # Abordagem robusta para garantir que o conteúdo fica dentro do cartão
+    card_html_header = f"""
+    <div class="card">
+        <div class="card-header"><h4>{icon} {title}</h4></div>
+        <div class="card-body">
+    """
+    card_html_footer = '</div></div>'
 
-        if chart_bytes:
-            st.image(chart_bytes, use_container_width=True)
-        elif dataframe is not None:
-            st.dataframe(dataframe, use_container_width=True)
-        
-        st.markdown('</div></div>', unsafe_allow_html=True)
+    st.markdown(card_html_header, unsafe_allow_html=True)
+    
+    if chart_bytes:
+        # Converte a imagem para base64 e insere diretamente no HTML
+        b64_image = base64.b64encode(chart_bytes.getvalue()).decode()
+        st.markdown(f'<img src="data:image/png;base64,{b64_image}" style="width: 100%;">', unsafe_allow_html=True)
+    elif dataframe is not None:
+        st.dataframe(dataframe, use_container_width=True)
+    
+    st.markdown(card_html_footer, unsafe_allow_html=True)
 
 
 # --- INICIALIZAÇÃO DO ESTADO DA SESSÃO ---
@@ -158,7 +163,7 @@ if 'tables_pre_mining' not in st.session_state: st.session_state.tables_pre_mini
 if 'metrics' not in st.session_state: st.session_state.metrics = {}
 
 
-# --- FUNÇÕES DE ANÁLISE (COMPLETAS E SEM ALTERAÇÕES) ---
+# --- FUNÇÕES DE ANÁLISE ---
 @st.cache_data
 def run_pre_mining_analysis(dfs):
     plots = {}
@@ -210,7 +215,10 @@ def run_pre_mining_analysis(dfs):
         group = group.sort_values("time:timestamp"); deltas = group["time:timestamp"].diff().dropna()
         return deltas.mean().total_seconds() if not deltas.empty else 0
     throughput_per_case = log_df_final.groupby("case:concept:name", as_index=False).apply(compute_avg_throughput)
-    throughput_per_case.columns = ['case:concept:name', 'avg_throughput_seconds']
+    if not throughput_per_case.empty:
+        throughput_per_case.columns = ['case:concept:name', 'avg_throughput_seconds']
+    else:
+        throughput_per_case = pd.DataFrame(columns=['case:concept:name', 'avg_throughput_seconds'])
     throughput_per_case["avg_throughput_hours"] = throughput_per_case["avg_throughput_seconds"] / 3600
     perf_df = pd.merge(lead_times, throughput_per_case, on="case:concept:name")
     tables['perf_stats'] = perf_df[["lead_time_days", "avg_throughput_hours"]].describe()
@@ -471,27 +479,22 @@ def settings_page():
     st.subheader("Upload dos Ficheiros de Dados (.csv)")
     st.info("Por favor, carregue os 5 ficheiros CSV necessários para a análise.")
     file_names = ['projects', 'tasks', 'resources', 'resource_allocations', 'dependencies']
-    col1, col2 = st.columns(2)
-    with col1:
-        for name in file_names[:3]:
-            uploaded_file = st.file_uploader(f"Carregar `{name}.csv`", type="csv", key=f"upload_{name}")
-            if uploaded_file:
-                st.session_state.dfs[name] = pd.read_csv(uploaded_file)
-                st.success(f"`{name}.csv` carregado.")
-    with col2:
-        for name in file_names[3:]:
-            uploaded_file = st.file_uploader(f"Carregar `{name}.csv`", type="csv", key=f"upload_{name}")
-            if uploaded_file:
-                st.session_state.dfs[name] = pd.read_csv(uploaded_file)
-                st.success(f"`{name}.csv` carregado.")
+    
+    # Layout mais compacto para os uploaders
+    for name in file_names:
+        uploaded_file = st.file_uploader(f"Carregar `{name}.csv`", type="csv", key=f"upload_{name}")
+        if uploaded_file:
+            st.session_state.dfs[name] = pd.read_csv(uploaded_file)
+            st.success(f"`{name}.csv` carregado.")
 
     all_files_uploaded = all(st.session_state.dfs[name] is not None for name in file_names)
     
     if all_files_uploaded:
         st.subheader("Pré-visualização dos Dados Carregados")
-        with st.expander("Visualizar as primeiras 5 linhas dos ficheiros"):
+        # Expander ajustado para melhor visualização
+        with st.expander("Visualizar as primeiras 5 linhas dos ficheiros", expanded=True):
             for name, df in st.session_state.dfs.items():
-                st.markdown(f"**{name}.csv**")
+                st.caption(f"Ficheiro: {name}.csv")
                 st.dataframe(df.head())
         
         st.subheader("Execução da Análise")
@@ -519,7 +522,7 @@ def settings_page():
         st.warning("Aguardando o carregamento de todos os ficheiros CSV para poder iniciar a análise.")
 
 
-# --- PÁGINAS DO DASHBOARD (LÓGICA DE APRESENTAÇÃO CORRIGIDA) ---
+# --- PÁGINAS DO DASHBOARD ---
 def dashboard_page():
     st.title("🏠 Dashboard Geral")
     sub_nav1, sub_nav2 = st.columns(2)
@@ -602,7 +605,6 @@ def render_pre_mining_dashboard():
             create_card("Principais Loops de Rework", "🔁", dataframe=tables['rework_loops_table'], key_suffix="rlt")
     elif st.session_state.current_section == "advanced":
         kpi_data = tables['cost_of_delay_kpis']
-        st.markdown("<h5>Custo do Atraso</h5>", unsafe_allow_html=True)
         kpi_cols = st.columns(3)
         kpi_cols[0].metric(label="Custo Total em Atraso", value=kpi_data['Custo Total Projetos Atrasados'])
         kpi_cols[1].metric(label="Atraso Médio", value=kpi_data['Atraso Médio (dias)'])
@@ -663,8 +665,6 @@ def main():
                     flex-direction: column;
                     justify-content: center;
                     align-items: center;
-                    padding-top: 0rem;
-                    padding-bottom: 0rem;
                 }
             </style>
             """, unsafe_allow_html=True)
