@@ -43,6 +43,7 @@ st.markdown("""
     /* Cores Globais (Dark Mode) */
     :root {
         --primary-color: #3B82F6;
+        --attention-color: #EF4444; /* ALTERAÇÃO: Cor vermelha para o botão de login */
         --background-color: #0F172A; /* Azul escuro/ardósia */
         --secondary-background: #1E293B; /* Azul um pouco mais claro */
         --text-color: #F8FAFC; /* Branco/cinza muito claro */
@@ -103,7 +104,7 @@ st.markdown("""
         box-shadow: 0 4px 12px 0 var(--card-shadow);
         border: 1px solid var(--border-color);
         width: 100%;
-        height: 100%; /* Garante que os cartões na mesma linha tenham a mesma altura */
+        height: 100%;
         display: flex;
         flex-direction: column;
     }
@@ -124,7 +125,7 @@ st.markdown("""
         gap: 8px;
     }
     .card-body {
-        flex-grow: 1; /* Faz o corpo do cartão preencher o espaço */
+        flex-grow: 1;
     }
 
     /* Botão de Download dentro do Card */
@@ -180,15 +181,30 @@ st.markdown("""
         border-color: var(--primary-color);
     }
     
-    /* Página de Login */
+    /* --- ALTERAÇÕES PARA A PÁGINA DE LOGIN E TEXTOS --- */
+
+    /* 1. Melhora a legibilidade das legendas em toda a aplicação */
+    [data-testid="stTextInput"] label, 
+    [data-testid="stFileUploader"] label {
+        color: var(--text-color) !important;
+        font-weight: 600 !important;
+        opacity: 0.9;
+    }
+    
+    /* 2. Garante que o container de login ocupe todo o ecrã sem scroll */
+    .login-container-wrapper .main .block-container {
+        padding: 0 !important;
+    }
     .login-container {
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        height: 100vh;
         width: 100%;
+        min-height: 100vh; /* Usa min-height para garantir que ocupa pelo menos toda a altura */
     }
+
+    /* 3. Estilos específicos para a caixa de login e botão */
     .login-box {
         background-color: var(--secondary-background);
         padding: 40px;
@@ -201,6 +217,11 @@ st.markdown("""
     .login-box h2 {
         text-align: center;
         margin-bottom: 25px;
+    }
+    .login-box .stButton>button {
+        background-color: var(--attention-color);
+        color: white;
+        font-weight: 600;
     }
 
 </style>
@@ -285,7 +306,7 @@ if 'tables_pre_mining' not in st.session_state: st.session_state.tables_pre_mini
 if 'metrics' not in st.session_state: st.session_state.metrics = {}
 
 
-# --- FUNÇÕES DE ANÁLISE (VERSÃO COMPLETA E VALIDADA - SEM ALTERAÇÕES NA LÓGICA) ---
+# --- FUNÇÕES DE ANÁLISE (INTOCADAS) ---
 @st.cache_data
 def run_pre_mining_analysis(dfs):
     plots = {}
@@ -616,17 +637,20 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
 
 # --- PÁGINA DE LOGIN ---
 def login_page():
+    # ALTERAÇÃO: Wrapper div para aplicar estilos que corrigem o scroll
+    st.markdown('<div class="login-container-wrapper">', unsafe_allow_html=True)
     st.markdown('<div class="login-container">', unsafe_allow_html=True)
     st.markdown('<div class="login-box">', unsafe_allow_html=True)
     
     st.markdown("<h2>✨ Painel de Análise de Processos</h2>", unsafe_allow_html=True)
     
-    username = st.text_input("Utilizador", placeholder="admin")
-    password = st.text_input("Senha", type="password", placeholder="admin")
+    username = st.text_input("Utilizador", placeholder="admin", value="admin")
+    password = st.text_input("Senha", type="password", placeholder="admin", value="admin")
     
-    st.markdown("<br>", unsafe_allow_html=True)
+    # ALTERAÇÃO: Removido o st.markdown("<br>") que criava a caixa vazia.
+    # O espaçamento agora é controlado pelo padding do CSS na classe .login-box.
 
-    if st.button("Entrar", use_container_width=True, type="primary"):
+    if st.button("Entrar", use_container_width=True):
         if username == "admin" and password == "admin":
             st.session_state.authenticated = True
             st.session_state.user_name = "Admin"
@@ -634,6 +658,7 @@ def login_page():
         else:
             st.error("Utilizador ou senha inválidos.")
             
+    st.markdown('</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
