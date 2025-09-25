@@ -31,7 +31,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- ESTILO CSS (VERSÃO REVISTA E CORRIGIDA) ---
+# --- ESTILO CSS (VERSÃO FINAL E ROBUSTA) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
@@ -41,43 +41,39 @@ st.markdown("""
     }
 
     :root {
-        --primary-color: #3B82F6;
-        --attention-color: #EF4444;
+        --primary-color: #EF4444; /* Cor primária/ativa passa a ser o vermelho */
+        --secondary-color: #3B82F6; /* Cor secundária azul */
         --background-color: #0F172A;
         --sidebar-background: #1E293B;
-        --text-color-dark-bg: #FFFFFF; /* ALTERAÇÃO: Branco puro para máxima legibilidade */
+        --text-color-dark-bg: #FFFFFF;
         --border-color: #334155;
         --card-background-color: #FFFFFF;
         --card-text-color: #0F172A;
         --card-border-color: #E2E8F0;
     }
 
-    /* ALTERAÇÃO GERAL: Forçar texto branco em fundos escuros */
     .stApp {
         background-color: var(--background-color);
-        color: var(--text-color-dark-bg); /* Texto padrão da app passa a ser branco */
+        color: var(--text-color-dark-bg);
     }
     
-    h1, h2, h3, h4, h5 {
+    h1, h2, h3 {
         color: var(--text-color-dark-bg);
         font-weight: 600;
     }
     
-    /* ALTERAÇÃO: Solução definitiva para a página de login */
+    /* ALTERAÇÃO FINAL: Solução definitiva para a página de login */
     .login-page-wrapper {
+        position: fixed; /* Isola do layout do Streamlit */
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: var(--background-color);
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 100vw;
-        height: 100vh;
-        overflow: hidden; /* Prevenir qualquer scroll */
-    }
-    .login-page-wrapper .main {
-        width: auto; /* Permitir que a caixa de login defina a largura */
-    }
-    .login-page-wrapper .main .block-container {
-        padding: 0 !important;
-        max-width: 100% !important;
+        z-index: 9999; /* Garante que fica por cima de tudo */
     }
     .login-box {
         background-color: var(--sidebar-background);
@@ -88,58 +84,57 @@ st.markdown("""
         max-width: 400px;
     }
     .login-box h2 { color: var(--text-color-dark-bg); text-align: center; margin-bottom: 25px; }
-    .login-box .stButton>button { background-color: var(--attention-color); color: white; font-weight: 600; }
-    
-    /* Legendas de inputs também a branco */
-    [data-testid="stTextInput"] label, [data-testid="stFileUploader"] label {
-        color: var(--text-color-dark-bg) !important;
-        font-weight: 600 !important;
-    }
+    .login-box .stButton>button { background-color: var(--primary-color); color: white; font-weight: 600; }
+    [data-testid="stTextInput"] label { color: var(--text-color-dark-bg) !important; font-weight: 600 !important; }
 
+    /* ALTERAÇÃO FINAL: Estilo para botões de navegação (ativos e inativos) */
+    .stButton>button {
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        font-weight: 600;
+        border: 1px solid var(--border-color);
+        background-color: var(--sidebar-background); /* Fundo escuro para botões inativos */
+        color: var(--text-color-dark-bg); /* Texto branco */
+    }
+    .stButton>button:hover {
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+    .stButton>button.st-emotion-cache-19n6bn1 { /* Seletor específico para botão primário */
+        background-color: var(--primary-color);
+        color: var(--text-color-dark-bg);
+        border: 1px solid var(--primary-color);
+    }
+    
     /* Painel Lateral */
     [data-testid="stSidebar"] { background-color: var(--sidebar-background); border-right: 1px solid var(--border-color); }
     [data-testid="stSidebar"] h3 { color: var(--text-color-dark-bg); }
+    [data-testid="stSidebar"] .stButton>button { border: none; background-color: transparent; }
 
-    /* ALTERAÇÃO: Cartões com fundo branco e altura igual */
+    /* Cartões com fundo branco e altura igual */
     .card {
         background-color: var(--card-background-color);
-        color: var(--card-text-color); /* Texto dentro do cartão passa a ser escuro */
+        color: var(--card-text-color);
         border-radius: 12px;
         padding: 20px 25px;
         border: 1px solid var(--card-border-color);
-        height: 100%; /* Essencial para altura igual */
-        display: flex; /* Ativa flexbox para controlo de altura */
-        flex-direction: column; /* Organiza conteúdo verticalmente */
-    }
-    .card-header {
-        padding-bottom: 10px;
-        border-bottom: 1px solid var(--card-border-color);
-    }
-    .card .card-header h4 {
-        color: var(--card-text-color);
-        font-size: 1.1rem;
-        margin: 0;
+        height: 100%;
         display: flex;
-        align-items: center;
-        gap: 8px;
+        flex-direction: column;
     }
-    .card-body {
-        flex-grow: 1; /* Faz o corpo do cartão esticar-se para preencher o espaço */
-    }
+    .card-header { padding-bottom: 10px; border-bottom: 1px solid var(--card-border-color); }
+    .card .card-header h4 { color: var(--card-text-color); font-size: 1.1rem; margin: 0; display: flex; align-items: center; gap: 8px; }
+    .card-body { flex-grow: 1; }
 
-    /* ALTERAÇÃO: Cartões de KPI com fundo branco */
+    /* Cartões de KPI com fundo branco */
     [data-testid="stMetric"] {
         background-color: var(--card-background-color);
         border: 1px solid var(--card-border-color);
         border-radius: 12px;
         padding: 15px 20px;
     }
-    [data-testid="stMetric"] label { /* Legenda do KPI */
-        color: #64748B; /* Cinza escuro para a legenda */
-    }
-    [data-testid="stMetric"] [data-testid="stMetricValue"] { /* Valor do KPI */
-        color: var(--card-text-color);
-    }
+    [data-testid="stMetric"] label { color: #64748B; }
+    [data-testid="stMetric"] [data-testid="stMetricValue"] { color: var(--card-text-color); }
 
     /* Caixas de Alerta com bom contraste */
     [data-testid="stAlert"] { border-radius: 8px; border-width: 1px; border-style: solid; }
@@ -151,7 +146,7 @@ st.markdown("""
     [data-testid="stAlert"][data-baseweb="notification-info"] div, [data-testid="stAlert"][data-baseweb="notification-info"] p { color: #1E40AF; }
 
     /* Botão "Browse files" com cor */
-    [data-testid="stFileUploader"] button { background-color: var(--primary-color); color: white; border: none; border-radius: 6px; }
+    [data-testid="stFileUploader"] button { background-color: var(--secondary-color); color: white; border: none; border-radius: 6px; }
     [data-testid="stFileUploader"] button:hover { background-color: #2563EB; color: white; }
 </style>
 """, unsafe_allow_html=True)
@@ -188,7 +183,7 @@ def create_card(title, icon, chart_bytes=None, dataframe=None, key_suffix=""):
     st.markdown(f'<div class="card-header"><h4>{icon} {title}</h4></div>', unsafe_allow_html=True)
     st.markdown('<div class="card-body">', unsafe_allow_html=True)
     if chart_bytes:
-        st.image(chart_bytes, use_container_width=True) # Corrigido para use_container_width
+        st.image(chart_bytes, use_container_width=True)
     elif dataframe is not None:
         st.dataframe(dataframe, use_container_width=True)
     st.markdown('</div></div>', unsafe_allow_html=True)
@@ -208,7 +203,7 @@ if 'tables_pre_mining' not in st.session_state: st.session_state.tables_pre_mini
 if 'metrics' not in st.session_state: st.session_state.metrics = {}
 
 
-# --- FUNÇÕES DE ANÁLISE (COMPLETAS) ---
+# --- FUNÇÕES DE ANÁLISE (COMPLETAS E SEM ALTERAÇÕES) ---
 @st.cache_data
 def run_pre_mining_analysis(dfs):
     plots = {}
@@ -499,7 +494,7 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
     return plots, metrics
 
 
-# --- PÁGINA DE LOGIN (SIMPLIFICADA) ---
+# --- PÁGINA DE LOGIN ---
 def login_page():
     st.markdown('<div class="login-box">', unsafe_allow_html=True)
     st.markdown("<h2>✨ Painel de Análise de Processos</h2>", unsafe_allow_html=True)
@@ -557,17 +552,19 @@ def settings_page():
         st.warning("Aguardando o carregamento de todos os ficheiros CSV para poder iniciar a análise.")
 
 
-# --- PÁGINAS DO DASHBOARD ---
+# --- PÁGINAS DO DASHBOARD (LÓGICA DE APRESENTAÇÃO CORRIGIDA) ---
 def dashboard_page():
     st.title("🏠 Dashboard Geral")
     sub_nav1, sub_nav2 = st.columns(2)
     with sub_nav1:
-        if st.button("📊 Análise Pré-Mineração", use_container_width=True, type="secondary" if st.session_state.current_dashboard != "Pré-Mineração" else "primary"):
+        is_active = st.session_state.current_dashboard == "Pré-Mineração"
+        if st.button("📊 Análise Pré-Mineração", use_container_width=True, type="primary" if is_active else "secondary"):
             st.session_state.current_dashboard = "Pré-Mineração"
             st.session_state.current_section = "overview"
             st.rerun()
     with sub_nav2:
-        if st.button("⛏️ Análise Pós-Mineração", use_container_width=True, type="secondary" if st.session_state.current_dashboard != "Pós-Mineração" else "primary"):
+        is_active = st.session_state.current_dashboard == "Pós-Mineração"
+        if st.button("⛏️ Análise Pós-Mineração", use_container_width=True, type="primary" if is_active else "secondary"):
             st.session_state.current_dashboard = "Pós-Mineração"
             st.session_state.current_section = "discovery"
             st.rerun()
@@ -638,7 +635,6 @@ def render_pre_mining_dashboard():
             create_card("Principais Loops de Rework", "🔁", dataframe=tables['rework_loops_table'], key_suffix="rlt")
     elif st.session_state.current_section == "advanced":
         delay_kpis = tables['cost_of_delay_kpis']
-        st.markdown("<h5>Custo do Atraso</h5>", unsafe_allow_html=True)
         kpi_cols = st.columns(3)
         kpi_cols[0].metric(label="Custo Total em Atraso", value=delay_kpis['Custo Total Projetos Atrasados'])
         kpi_cols[1].metric(label="Atraso Médio", value=delay_kpis['Atraso Médio (dias)'])
