@@ -31,7 +31,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- ESTILO CSS ---
+# --- ESTILO CSS (VERSÃO FINAL E CORRIGIDA) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
@@ -48,33 +48,51 @@ st.markdown("""
         --card-border-color: #E2E8F0;
     }
     .stApp { background-color: var(--background-color); color: var(--text-color-dark-bg); }
-    h1, h2, h3 { color: var(--text-color-dark-bg); font-weight: 600; }
-    .login-box { background-color: var(--sidebar-background); padding: 40px; border-radius: 12px; border: 1px solid var(--border-color); width: 100%; max-width: 400px; }
+    h1, h2, h3, h4, h5 { color: var(--text-color-dark-bg); font-weight: 600; }
+    
+    /* Login */
+    .login-box { background-color: var(--sidebar-background); padding: 40px; border-radius: 12px; border: 1px solid var(--border-color); width: 100%; max-width: 400px; margin: 0 auto; }
     .login-box h2 { color: var(--text-color-dark-bg); text-align: center; margin-bottom: 25px; }
     .login-box .stButton>button { background-color: var(--primary-color); color: white; font-weight: 600; border: none; }
     [data-testid="stTextInput"] label { color: var(--text-color-dark-bg) !important; font-weight: 600 !important; }
+
+    /* Botões de Navegação (Dashboard) */
     .stButton>button:not(.st-emotion-cache-19n6bn1) { border: 1px solid var(--border-color) !important; background-color: var(--sidebar-background) !important; color: var(--text-color-dark-bg) !important; font-weight: 600; }
     .stButton>button.st-emotion-cache-19n6bn1 { background-color: var(--primary-color) !important; color: var(--text-color-dark-bg) !important; border: 1px solid var(--primary-color) !important; font-weight: 600; }
     .stButton>button:hover { border-color: var(--primary-color) !important; opacity: 0.8; }
+    
+    /* Painel Lateral */
     [data-testid="stSidebar"] { background-color: var(--sidebar-background); border-right: 1px solid var(--border-color); }
     [data-testid="stSidebar"] h3 { color: var(--text-color-dark-bg); }
     [data-testid="stSidebar"] .stButton>button { border: none; background-color: transparent; }
     [data-testid="stSidebar"] .stButton>button:hover, [data-testid="stSidebar"] .stButton>button:focus { background-color: var(--card-background-color) !important; color: var(--card-text-color) !important; }
+
+    /* Cartões */
     .card { background-color: var(--card-background-color); color: var(--card-text-color); border-radius: 12px; padding: 20px 25px; border: 1px solid var(--card-border-color); height: 100%; display: flex; flex-direction: column; }
     .card-header { padding-bottom: 10px; border-bottom: 1px solid var(--card-border-color); }
     .card .card-header h4 { color: var(--card-text-color); font-size: 1.1rem; margin: 0; display: flex; align-items: center; gap: 8px; }
     .card-body { flex-grow: 1; padding-top: 15px; }
+
+    /* Métricas (KPIs) */
     [data-testid="stMetric"] { background-color: var(--card-background-color); border: 1px solid var(--card-border-color); border-radius: 12px; padding: 15px 20px; }
     [data-testid="stMetric"] label { color: #64748B; }
     [data-testid="stMetric"] [data-testid="stMetricValue"] { color: var(--card-text-color); }
+
+    /* Caixas de Alerta */
     [data-testid="stAlert"] { border-radius: 8px; border: 1px solid var(--secondary-color); background-color: rgba(59, 130, 246, 0.15); }
     [data-testid="stAlert"] div, [data-testid="stAlert"] p { color: var(--text-color-dark-bg) !important; }
-    section[data-testid="stFileUploader"] { background-color: var(--sidebar-background); border-radius: 8px; padding: 10px; }
+
+    /* Upload de Ficheiros */
+    section[data-testid="stFileUploader"] { background-color: var(--sidebar-background); border-radius: 8px; padding: 10px; border: 1px dashed var(--border-color); }
     [data-testid="stFileUploader"] label, [data-testid="stFileUploader"] span, [data-testid="stFileUploader"] small { color: var(--text-color-dark-bg) !important; font-size: 0.9rem; }
     [data-testid="stFileUploader"] button { background-color: var(--secondary-color); color: white; border: none; border-radius: 6px; }
     [data-testid="stFileUploader"] button:hover { background-color: #2563EB; color: white; }
+    
+    /* Botão Iniciar Análise */
     #iniciar-analise-button .stButton>button { background-color: var(--secondary-color) !important; color: white !important; border: 1px solid var(--secondary-color) !important; }
-    .st-expander, .st-expander header { border-radius: 8px !important; }
+    
+    /* Expander para pré-visualização */
+    .st-expander, .st-expander header { border-radius: 8px !important; border-color: var(--border-color) !important; }
     .st-expander header { background-color: var(--sidebar-background) !important; color: var(--text-color-dark-bg) !important; }
     .st-expander p { color: var(--text-color-dark-bg); }
 </style>
@@ -108,7 +126,10 @@ def convert_df_to_csv(df):
     return df.to_csv(index=False).encode('utf-8')
 
 def create_card(title, icon, chart_bytes=None, dataframe=None, key_suffix=""):
+    # Usar st.container para garantir que tudo fica dentro da mesma "caixa" lógica
     with st.container():
+        # A classe 'card' é aplicada ao container implicitamente por ser um elemento de bloco
+        # Esta abordagem é mais robusta que múltiplos st.markdown
         st.markdown(f"""
         <div class="card">
             <div class="card-header"><h4>{icon} {title}</h4></div>
@@ -188,7 +209,8 @@ def run_pre_mining_analysis(dfs):
     def compute_avg_throughput(group):
         group = group.sort_values("time:timestamp"); deltas = group["time:timestamp"].diff().dropna()
         return deltas.mean().total_seconds() if not deltas.empty else 0
-    throughput_per_case = log_df_final.groupby("case:concept:name").apply(compute_avg_throughput).reset_index(name="avg_throughput_seconds")
+    throughput_per_case = log_df_final.groupby("case:concept:name", as_index=False).apply(compute_avg_throughput)
+    throughput_per_case.columns = ['case:concept:name', 'avg_throughput_seconds']
     throughput_per_case["avg_throughput_hours"] = throughput_per_case["avg_throughput_seconds"] / 3600
     perf_df = pd.merge(lead_times, throughput_per_case, on="case:concept:name")
     tables['perf_stats'] = perf_df[["lead_time_days", "avg_throughput_hours"]].describe()
@@ -256,7 +278,7 @@ def run_pre_mining_analysis(dfs):
     df_projects['team_size_bin_dynamic'] = pd.cut(df_projects['num_resources'], bins=bins, include_lowest=True, duplicates='drop').astype(str)
     fig, ax = plt.subplots(figsize=(8, 5)); sns.boxplot(data=df_projects.dropna(subset=['team_size_bin_dynamic']), x='team_size_bin_dynamic', y='days_diff', ax=ax, hue='team_size_bin_dynamic', legend=False, palette='flare'); ax.set_title("Impacto do Tamanho da Equipa no Atraso")
     plots['delay_by_teamsize'] = convert_fig_to_bytes(fig)
-    median_duration_by_team_size = df_projects.groupby('team_size_bin_dynamic')['actual_duration_days'].median().reset_index()
+    median_duration_by_team_size = df_projects.groupby('team_size_bin_dynamic', observed=False)['actual_duration_days'].median().reset_index()
     fig, ax = plt.subplots(figsize=(8, 5)); sns.barplot(data=median_duration_by_team_size, x='team_size_bin_dynamic', y='actual_duration_days', ax=ax, hue='team_size_bin_dynamic', legend=False, palette='crest'); ax.set_title("Duração Mediana por Tamanho da Equipa")
     plots['median_duration_by_teamsize'] = convert_fig_to_bytes(fig)
     df_alloc_costs['day_of_week'] = df_alloc_costs['allocation_date'].dt.day_name()
@@ -345,7 +367,7 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
     fig_net, ax_net = plt.subplots(figsize=(10, 10)); G = nx.DiGraph();
     for (source, target), weight in handovers.items(): G.add_edge(str(source), str(target), weight=weight)
     pos = nx.spring_layout(G, k=0.9, iterations=50, seed=42); weights = [G[u][v]['weight'] for u,v in G.edges()]; nx.draw(G, pos, with_labels=True, node_color='skyblue', node_size=3000, edge_color='gray', width=[w*0.5 for w in weights], ax=ax_net, font_size=10, connectionstyle='arc3,rad=0.1'); nx.draw_networkx_edge_labels(G, pos, edge_labels=nx.get_edge_attributes(G, 'weight'), ax=ax_net); ax_net.set_title('Rede Social de Recursos (Handover Network)')
-    plots['resource_network_adv'] = convert_fig_to_bytes(fig_net) # ERRO ACONTECE AQUI
+    plots['resource_network_adv'] = convert_fig_to_bytes(fig_net)
     if 'skill_level' in _df_resources.columns:
         perf_recursos = _df_full_context.groupby('resource_id').agg(total_hours=('hours_worked', 'sum'), total_tasks=('task_id', 'nunique')).reset_index()
         perf_recursos['avg_hours_per_task'] = perf_recursos['total_hours'] / perf_recursos['total_tasks']
@@ -430,7 +452,6 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
 
 # --- PÁGINA DE LOGIN ---
 def login_page():
-    st.markdown('<div class="login-box">', unsafe_allow_html=True)
     st.markdown("<h2>✨ Transformação inteligente de processos</h2>", unsafe_allow_html=True)
     username = st.text_input("Utilizador", placeholder="admin", value="admin")
     password = st.text_input("Senha", type="password", placeholder="admin", value="admin")
@@ -441,7 +462,6 @@ def login_page():
             st.rerun()
         else:
             st.error("Utilizador ou senha inválidos.")
-    st.markdown('</div>', unsafe_allow_html=True)
 
 
 # --- PÁGINA DE CONFIGURAÇÕES / UPLOAD ---
@@ -582,6 +602,7 @@ def render_pre_mining_dashboard():
             create_card("Principais Loops de Rework", "🔁", dataframe=tables['rework_loops_table'], key_suffix="rlt")
     elif st.session_state.current_section == "advanced":
         kpi_data = tables['cost_of_delay_kpis']
+        st.markdown("<h5>Custo do Atraso</h5>", unsafe_allow_html=True)
         kpi_cols = st.columns(3)
         kpi_cols[0].metric(label="Custo Total em Atraso", value=kpi_data['Custo Total Projetos Atrasados'])
         kpi_cols[1].metric(label="Atraso Médio", value=kpi_data['Atraso Médio (dias)'])
@@ -672,5 +693,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-}
