@@ -78,7 +78,7 @@ st.markdown("""
     
     /* BOTÕES, ALERTAS E UPLOAD */
     .stButton>button[kind="primary"] {
-        background-color: #3b82f6;
+        background-color: #3b82f6; /* Azul claro */
         color: white;
     }
     .stFileUploader button {
@@ -154,7 +154,7 @@ def convert_fig_to_bytes(fig, format='png'):
 def convert_gviz_to_bytes(gviz, format='png'):
     return io.BytesIO(gviz.pipe(format=format))
 
-# --- FUNÇÕES DE ANÁLISE ---
+# --- FUNÇÕES DE ANÁLISE (O SEU CÓDIGO ORIGINAL) ---
 @st.cache_data
 def run_pre_mining_analysis(dfs):
     plots = {}
@@ -483,7 +483,6 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
     
     return plots, tables, event_log_pm4py, df_projects, df_tasks, df_resources, df_full_context
 
-
 # --- FUNÇÃO HELPER PARA OS CARTÕES ---
 class card:
     def __init__(self, title, icon=""):
@@ -498,6 +497,10 @@ class card:
 # --- LÓGICA DE AUTENTICAÇÃO ---
 def login_screen():
     st.title("Análise inteligente de processos")
+    
+    # CSS específico para esconder a sidebar no ecrã de login
+    st.markdown("""<style>[data-testid="stSidebar"] {display: none}</style>""", unsafe_allow_html=True)
+    
     col1, col2, col3 = st.columns([2,3,2])
     with col2:
         with st.container(border=True):
@@ -563,7 +566,7 @@ else:
                     st.session_state.tables_pre_mining = tables_pre
                     
                     log_from_df = pm4py.convert_to_event_log(pm4py.convert_to_dataframe(event_log))
-                    plots_post, metrics = run_post_mining_analysis(log_from_df, df_p, df_t, df_r, df_full_context)
+                    plots_post, metrics = run_post_mining_analysis(log_from_df, df_p, df_t, df_r, df_fc) # Erro estava aqui
                     st.session_state.plots_post_mining = plots_post
                     st.session_state.metrics = metrics
                     st.session_state.analysis_run = True
