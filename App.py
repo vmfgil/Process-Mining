@@ -26,7 +26,7 @@ from pm4py.algo.conformance.alignments.petri_net import algorithm as alignments_
 
 # --- 1. CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(
-    page_title="Painel de Análise de Processos",
+    page_title="Análise inteligente de processos",
     page_icon="✨",
     layout="wide"
 )
@@ -76,22 +76,13 @@ st.markdown("""
         padding-bottom: 10px;
     }
     
-    /* ABAS MODERNAS */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 24px;
-        border-bottom: 1px solid #334155;
-    }
-    .stTabs [data-baseweb="tab"] {
-        color: #94A3B8;
-    }
-    .stTabs [aria-selected="true"] {
-        color: #3B82F6;
-        border-bottom-color: #3B82F6;
-    }
-    
-    /* BOTÕES E ALERTAS */
+    /* BOTÕES, ALERTAS E UPLOAD */
     .stButton>button[kind="primary"] {
-        background-color: #3b82f6; /* Azul claro */
+        background-color: #3b82f6;
+        color: white;
+    }
+    .stFileUploader button {
+        background-color: #3b82f6;
         color: white;
     }
     .stMetric {
@@ -114,6 +105,18 @@ st.markdown("""
     }
     [data-testid="stAlert"][data-st-alert-type="success"] p {
         color: #93c5fd !important;
+    }
+
+    /* NAVEGAÇÃO SECUNDÁRIA (BOTÕES) */
+    div[data-testid="stHorizontalBlock"] > div[style*="flex-direction: row"] > div[data-testid="stVerticalBlock"] > div.element-container > button[kind="secondary"] {
+        background-color: transparent;
+        color: #94A3B8;
+        border: 1px solid #334155;
+    }
+    div[data-testid="stHorizontalBlock"] > div[style*="flex-direction: row"] > div[data-testid="stVerticalBlock"] > div.element-container > button[kind="primary"] {
+        background-color: #3B82F6;
+        color: #FFFFFF;
+        border: 1px solid #3B82F6;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -140,7 +143,6 @@ if 'tables_pre_mining' not in st.session_state:
 if 'metrics' not in st.session_state: 
     st.session_state.metrics = {}
 
-
 # --- FUNÇÕES AUXILIARES ---
 def convert_fig_to_bytes(fig, format='png'):
     buf = io.BytesIO()
@@ -152,7 +154,7 @@ def convert_fig_to_bytes(fig, format='png'):
 def convert_gviz_to_bytes(gviz, format='png'):
     return io.BytesIO(gviz.pipe(format=format))
 
-# --- FUNÇÕES DE ANÁLISE (O SEU CÓDIGO ORIGINAL) ---
+# --- FUNÇÕES DE ANÁLISE ---
 @st.cache_data
 def run_pre_mining_analysis(dfs):
     plots = {}
@@ -479,7 +481,8 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
     fig, ax = plt.subplots(figsize=(10, 6)); sns.barplot(data=waiting_time_by_task.sort_values(by='sojourn_time_hours', ascending=False), x='sojourn_time_hours', y='task_name', ax=ax, hue='task_name', legend=False, palette='viridis'); ax.set_title('Tempo Médio de Espera por Atividade'); fig.tight_layout()
     plots['avg_waiting_time_by_activity_plot'] = convert_fig_to_bytes(fig)
     
-    return plots, metrics
+    return plots, tables, event_log_pm4py, df_projects, df_tasks, df_resources, df_full_context
+
 
 # --- FUNÇÃO HELPER PARA OS CARTÕES ---
 class card:
@@ -494,14 +497,7 @@ class card:
 
 # --- LÓGICA DE AUTENTICAÇÃO ---
 def login_screen():
-    st.markdown("""
-    <style>
-        [data-testid="stSidebar"] { display: none; }
-        .stTextInput label { color: #E2E8F0 !important; }
-    </style>
-    """, unsafe_allow_html=True)
-    
-    st.title("Painel de Análise de Processos")
+    st.title("Análise inteligente de processos")
     col1, col2, col3 = st.columns([2,3,2])
     with col2:
         with st.container(border=True):
@@ -520,13 +516,12 @@ def login_screen():
 if not st.session_state.get('authenticated', False):
     login_screen()
 else:
-    # --- APP PRINCIPAL ---
-    st.sidebar.title("Painel de Análise")
+    st.sidebar.title("Análise inteligente de processos")
     st.sidebar.markdown('<div class="sidebar-note"><p>Selecione a página.</p></div>', unsafe_allow_html=True)
 
     page = st.sidebar.radio(
         "Menu Principal", 
-        ["📥 Upload de Ficheiros", "🚀 Executar Análise", "📊 Resultados da Análise"],
+        ["📁 Upload de Ficheiros", "▶️ Executar Análise", "📊 Resultados da Análise"],
         label_visibility="collapsed"
     )
     
@@ -537,9 +532,10 @@ else:
         st.session_state['username'] = None
         st.rerun()
 
-    if page == "📥 Upload de Ficheiros":
+    file_names = ['projects', 'tasks', 'resources', 'resource_allocations', 'dependencies']
+
+    if page == "📁 Upload de Ficheiros":
         st.title("Upload dos Ficheiros de Dados")
-        file_names = ['projects', 'tasks', 'resources', 'resource_allocations', 'dependencies']
         
         cols = st.columns(3)
         for i, name in enumerate(file_names):
@@ -555,12 +551,12 @@ else:
                 with st.expander(f"Visualizar `{name}.csv`"):
                     st.dataframe(df.head())
     
-    elif page == "🚀 Executar Análise":
+    elif page == "▶️ Executar Análise":
         st.title("Execução da Análise de Processos")
         if not all(st.session_state.dfs[name] is not None for name in file_names):
             st.warning("Por favor, carregue todos os 5 ficheiros CSV antes de continuar.")
         else:
-            if st.button("🚀 Iniciar Análise Completa", type="primary", use_container_width=True):
+            if st.button("Iniciar Análise Completa", type="primary", use_container_width=True):
                 with st.spinner("Os dados estão a ser analisados. Isto pode demorar um momento..."):
                     plots_pre, tables_pre, event_log, df_p, df_t, df_r, df_fc = run_pre_mining_analysis(st.session_state.dfs)
                     st.session_state.plots_pre_mining = plots_pre
@@ -579,37 +575,22 @@ else:
         if not st.session_state.analysis_run:
             st.warning("A análise ainda não foi executada.")
         else:
-            # NAVEGAÇÃO NÍVEL 1: Sidebar
             dashboard_view = st.sidebar.radio(
                 "Vista do Dashboard",
                 ["Análise Pré-Mineração", "Análise Pós-Mineração"],
-                key="dashboard_view_selector"
+                key="dashboard_view_selector",
+                label_visibility="collapsed"
             )
             
-            # NAVEGAÇÃO NÍVEL 2: Botões de Secção
             if dashboard_view == "Análise Pré-Mineração":
-                sections = {
-                    "sec1": "Análises de Alto Nível e de Casos",
-                    "sec2": "Análises de Performance Detalhada",
-                    "sec3": "Análise de Atividades e Handoffs",
-                    "sec4": "Análise Organizacional (Recursos)",
-                    "sec5": "Análise de Variantes e Rework",
-                    "sec6": "Análise Aprofundada e Benchmarking"
-                }
-            else: # Análise Pós-Mineração
-                sections = {
-                    "sec_post1": "Descoberta e Avaliação de Modelos",
-                    "sec_post2": "Performance, Tempo de Ciclo e Gargalos",
-                    "sec_post3": "Análise de Recursos Avançada",
-                    "sec_post4": "Análise de Variantes, Conformidade e Aprofundada"
-                }
+                sections = { "sec1": "Análises de Alto Nível", "sec2": "Performance Detalhada", "sec3": "Atividades e Handoffs", "sec4": "Organizacional", "sec5": "Variantes e Rework", "sec6": "Aprofundada" }
+            else:
+                sections = { "sec_post1": "Descoberta de Modelos", "sec_post2": "Performance e Tempo", "sec_post3": "Recursos (Avançado)", "sec_post4": "Variantes e Conformidade" }
 
-            # Define a secção ativa default
             if 'active_section' not in st.session_state or st.session_state.get('last_dashboard_view') != dashboard_view:
                 st.session_state.active_section = list(sections.keys())[0]
             st.session_state.last_dashboard_view = dashboard_view
 
-            # Desenha os botões
             nav_cols = st.columns(len(sections))
             for i, (key, name) in enumerate(sections.items()):
                 button_type = "primary" if st.session_state.active_section == key else "secondary"
@@ -618,7 +599,6 @@ else:
                     st.rerun()
             st.divider()
 
-            # CONTEÚDO DA ANÁLISE PRÉ-MINERAÇÃO
             if dashboard_view == "Análise Pré-Mineração":
                 if st.session_state.active_section == "sec1":
                     kpi_cols = st.columns(4)
@@ -660,11 +640,13 @@ else:
                     with c1:
                         with card("Tempo Médio de Execução por Atividade"):
                             st.image(st.session_state.plots_pre_mining['activity_service_times'], use_column_width=True)
-                        with card("Top 10 Handoffs por Custo de Espera"):
-                            st.image(st.session_state.plots_pre_mining['top_handoffs_cost'], use_column_width=True)
                     with c2:
                         with card("Top 10 Handoffs por Tempo de Espera"):
                             st.image(st.session_state.plots_pre_mining['top_handoffs'], use_column_width=True)
+                    
+                    with card("Top 10 Handoffs por Custo de Espera"):
+                        c_img, _ = st.columns(2)
+                        c_img.image(st.session_state.plots_pre_mining['top_handoffs_cost'], use_column_width=True)
 
                 if st.session_state.active_section == "sec4":
                     c1, c2 = st.columns(2)
@@ -673,17 +655,19 @@ else:
                             st.image(st.session_state.plots_pre_mining['top_activities_plot'], use_column_width=True)
                         with card("Recursos por Média de Tarefas por Projeto"):
                             st.image(st.session_state.plots_pre_mining['resource_avg_events'], use_column_width=True)
-                        with card("Custo por Tipo de Recurso"):
-                            st.image(st.session_state.plots_pre_mining['cost_by_resource_type'], use_column_width=True)
                     with c2:
                         with card("Top 10 Recursos por Horas Trabalhadas"):
                             st.image(st.session_state.plots_pre_mining['resource_workload'], use_column_width=True)
                         with card("Top 10 Handoffs entre Recursos"):
                             st.image(st.session_state.plots_pre_mining['resource_handoffs'], use_column_width=True)
                     
-                    with card("Heatmap de Esforço por Recurso e Atividade"):
-                        c_img, _ = st.columns([2, 1])
-                        c_img.image(st.session_state.plots_pre_mining['resource_activity_matrix'], use_column_width=True)
+                    c3, c4 = st.columns(2)
+                    with c3:
+                        with card("Custo por Tipo de Recurso"):
+                            st.image(st.session_state.plots_pre_mining['cost_by_resource_type'], use_column_width=True)
+                    with c4:
+                        with card("Heatmap de Esforço por Recurso e Atividade"):
+                            st.image(st.session_state.plots_pre_mining['resource_activity_matrix'], use_column_width=True)
 
                 if st.session_state.active_section == "sec5":
                     c1, c2 = st.columns([1, 2])
@@ -731,7 +715,6 @@ else:
                         c_img.image(st.session_state.plots_pre_mining['cycle_time_breakdown'], use_column_width=True)
 
 
-            # CONTEÚDO DA ANÁLISE PÓS-MINERAÇÃO
             if dashboard_view == "Análise Pós-Mineração":
                 if st.session_state.active_section == "sec_post1":
                      with card("Modelo de Processo (Inductive Miner)"):
