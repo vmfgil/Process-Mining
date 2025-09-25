@@ -410,7 +410,7 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
     fig_net, ax_net = plt.subplots(figsize=(10, 10)); G = nx.DiGraph();
     for (source, target), weight in handovers.items(): G.add_edge(str(source), str(target), weight=weight)
     pos = nx.spring_layout(G, k=0.9, iterations=50, seed=42); weights = [G[u][v]['weight'] for u,v in G.edges()]; nx.draw(G, pos, with_labels=True, node_color='skyblue', node_size=3000, edge_color='gray', width=[w*0.5 for w in weights], ax=ax_net, font_size=10, connectionstyle='arc3,rad=0.1'); nx.draw_networkx_edge_labels(G, pos, edge_labels=nx.get_edge_attributes(G, 'weight'), ax=ax_net); ax_net.set_title('Rede Social de Recursos (Handover Network)')
-    plots['resource_network_adv'] = convert_fig_to_bytes(fig_net)
+    plots['resource_network_adv'] = convert_gviz_to_bytes(fig_net)
     if 'skill_level' in _df_resources.columns:
         perf_recursos = _df_full_context.groupby('resource_id').agg(total_hours=('hours_worked', 'sum'), total_tasks=('task_id', 'nunique')).reset_index()
         perf_recursos['avg_hours_per_task'] = perf_recursos['total_hours'] / perf_recursos['total_tasks']
@@ -495,8 +495,7 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
 
 # --- PÁGINA DE LOGIN ---
 def login_page():
-    st.markdown(f'<div class="login-box">', unsafe_allow_html=True)
-    # Título alterado e caixa vazia removida
+    st.markdown('<div class="login-box">', unsafe_allow_html=True)
     st.markdown("<h2>✨ Transformação inteligente de processos</h2>", unsafe_allow_html=True)
     username = st.text_input("Utilizador", placeholder="admin", value="admin")
     password = st.text_input("Senha", type="password", placeholder="admin", value="admin")
@@ -533,7 +532,6 @@ def settings_page():
 
     all_files_uploaded = all(st.session_state.dfs[name] is not None for name in file_names)
     
-    # Pré-visualização dos dados restaurada
     if all_files_uploaded:
         st.header("Pré-visualização dos Dados Carregados")
         for name, df in st.session_state.dfs.items():
@@ -598,7 +596,7 @@ def render_pre_mining_dashboard():
         if nav_cols[i].button(name, key=f"nav_{key}", use_container_width=True, type="primary" if is_active else "secondary"):
             st.session_state.current_section = key
             st.rerun()
-    st.markdown("<br>", unsafe_allow_html=True)
+    
     plots = st.session_state.plots_pre_mining
     tables = st.session_state.tables_pre_mining
     if st.session_state.current_section == "overview":
@@ -628,9 +626,9 @@ def render_pre_mining_dashboard():
         c1, c2 = st.columns(2)
         with c1:
             create_card("Tempo Médio de Execução por Atividade", "🛠️", chart_bytes=plots['activity_service_times'], key_suffix="ast")
-            create_card("Top 10 Handoffs por Custo de Espera", "💸", chart_bytes=plots['top_handoffs_cost'], key_suffix="thc")
         with c2:
             create_card("Top 10 Handoffs por Tempo de Espera", "⏳", chart_bytes=plots['top_handoffs'], key_suffix="tht")
+        create_card("Top 10 Handoffs por Custo de Espera", "💸", chart_bytes=plots['top_handoffs_cost'], key_suffix="thc")
     elif st.session_state.current_section == "resources":
         c1, c2 = st.columns(2)
         with c1:
@@ -669,7 +667,6 @@ def render_post_mining_dashboard():
         if nav_cols[i].button(name, key=f"nav_post_{key}", use_container_width=True, type="primary" if is_active else "secondary"):
             st.session_state.current_section = key
             st.rerun()
-    st.markdown("<br>", unsafe_allow_html=True)
     plots = st.session_state.plots_post_mining
     if st.session_state.current_section == "discovery":
         c1, c2 = st.columns(2)
