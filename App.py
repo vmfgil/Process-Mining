@@ -31,7 +31,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Estilo CSS para replicar a estética da app de referência (Dark Mode)
+# Estilo CSS para replicar a estética da app de referência (Dark Mode com Cards Brancos)
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
@@ -40,16 +40,20 @@ st.markdown("""
         font-family: 'Poppins', sans-serif;
     }
 
-    /* Cores Globais (Dark Mode) */
+    /* Cores Globais */
     :root {
         --primary-color: #3B82F6;
-        --attention-color: #EF4444; /* ALTERAÇÃO: Cor vermelha para o botão de login */
-        --background-color: #0F172A; /* Azul escuro/ardósia */
-        --secondary-background: #1E293B; /* Azul um pouco mais claro */
-        --text-color: #F8FAFC; /* Branco/cinza muito claro */
-        --subtle-text-color: #94A3B8; /* Cinza claro */
-        --card-shadow: rgba(0, 0, 0, 0.3);
+        --attention-color: #EF4444;
+        --background-color: #0F172A;
+        --sidebar-background: #1E293B;
+        --text-color-dark-bg: #F8FAFC;
+        --subtle-text-color-dark-bg: #94A3B8;
         --border-color: #334155;
+        
+        /* Cores para os cartões brancos */
+        --card-background-color: #FFFFFF;
+        --card-text-color: #0F172A; /* Cor escura para texto em fundo branco */
+        --card-border-color: #E2E8F0;
     }
 
     .stApp {
@@ -58,19 +62,19 @@ st.markdown("""
 
     /* Painel Lateral */
     [data-testid="stSidebar"] {
-        background-color: var(--secondary-background);
+        background-color: var(--sidebar-background);
         border-right: 1px solid var(--border-color);
     }
     [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 {
-        color: var(--text-color);
+        color: var(--text-color-dark-bg);
     }
     [data-testid="stSidebar"] .stButton>button {
+        color: var(--subtle-text-color-dark-bg);
         display: flex;
         align-items: center;
         justify-content: flex-start;
         width: 100%;
         background-color: transparent;
-        color: var(--subtle-text-color);
         border: none;
         padding: 12px 15px;
         text-align: left;
@@ -81,29 +85,23 @@ st.markdown("""
     }
     [data-testid="stSidebar"] .stButton>button:hover {
         background-color: #293548;
-        color: var(--text-color);
+        color: var(--text-color-dark-bg);
     }
-    [data-testid="stSidebar"] .stButton>button.active-button {
-        background-color: var(--primary-color);
-        color: white;
+
+    /* Títulos Principais (fora dos cartões) */
+    h1, h2, h3 {
+        color: var(--text-color-dark-bg);
         font-weight: 600;
     }
     
-    /* Títulos Principais */
-    h1, h2, h3, h4, h5 {
-        color: var(--text-color);
-        font-weight: 600;
-    }
-
-    /* Componente Card */
+    /* Componente Card com fundo branco */
     .card {
-        background-color: var(--secondary-background);
+        background-color: var(--card-background-color);
         border-radius: 12px;
         padding: 20px 25px 25px 25px;
         margin-bottom: 20px;
-        box-shadow: 0 4px 12px 0 var(--card-shadow);
-        border: 1px solid var(--border-color);
-        width: 100%;
+        box-shadow: 0 4px 12px 0 rgba(0,0,0,0.05);
+        border: 1px solid var(--card-border-color);
         height: 100%;
         display: flex;
         flex-direction: column;
@@ -114,12 +112,13 @@ st.markdown("""
         align-items: center;
         margin-bottom: 15px;
         padding-bottom: 10px;
-        border-bottom: 1px solid var(--border-color);
+        border-bottom: 1px solid var(--card-border-color);
     }
-    .card-header h4 {
+    /* Títulos dentro dos cartões passam a ser escuros */
+    .card .card-header h4 {
         margin: 0;
         font-size: 1.1rem;
-        color: var(--text-color);
+        color: var(--card-text-color);
         display: flex;
         align-items: center;
         gap: 8px;
@@ -128,93 +127,81 @@ st.markdown("""
         flex-grow: 1;
     }
 
-    /* Botão de Download dentro do Card */
-    .card-header .stDownloadButton button {
-        background-color: #293548;
-        color: var(--subtle-text-color);
-        border: 1px solid var(--border-color);
-        border-radius: 6px;
-        padding: 4px 10px;
-        font-size: 0.8rem;
-    }
-     .card-header .stDownloadButton button:hover {
-        background-color: var(--primary-color);
-        color: white;
-    }
-
-    /* Métricas e KPIs */
-    [data-testid="stMetric"] {
-        background-color: var(--secondary-background);
-        border: 1px solid var(--border-color);
-        border-radius: 12px;
-        padding: 15px 20px;
-    }
-    [data-testid="stMetric"] label {
-        color: var(--subtle-text-color);
-    }
-    [data-testid="stMetric"] p {
-        color: var(--text-color);
-        font-size: 2.2rem;
-    }
-
-    /* Dataframes e Tabelas */
-    .stDataFrame, .stTable {
-        border: 1px solid var(--border-color);
+    /* Estilos para Caixas de Alerta */
+    [data-testid="stAlert"] {
         border-radius: 8px;
+        border-width: 1px;
+        border-style: solid;
+        padding: 1rem;
     }
-    
-    /* Botões de Navegação de Secção */
-    .section-nav {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin-bottom: 25px;
+    /* Estilo para st.warning */
+    [data-testid="stAlert"][data-baseweb="notification-warning"] {
+        background-color: #FFFBEB;
+        border-color: #FBBF24;
     }
-    .section-nav .stButton button {
-        background-color: var(--secondary-background);
-        border: 1px solid var(--border-color);
-        color: var(--subtle-text-color);
+    [data-testid="stAlert"][data-baseweb="notification-warning"] div[data-testid="stMarkdownContainer"] p {
+        color: #92400E;
     }
-    .section-nav .stButton button.active-button {
+    /* Estilo para st.success */
+    [data-testid="stAlert"][data-baseweb="notification-positive"] {
+        background-color: #F0FDF4;
+        border-color: #4ADE80;
+    }
+    [data-testid="stAlert"][data-baseweb="notification-positive"] div[data-testid="stMarkdownContainer"] p {
+        color: #166534;
+    }
+     /* Estilo para st.info */
+    [data-testid="stAlert"][data-baseweb="notification-info"] {
+        background-color: #EFF6FF;
+        border-color: #60A5FA;
+    }
+    [data-testid="stAlert"][data-baseweb="notification-info"] div[data-testid="stMarkdownContainer"] p {
+         color: #1E40AF;
+    }
+
+
+    /* Estilo para o botão "Browse files" */
+    [data-testid="stFileUploader"] button {
         background-color: var(--primary-color);
         color: white;
-        border-color: var(--primary-color);
+        border: none;
+        border-radius: 6px;
     }
-    
-    /* --- ALTERAÇÕES PARA A PÁGINA DE LOGIN E TEXTOS --- */
+    [data-testid="stFileUploader"] button:hover {
+        background-color: #2563EB;
+        color: white;
+    }
 
-    /* 1. Melhora a legibilidade das legendas em toda a aplicação */
+    /* Legendas de campos de texto e outros widgets */
     [data-testid="stTextInput"] label, 
     [data-testid="stFileUploader"] label {
-        color: var(--text-color) !important;
+        color: var(--text-color-dark-bg) !important;
         font-weight: 600 !important;
-        opacity: 0.9;
     }
     
-    /* 2. Garante que o container de login ocupe todo o ecrã sem scroll */
-    .login-container-wrapper .main .block-container {
+    /* Correção do layout da página de login */
+    .login-page-wrapper .main .block-container {
         padding: 0 !important;
+        margin: 0 !important;
+        max-width: 100% !important;
     }
     .login-container {
         display: flex;
-        flex-direction: column;
         align-items: center;
         justify-content: center;
         width: 100%;
-        min-height: 100vh; /* Usa min-height para garantir que ocupa pelo menos toda a altura */
+        min-height: 100vh;
     }
-
-    /* 3. Estilos específicos para a caixa de login e botão */
     .login-box {
-        background-color: var(--secondary-background);
+        background-color: var(--sidebar-background);
         padding: 40px;
         border-radius: 12px;
         border: 1px solid var(--border-color);
-        box-shadow: 0 8px 20px 0 var(--card-shadow);
         width: 100%;
         max-width: 400px;
     }
     .login-box h2 {
+        color: var(--text-color-dark-bg);
         text-align: center;
         margin-bottom: 25px;
     }
@@ -231,17 +218,20 @@ st.markdown("""
 # --- FUNÇÕES AUXILIARES ---
 def convert_fig_to_bytes(fig, format='png'):
     buf = io.BytesIO()
-    # Definir a cor de fundo transparente para se adaptar ao tema
-    fig.patch.set_alpha(0.0)
-    plt.savefig(buf, format=format, bbox_inches='tight', dpi=150, transparent=True)
-    # Mudar a cor dos textos e eixos para branco
+    # O fundo dos gráficos passa a ser branco para combinar com os cartões
+    fig.patch.set_facecolor('#FFFFFF')
+    fig.patch.set_alpha(1.0)
+    # A cor dos textos e eixos passa a ser escura
     for ax in fig.get_axes():
-        ax.tick_params(colors='white', which='both')
-        ax.xaxis.label.set_color('white')
-        ax.yaxis.label.set_color('white')
-        ax.title.set_color('white')
+        ax.tick_params(colors='black', which='both')
+        ax.xaxis.label.set_color('black')
+        ax.yaxis.label.set_color('black')
+        ax.title.set_color('black')
         if ax.get_legend() is not None:
-            plt.setp(ax.get_legend().get_texts(), color='white')
+            plt.setp(ax.get_legend().get_texts(), color='black')
+            if hasattr(ax.get_legend(), 'get_title'):
+                ax.get_legend().get_title().set_color('black')
+    plt.savefig(buf, format=format, bbox_inches='tight', dpi=150)
     buf.seek(0)
     plt.close(fig)
     return buf
@@ -254,37 +244,16 @@ def convert_df_to_csv(df):
     return df.to_csv(index=False).encode('utf-8')
 
 def create_card(title, icon, chart_bytes=None, dataframe=None, key_suffix=""):
-    """Função para renderizar um cartão com título, ícone e conteúdo."""
     st.markdown('<div class="card">', unsafe_allow_html=True)
     
     # Cabeçalho do Cartão
-    header_cols = st.columns([0.9, 0.1])
-    with header_cols[0]:
-        st.markdown(f'<div class="card-header"><h4>{icon} {title}</h4></div>', unsafe_allow_html=True)
-    with header_cols[1]:
-        # Botão de Download
-        if chart_bytes:
-            st.download_button(
-                label="...",
-                data=chart_bytes,
-                file_name=f"{title.replace(' ', '_').lower()}.png",
-                mime="image/png",
-                key=f"dl_img_{key_suffix}"
-            )
-        elif dataframe is not None:
-            csv_data = convert_df_to_csv(dataframe)
-            st.download_button(
-                label="...",
-                data=csv_data,
-                file_name=f"{title.replace(' ', '_').lower()}.csv",
-                mime="text/csv",
-                key=f"dl_csv_{key_suffix}"
-            )
-
+    st.markdown(f'<div class="card-header"><h4>{icon} {title}</h4></div>', unsafe_allow_html=True)
+    
     # Corpo do Cartão
     st.markdown('<div class="card-body">', unsafe_allow_html=True)
     if chart_bytes:
-        st.image(chart_bytes, use_column_width=True)
+        # use_column_width substituído por use_container_width
+        st.image(chart_bytes, use_container_width=True)
     elif dataframe is not None:
         st.dataframe(dataframe, use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
@@ -306,7 +275,7 @@ if 'tables_pre_mining' not in st.session_state: st.session_state.tables_pre_mini
 if 'metrics' not in st.session_state: st.session_state.metrics = {}
 
 
-# --- FUNÇÕES DE ANÁLISE (INTOCADAS) ---
+# --- FUNÇÕES DE ANÁLISE ---
 @st.cache_data
 def run_pre_mining_analysis(dfs):
     plots = {}
@@ -637,8 +606,6 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
 
 # --- PÁGINA DE LOGIN ---
 def login_page():
-    # ALTERAÇÃO: Wrapper div para aplicar estilos que corrigem o scroll
-    st.markdown('<div class="login-container-wrapper">', unsafe_allow_html=True)
     st.markdown('<div class="login-container">', unsafe_allow_html=True)
     st.markdown('<div class="login-box">', unsafe_allow_html=True)
     
@@ -647,9 +614,6 @@ def login_page():
     username = st.text_input("Utilizador", placeholder="admin", value="admin")
     password = st.text_input("Senha", type="password", placeholder="admin", value="admin")
     
-    # ALTERAÇÃO: Removido o st.markdown("<br>") que criava a caixa vazia.
-    # O espaçamento agora é controlado pelo padding do CSS na classe .login-box.
-
     if st.button("Entrar", use_container_width=True):
         if username == "admin" and password == "admin":
             st.session_state.authenticated = True
@@ -658,9 +622,7 @@ def login_page():
         else:
             st.error("Utilizador ou senha inválidos.")
             
-    st.markdown('</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('</div></div>', unsafe_allow_html=True)
 
 # --- PÁGINA DE CONFIGURAÇÕES / UPLOAD ---
 def settings_page():
@@ -678,14 +640,14 @@ def settings_page():
             uploaded_file = st.file_uploader(f"Carregar `{name}.csv`", type="csv", key=f"upload_{name}")
             if uploaded_file:
                 st.session_state.dfs[name] = pd.read_csv(uploaded_file)
-                st.success(f"`{name}.csv` carregado.", icon="✅")
+                st.success(f"`{name}.csv` carregado.")
     
     with col2:
         for name in file_names[3:]:
             uploaded_file = st.file_uploader(f"Carregar `{name}.csv`", type="csv", key=f"upload_{name}")
             if uploaded_file:
                 st.session_state.dfs[name] = pd.read_csv(uploaded_file)
-                st.success(f"`{name}.csv` carregado.", icon="✅")
+                st.success(f"`{name}.csv` carregado.")
 
     if all(st.session_state.dfs[name] is not None for name in file_names):
         st.header("Execução da Análise")
@@ -716,17 +678,16 @@ def settings_page():
 def dashboard_page():
     st.title("🏠 Dashboard Geral")
 
-    # Sub-navegação para Pré e Pós-Mineração
     sub_nav1, sub_nav2 = st.columns(2)
     with sub_nav1:
         if st.button("📊 Análise Pré-Mineração", use_container_width=True, type="secondary" if st.session_state.current_dashboard != "Pré-Mineração" else "primary"):
             st.session_state.current_dashboard = "Pré-Mineração"
-            st.session_state.current_section = "overview" # Resetar secção
+            st.session_state.current_section = "overview"
             st.rerun()
     with sub_nav2:
         if st.button("⛏️ Análise Pós-Mineração", use_container_width=True, type="secondary" if st.session_state.current_dashboard != "Pós-Mineração" else "primary"):
             st.session_state.current_dashboard = "Pós-Mineração"
-            st.session_state.current_section = "discovery" # Resetar secção
+            st.session_state.current_section = "discovery"
             st.rerun()
     
     st.markdown("---")
@@ -735,7 +696,6 @@ def dashboard_page():
         st.warning("A análise ainda não foi executada. Por favor, vá à página de 'Configurações' para carregar os dados e iniciar a análise.")
         return
 
-    # Renderizar o dashboard selecionado
     if st.session_state.current_dashboard == "Pré-Mineração":
         render_pre_mining_dashboard()
     else:
@@ -753,7 +713,6 @@ def render_pre_mining_dashboard():
         "advanced": "Análise Aprofundada"
     }
 
-    # Navegação por botões para cada secção
     nav_cols = st.columns(len(sections))
     for i, (key, name) in enumerate(sections.items()):
         is_active = st.session_state.current_section == key
@@ -766,7 +725,6 @@ def render_pre_mining_dashboard():
     plots = st.session_state.plots_pre_mining
     tables = st.session_state.tables_pre_mining
     
-    # Renderizar conteúdo da secção selecionada
     if st.session_state.current_section == "overview":
         kpi_data = tables['kpi_data']
         kpi_cols = st.columns(4)
@@ -853,7 +811,6 @@ def render_post_mining_dashboard():
         "conformance": "Variantes e Conformidade"
     }
 
-    # Navegação por botões
     nav_cols = st.columns(len(sections))
     for i, (key, name) in enumerate(sections.items()):
         is_active = st.session_state.current_section == key
@@ -925,14 +882,16 @@ def render_post_mining_dashboard():
 # --- CONTROLO PRINCIPAL DA APLICAÇÃO ---
 def main():
     if not st.session_state.authenticated:
+        # Aplica a classe wrapper ANTES de renderizar a página de login
+        st.markdown('<div class="login-page-wrapper">', unsafe_allow_html=True)
         login_page()
+        st.markdown('</div>', unsafe_allow_html=True)
     else:
-        # --- PAINEL LATERAL DE NAVEGAÇÃO ---
+        # Renderização normal da aplicação para utilizadores autenticados
         with st.sidebar:
             st.markdown(f"### 👤 {st.session_state.user_name}")
             st.markdown("---")
             
-            # Botões de Navegação
             if st.button("🏠 Dashboard Geral", use_container_width=True, type="primary" if st.session_state.current_page == "Dashboard" else "secondary"):
                 st.session_state.current_page = "Dashboard"
                 st.rerun()
@@ -943,13 +902,11 @@ def main():
             st.markdown("<br><br>", unsafe_allow_html=True)
             if st.button("🚪 Sair", use_container_width=True):
                 st.session_state.authenticated = False
-                # Limpar estado da sessão para recomeçar
                 for key in list(st.session_state.keys()):
                     if key not in ['authenticated']:
                         del st.session_state[key]
                 st.rerun()
 
-        # --- RENDERIZAÇÃO DA PÁGINA PRINCIPAL ---
         if st.session_state.current_page == "Dashboard":
             dashboard_page()
         elif st.session_state.current_page == "Settings":
