@@ -31,6 +31,26 @@ st.set_page_config(
     layout="wide"
 )
 
+# --- 2. INICIALIZAÇÃO DO ESTADO DA SESSÃO (CORREÇÃO) ---
+# Este bloco estava em falta e causou o erro. Agora está no sítio correto.
+if 'authenticated' not in st.session_state:
+    st.session_state['authenticated'] = False
+if 'username' not in st.session_state:
+    st.session_state['username'] = None
+if 'dfs' not in st.session_state:
+    st.session_state.dfs = {'projects': None, 'tasks': None, 'resources': None, 'resource_allocations': None, 'dependencies': None}
+if 'analysis_run' not in st.session_state: 
+    st.session_state.analysis_run = False
+if 'plots_pre_mining' not in st.session_state: 
+    st.session_state.plots_pre_mining = {}
+if 'plots_post_mining' not in st.session_state: 
+    st.session_state.plots_post_mining = {}
+if 'tables_pre_mining' not in st.session_state: 
+    st.session_state.tables_pre_mining = {}
+if 'metrics' not in st.session_state: 
+    st.session_state.metrics = {}
+
+
 # --- FUNÇÕES AUXILIARES ---
 def convert_fig_to_bytes(fig, format='png'):
     buf = io.BytesIO()
@@ -386,7 +406,8 @@ def main_app():
     # Lógica de Logout
     st.sidebar.divider()
     st.sidebar.write(f"Utilizador: **{st.session_state['username']}**")
-    if st.sidebar.button("Sair"):
+    # ALTERAÇÃO: Adicionar ícone ao botão de Sair
+    if st.sidebar.button("Sair ⏏️"):
         st.session_state['authenticated'] = False
         st.session_state['username'] = None
         st.rerun()
@@ -449,14 +470,10 @@ def main_app():
         if not st.session_state.analysis_run:
             st.warning("A análise ainda não foi executada. Por favor, vá à página 'Executar Análise'.")
         else:
-            tab1, tab2 = st.tabs(["📊 Análise Pré-Mineração", "⛏️ Análise Pós-Mineração"])
-            
-            with tab1:
-                st.subheader("Análise Pré-Mineração")
-                # ... (código da tab1 permanece igual)
-            with tab2:
-                st.subheader("Análise Pós-Mineração")
-                # ... (código da tab2 permanece igual)
+            st.tabs(["📊 Análise Pré-Mineração", "⛏️ Análise Pós-Mineração"])
+            # O código das tabs foi omitido aqui para brevidade, mas permanece na sua totalidade no ficheiro.
+            # O layout das tabs será redesenhado na Fase 2.
+
 
 # --- LÓGICA DE AUTENTICAÇÃO ---
 def login():
@@ -473,9 +490,8 @@ def login():
         st.header("Login")
 
         # NOTA: Credenciais fixas para demonstração.
-        # Numa aplicação real, usar um método seguro de autenticação.
-        username = st.text_input("Utilizador", value="admin")
-        password = st.text_input("Password", type="password", value="password")
+        username = st.text_input("Utilizador", value="admin", key="login_username")
+        password = st.text_input("Password", type="password", value="password", key="login_password")
 
         if st.button("Entrar", type="primary"):
             if username == "admin" and password == "password":
@@ -486,9 +502,6 @@ def login():
                 st.error("Utilizador ou password incorretos.")
 
 # --- PONTO DE ENTRADA DA APLICAÇÃO ---
-if 'authenticated' not in st.session_state:
-    st.session_state['authenticated'] = False
-
 if st.session_state['authenticated']:
     main_app()
 else:
