@@ -38,8 +38,12 @@ st.markdown("""
     .main .block-container { padding: 2rem 3rem; }
     [data-testid="stSidebar"] { background-color: #0F172A; }
     
-    /* ALTERAÇÃO FINAL 3: Forçar texto principal da sidebar a ser branco e grande */
-    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] label span p {
+    /* ALTERAÇÃO FINAL (CORREÇÃO): Forçar texto principal da sidebar a ser branco */
+    [data-testid="stSidebar"] h1 {
+        color: white !important;
+    }
+    /* Apanha o texto dentro das opções do menu rádio */
+    [data-testid="stSidebar"] label > div > span > p {
         color: white !important;
         font-weight: 600 !important;
         font-size: 1.1rem !important;
@@ -65,23 +69,34 @@ st.markdown("""
     .stTabs [data-baseweb="tab-list"] { gap: 24px; border-bottom: 1px solid #e2e8f0; }
     .stTabs [data-baseweb="tab"] { height: 50px; background-color: transparent; padding: 10px 15px; color: #475569; }
     .stTabs [aria-selected="true"] { color: #3B82F6; font-weight: bold; border-bottom: 3px solid #3B82F6; }
-    .streamlit-expanderHeader { background-color: #F8FAFC; color: #1E293B; border: 1px solid #E2E8F0; border-radius: 8px; }
+    
+    /* ALTERAÇÃO FINAL (CORREÇÃO): Garantir que texto do expander não é verde/azul */
+    .streamlit-expanderHeader {
+        background-color: #F8FAFC;
+        color: #1E293B !important;
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+    }
 
-    /* ALTERAÇÃO FINAL 1: Estilos para a secção de upload com CSS FORÇADO */
+    /* ALTERAÇÃO FINAL (CORREÇÃO): Estilos para a secção de upload com CSS FORÇADO */
     .stFileUploader {
         padding: 10px; border-radius: 8px; border: 1px dashed #b0b8c2;
     }
-    .stFileUploader label { font-size: 0.9rem; }
+    /* Garantir que o label do uploader (Carregar '... .csv') tem cor escura e não verde/azul */
+    .stFileUploader label {
+        font-size: 0.9rem;
+        color: #1E293B !important;
+    }
     .stFileUploader button {
         background-color: #3B82F6; color: white; border-radius: 6px; border: none; padding: 4px 12px; font-size: 0.9rem;
     }
     /* Forçar a cor azul nas mensagens de sucesso e texto */
-    [data-testid="stAlert"] {
+    [data-testid="stAlert"][data-st-alert-type="success"] {
         background-color: rgba(59, 130, 246, 0.1) !important;
         border: 1px solid rgba(59, 130, 246, 0.2) !important;
     }
-    [data-testid="stAlert"] svg { color: #1d4ed8 !important; }
-    [data-testid="stAlert"] [data-testid="stMarkdownContainer"] p { color: #1d4ed8 !important; }
+    [data-testid="stAlert"][data-st-alert-type="success"] svg { color: #1d4ed8 !important; }
+    [data-testid="stAlert"][data-st-alert-type="success"] [data-testid="stMarkdownContainer"] p { color: #1d4ed8 !important; }
     
     /* Forçar a cor azul no nome do ficheiro carregado */
     section[data-testid="stFileUploadDropzone"] div[data-testid="stMarkdownContainer"] p {
@@ -396,7 +411,6 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
         variants = variants_filter.get_variants(event_log)
         top_variants = sorted(variants.items(), key=lambda item: len(item[1]), reverse=True)[:10]
         variant_sequences = {f"V{i+1} ({len(v)} casos)": [str(a) for a in k] for i, (k, v) in enumerate(top_variants)}
-        # ALTERAÇÃO FINAL 6: Reduzir a altura do gráfico (de 12,8 para 12,6)
         fig, ax = plt.subplots(figsize=(12, 6)) 
         all_activities = sorted(list(set([act for seq in variant_sequences.values() for act in seq])))
         activity_to_y = {activity: i for i, activity in enumerate(all_activities)}
@@ -447,7 +461,6 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
 st.sidebar.title("Painel de Análise de Processos")
 st.sidebar.markdown('<p class="sidebar-note">Navegue pelas secções da aplicação.</p>', unsafe_allow_html=True)
 
-# ALTERAÇÃO FINAL 2: Utilizar ícones Unicode mais modernos
 page = st.sidebar.radio(
     "Selecione a Página", 
     ["📁 Upload de Ficheiros", "▶️ Executar Análise", "📈 Resultados da Análise"], 
@@ -459,7 +472,6 @@ if page == "📁 Upload de Ficheiros":
     st.markdown('<div class="custom-title-card"><h2>Upload dos Ficheiros de Dados (.csv)</h2></div>', unsafe_allow_html=True)
     st.markdown("Por favor, carregue os 5 ficheiros CSV necessários para a análise.")
     
-    # ALTERAÇÃO FINAL 1: Layout mais compacto para evitar scroll
     col1, col2 = st.columns(2)
     
     with col1:
@@ -560,7 +572,6 @@ elif page == "📈 Resultados da Análise":
                 c2.image(st.session_state.plots_pre_mining['resource_handoffs'], caption="Top Handoffs entre Recursos")
                 c3, c4 = st.columns(2)
                 c3.image(st.session_state.plots_pre_mining['cost_by_resource_type'], caption="Custo por Tipo de Recurso")
-                # ALTERAÇÃO FINAL 3: Colocar heatmap numa coluna para limitar a largura
                 c5, c6 = st.columns([2, 1])
                 c5.image(st.session_state.plots_pre_mining['resource_activity_matrix'], caption="Heatmap de Esforço")
             
@@ -570,7 +581,6 @@ elif page == "📈 Resultados da Análise":
                 st.image(st.session_state.plots_pre_mining['variants_frequency'], caption="Frequência das Variantes")
 
             with st.expander("Secção 6: Análise Aprofundada e Benchmarking"):
-                # ALTERAÇÃO FINAL 4: Converter tabela "Custo do Atraso" em st.metric
                 st.markdown("<h4>Custo do Atraso</h4>", unsafe_allow_html=True)
                 delay_kpis = st.session_state.tables_pre_mining['cost_of_delay_kpis']
                 kpi_cols = st.columns(3)
@@ -594,7 +604,6 @@ elif page == "📈 Resultados da Análise":
         with tab2:
             st.subheader("Análise Pós-Mineração")
             with st.expander("Secção 1: Descoberta e Avaliação de Modelos", expanded=True):
-                # ALTERAÇÃO FINAL 5: Novo layout para os modelos e métricas
                 st.markdown("<h5>Modelo - Inductive Miner</h5>", unsafe_allow_html=True)
                 st.image(st.session_state.plots_post_mining['model_inductive_petrinet'], caption="Modelo de Processo (Petri Net) - Inductive Miner")
                 
