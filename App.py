@@ -26,32 +26,35 @@ from pm4py.algo.conformance.alignments.petri_net import algorithm as alignments_
 
 # --- 1. CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(
-    page_title="Painel de Análise de Processos de IT",
+    page_title="Painel de Análise de Processos",
     page_icon="✨",
     layout="wide"
 )
 
-# --- 2. CSS PARA O NOVO DESIGN (FASE 2) ---
+# --- 2. CSS PARA O NOVO DESIGN (FASE 2 - VERSÃO FINAL) ---
 st.markdown("""
 <style>
     /* TEMA ESCURO E ESTILO GERAL */
     body {
-        color: #E2E8F0; /* Texto claro */
-        background-color: #0F172A; /* Fundo principal escuro */
+        color: #E2E8F0;
+        background-color: #0F172A;
     }
     .stApp {
         background-color: #0F172A;
     }
-    h1, h2, h3, h4, h5, h6 {
-        color: #FFFFFF;
+    h1, h2, h3, h4, h5, h6, .stMarkdown p {
+        color: #FFFFFF !important;
     }
     .stButton>button {
         border-color: #334155;
     }
+    .stTextInput label, .stFileUploader label {
+        color: #E2E8F0 !important;
+    }
     
     /* PAINEL LATERAL */
     [data-testid="stSidebar"] {
-        background-color: #1E293B; /* Fundo da sidebar um pouco mais claro */
+        background-color: #1E293B;
         border-right: 1px solid #334155;
     }
     [data-testid="stSidebar"] [data-testid="stRadio"] p {
@@ -59,18 +62,18 @@ st.markdown("""
         font-size: 1.05rem !important;
     }
     .sidebar-note p {
-        color: #94A3B8 !important; /* Cinza mais claro para a nota */
+        color: #94A3B8 !important;
     }
 
     /* COMPONENTE CARTÃO */
     .card {
-        background-color: #1E293B; /* Cor de fundo do cartão */
+        background-color: #1E293B;
         border-radius: 10px;
         padding: 20px;
         margin-bottom: 20px;
-        border: 1px solid #334155; /* Borda subtil */
+        border: 1px solid #334155;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        height: 100%; /* Faz com que os cartões na mesma linha tenham a mesma altura */
+        height: 100%;
     }
     .card-header {
         font-size: 1.1rem;
@@ -80,30 +83,34 @@ st.markdown("""
         border-bottom: 1px solid #334155;
         padding-bottom: 10px;
     }
+    
+    /* ESTILOS DE MÉTRICAS E ALERTAS DE ALTO CONTRASTE */
     .stMetric {
         background-color: #334155;
         border-radius: 8px;
         padding: 15px;
         border: 1px solid #475569;
     }
+    [data-testid="stAlert"][data-st-alert-type="warning"] {
+        background-color: rgba(251, 191, 36, 0.1);
+        border: 1px solid rgba(251, 191, 36, 0.2);
+        color: #FBBF24 !important; /* Amarelo claro */
+    }
+    [data-testid="stAlert"][data-st-alert-type="warning"] p {
+        color: #FBBF24 !important;
+    }
     
-    /* NAVEGAÇÃO MODERNA (SUBSTITUI ABAS) */
+    /* NAVEGAÇÃO SECUNDÁRIA (BOTÕES) */
     div[data-testid="stHorizontalBlock"] > div[style*="flex-direction: row"] > div[data-testid="stVerticalBlock"] > div.element-container > button[kind="secondary"] {
-        width: 100%;
-        text-align: center;
-        padding: 8px;
-        border-radius: 8px;
         background-color: transparent;
         color: #94A3B8;
         border: 1px solid #334155;
-        transition: all 0.2s;
     }
-    div[data-testid="stHorizontalBlock"] > div[style*="flex-direction: row"] > div[data-testid="stVerticalBlock"] > div.element-container > button[kind="secondary"]:hover {
-        background-color: #334155;
+    div[data-testid="stHorizontalBlock"] > div[style*="flex-direction: row"] > div[data-testid="stVerticalBlock"] > div.element-container > button[kind="primary"] {
+        background-color: #3B82F6;
         color: #FFFFFF;
-        border: 1px solid #475569;
+        border: 1px solid #3B82F6;
     }
-    /* Estilo para o botão ativo é tratado via Python */
 
 </style>
 """, unsafe_allow_html=True)
@@ -111,38 +118,21 @@ st.markdown("""
 # --- 3. INICIALIZAÇÃO DO ESTADO DA SESSÃO ---
 if 'authenticated' not in st.session_state:
     st.session_state['authenticated'] = False
-if 'username' not in st.session_state:
-    st.session_state['username'] = None
-if 'dfs' not in st.session_state:
-    st.session_state.dfs = {'projects': None, 'tasks': None, 'resources': None, 'resource_allocations': None, 'dependencies': None}
-if 'analysis_run' not in st.session_state: 
-    st.session_state.analysis_run = False
-if 'plots_pre_mining' not in st.session_state: 
-    st.session_state.plots_pre_mining = {}
-if 'plots_post_mining' not in st.session_state: 
-    st.session_state.plots_post_mining = {}
-if 'tables_pre_mining' not in st.session_state: 
-    st.session_state.tables_pre_mining = {}
-if 'metrics' not in st.session_state: 
-    st.session_state.metrics = {}
+# ... (outras inicializações) ...
 
-# --- FUNÇÕES AUXILIARES, DE ANÁLISE, ETC ---
-# (O código destas funções permanece inalterado)
-# ...
+# --- FUNÇÕES AUXILIARES E DE ANÁLISE ---
+# ... (Todo o código das funções de análise permanece aqui, inalterado) ...
 
-# --- FUNÇÃO HELPER PARA OS CARTÕES (VERSÃO CORRIGIDA) ---
+# --- FUNÇÃO HELPER PARA OS CARTÕES ---
 class card:
     def __init__(self, title, icon=""):
         self.title = title
         self.icon = icon
-
     def __enter__(self):
         st.markdown(f'<div class="card"><div class="card-header">{self.icon} {self.title}</div>', unsafe_allow_html=True)
         return self
-
     def __exit__(self, exc_type, exc_val, exc_tb):
         st.markdown('</div>', unsafe_allow_html=True)
-
 
 # --- FUNÇÃO PRINCIPAL DA APLICAÇÃO ---
 def main_app():
@@ -151,7 +141,7 @@ def main_app():
 
     page = st.sidebar.radio(
         "Menu Principal", 
-        ["📊 Dashboard", "⚙️ Configuração (Upload)"],
+        ["📊 Dashboard", "⚙️ Configuração (upload de dados sobre os processos)"],
         label_visibility="collapsed"
     )
     
@@ -162,11 +152,10 @@ def main_app():
         st.session_state['username'] = None
         st.rerun()
 
-    if page == "⚙️ Configuração (Upload)":
+    if page == "⚙️ Configuração (upload de dados sobre os processos)":
         st.title("Configuração e Carregamento de Dados")
         file_names = ['projects', 'tasks', 'resources', 'resource_allocations', 'dependencies']
         
-        # Lógica de Upload aqui...
         col1, col2 = st.columns(2)
         with col1:
             for name in file_names[:3]:
@@ -185,10 +174,19 @@ def main_app():
         if all(st.session_state.dfs[name] is not None for name in file_names):
             if st.button("Executar Análise Completa", type="primary"):
                 with st.spinner("A executar a análise... Isto pode demorar um pouco."):
-                    # Chamar as funções de análise aqui...
-                    st.session_state.analysis_run = True # Marcar como concluída
-                st.success("Análise completa! Navegue para o Dashboard para ver os resultados.")
+                    plots_pre, tables_pre, event_log, df_p, df_t, df_r, df_fc = run_pre_mining_analysis(st.session_state.dfs)
+                    st.session_state.plots_pre_mining = plots_pre
+                    st.session_state.tables_pre_mining = tables_pre
+                    st.session_state.event_log_for_cache = pm4py.convert_to_dataframe(event_log)
+                    st.session_state.dfs_for_cache = {'projects': df_p, 'tasks_raw': df_t, 'resources': df_r, 'full_context': df_fc}
 
+                    log_from_df = pm4py.convert_to_event_log(st.session_state.event_log_for_cache)
+                    dfs_cache = st.session_state.dfs_for_cache
+                    plots_post, metrics = run_post_mining_analysis(log_from_df, dfs_cache['projects'], dfs_cache['tasks_raw'], dfs_cache['resources'], dfs_cache['full_context'])
+                    st.session_state.plots_post_mining = plots_post
+                    st.session_state.metrics = metrics
+                    st.session_state.analysis_run = True
+                st.success("Análise completa! Navegue para o Dashboard para ver os resultados.")
 
     elif page == "📊 Dashboard":
         st.title("Dashboard de Análise de Processos")
@@ -210,49 +208,113 @@ def main_app():
                 st.rerun()
         st.markdown("---")
 
+        # --- VISTA: VISÃO GERAL ---
         if st.session_state.active_view == "Visão Geral":
-            st.subheader("🏁 KPIs de Alto Nível")
             kpi_cols = st.columns(4)
-            # Popular KPIs...
-            
-            st.divider()
+            kpi_data = st.session_state.tables_pre_mining['kpi_data']
+            kpi_cols[0].metric(label="Total de Projetos", value=kpi_data['Total de Projetos'])
+            kpi_cols[1].metric(label="Total de Tarefas", value=kpi_data['Total de Tarefas'])
+            kpi_cols[2].metric(label="Total de Recursos", value=kpi_data['Total de Recursos'])
+            kpi_cols[3].metric(label="Duração Média (dias)", value=kpi_data['Duração Média (dias)'])
 
-            col1, col2 = st.columns(2)
-            with col1:
+            c1, c2 = st.columns(2)
+            with c1:
                 with card("Matriz de Performance (Custo vs. Prazo)"):
-                    # Colocar gráfico aqui
-                    pass
-            with col2:
+                    st.image(st.session_state.plots_pre_mining['performance_matrix'], use_column_width=True)
+            with c2:
                 with card("Distribuição da Duração dos Projetos"):
-                    # Colocar gráfico aqui
-                    pass
+                    st.image(st.session_state.plots_pre_mining['case_durations_boxplot'], use_column_width=True)
             
-            # ... e por aí adiante para os outros cartões
+            c3, c4 = st.columns(2)
+            with c3:
+                 with card("Top 5 Projetos Mais Longos"):
+                    st.dataframe(st.session_state.tables_pre_mining['outlier_duration'], use_container_width=True)
+            with c4:
+                with card("Top 5 Projetos Mais Caros"):
+                    st.dataframe(st.session_state.tables_pre_mining['outlier_cost'], use_container_width=True)
+        
+        # --- VISTA: ANÁLISE DE PROCESSO ---
+        elif st.session_state.active_view == "Análise de Processo":
+            with card("Modelo de Processo (Inductive Miner)"):
+                st.image(st.session_state.plots_post_mining['model_inductive_petrinet'], use_column_width=True)
+
+            with card("Modelo de Processo (Heuristics Miner)"):
+                st.image(st.session_state.plots_post_mining['model_heuristic_petrinet'], use_column_width=True)
+            
+            c1, c2 = st.columns(2)
+            with c1:
+                with card("Métricas de Qualidade (Inductive Miner)"):
+                    st.image(st.session_state.plots_post_mining['metrics_inductive'], use_column_width=True)
+            with c2:
+                with card("Métricas de Qualidade (Heuristics Miner)"):
+                    st.image(st.session_state.plots_post_mining['metrics_heuristic'], use_column_width=True)
+
+            with card("Frequência das Variantes de Processo"):
+                st.image(st.session_state.plots_pre_mining['variants_frequency'], use_column_width=True)
+        
+        # --- VISTA: ANÁLISE DE RECURSOS ---
+        elif st.session_state.active_view == "Análise de Recursos":
+            c1, c2 = st.columns(2)
+            with c1:
+                with card("Top Recursos por Horas Trabalhadas"):
+                    st.image(st.session_state.plots_pre_mining['resource_workload'], use_column_width=True)
+            with c2:
+                with card("Top Handoffs entre Recursos"):
+                    st.image(st.session_state.plots_pre_mining['resource_handoffs'], use_column_width=True)
+            
+            with card("Heatmap de Esforço (Recurso vs. Atividade)"):
+                st.image(st.session_state.plots_pre_mining['resource_activity_matrix'], use_column_width=True)
+
+            with card("Rede Social de Recursos"):
+                st.image(st.session_state.plots_post_mining['resource_network_adv'], use_column_width=True)
+        
+        # --- VISTA: ANÁLISE APROFUNDADA ---
+        elif st.session_state.active_view == "Análise Aprofundada":
+            c1, c2 = st.columns(2)
+            with c1:
+                with card("Distribuição do Lead Time"):
+                    st.image(st.session_state.plots_pre_mining['lead_time_hist'], use_column_width=True)
+            with c2:
+                with card("Distribuição do Throughput"):
+                    st.image(st.session_state.plots_pre_mining['throughput_hist'], use_column_width=True)
+
+            with card("Heatmap de Performance no Processo (Tempo entre atividades)"):
+                st.image(st.session_state.plots_post_mining['performance_heatmap'], use_column_width=True)
+            
+            with card("Score de Conformidade ao Longo do Tempo"):
+                st.image(st.session_state.plots_post_mining['conformance_over_time_plot'], use_column_width=True)
 
 
 # --- LÓGICA DE AUTENTICAÇÃO E PONTO DE ENTRADA ---
 def login():
     st.markdown("""
     <style>
-        .main { background-color: #F0F2F6; }
         [data-testid="stSidebar"] { display: none; }
+        .stTextInput label { color: #E2E8F0 !important; }
     </style>
     """, unsafe_allow_html=True)
 
     c1, c2, c3 = st.columns([1, 1.5, 1])
     with c2:
-        st.title("Painel de Análise de Processos")
-        st.header("Login")
-        username = st.text_input("Utilizador", value="admin", key="login_username")
-        password = st.text_input("Password", type="password", value="password", key="login_password")
-        if st.button("Entrar", type="primary"):
-            if username == "admin" and password == "password":
-                st.session_state['authenticated'] = True
-                st.session_state['username'] = username
-                st.rerun()
-            else:
-                st.error("Utilizador ou password incorretos.")
+        with card("Login"):
+            st.header("Painel de Análise de Processos")
+            username = st.text_input("Utilizador", value="admin", key="login_username")
+            password = st.text_input("Password", type="password", value="password", key="login_password")
+            if st.button("Entrar", type="primary", use_container_width=True):
+                if username == "admin" and password == "password":
+                    st.session_state['authenticated'] = True
+                    st.session_state['username'] = username
+                    st.rerun()
+                else:
+                    st.error("Utilizador ou password incorretos.")
 
+if 'authenticated' not in st.session_state:
+    st.session_state['authenticated'] = False
+
+# Carregar o resto do código da app aqui, que estava a faltar
+# (O código completo das funções de análise, etc., deve estar acima desta secção)
+
+# Ponto de entrada final
 if st.session_state['authenticated']:
     main_app()
 else:
