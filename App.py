@@ -31,7 +31,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- ESTILO CSS (VERSÃO FINAL E ROBUSTA) ---
+# --- ESTILO CSS GERAL (PARA A APLICAÇÃO APÓS LOGIN) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
@@ -45,7 +45,7 @@ st.markdown("""
         --secondary-color: #3B82F6; /* Cor secundária azul */
         --background-color: #0F172A;
         --sidebar-background: #1E293B;
-        --text-color-dark-bg: #FFFFFF;
+        --text-color-dark-bg: #FFFFFF; /* Branco puro para máxima legibilidade */
         --border-color: #334155;
         --card-background-color: #FFFFFF;
         --card-text-color: #0F172A;
@@ -57,24 +57,8 @@ st.markdown("""
         color: var(--text-color-dark-bg);
     }
     
-    h1, h2, h3 {
-        color: var(--text-color-dark-bg);
-        font-weight: 600;
-    }
+    h1, h2, h3 { color: var(--text-color-dark-bg); font-weight: 600; }
     
-    /* ALTERAÇÃO FINAL: Solução definitiva para a página de login */
-    .login-page-wrapper {
-        position: fixed; /* Isola do layout do Streamlit */
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background-color: var(--background-color);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 9999; /* Garante que fica por cima de tudo */
-    }
     .login-box {
         background-color: var(--sidebar-background);
         padding: 40px;
@@ -84,26 +68,25 @@ st.markdown("""
         max-width: 400px;
     }
     .login-box h2 { color: var(--text-color-dark-bg); text-align: center; margin-bottom: 25px; }
-    .login-box .stButton>button { background-color: var(--primary-color); color: white; font-weight: 600; }
+    .login-box .stButton>button { background-color: var(--primary-color); color: white; font-weight: 600; border: none; }
     [data-testid="stTextInput"] label { color: var(--text-color-dark-bg) !important; font-weight: 600 !important; }
 
-    /* ALTERAÇÃO FINAL: Estilo para botões de navegação (ativos e inativos) */
-    .stButton>button {
-        border-radius: 8px;
-        padding: 0.5rem 1rem;
-        font-weight: 600;
-        border: 1px solid var(--border-color);
-        background-color: var(--sidebar-background); /* Fundo escuro para botões inativos */
-        color: var(--text-color-dark-bg); /* Texto branco */
+    /* Estilo para botões de navegação (ativos e inativos) */
+    /* Botão Inativo (secundário) */
+    .stButton>button:not(.st-emotion-cache-19n6bn1) {
+        border: 1px solid var(--border-color) !important;
+        background-color: var(--sidebar-background) !important;
+        color: var(--text-color-dark-bg) !important;
+    }
+    /* Botão Ativo (primário) */
+    .stButton>button.st-emotion-cache-19n6bn1 {
+        background-color: var(--primary-color) !important;
+        color: var(--text-color-dark-bg) !important;
+        border: 1px solid var(--primary-color) !important;
     }
     .stButton>button:hover {
-        border-color: var(--primary-color);
-        color: var(--primary-color);
-    }
-    .stButton>button.st-emotion-cache-19n6bn1 { /* Seletor específico para botão primário */
-        background-color: var(--primary-color);
-        color: var(--text-color-dark-bg);
-        border: 1px solid var(--primary-color);
+        border-color: var(--primary-color) !important;
+        opacity: 0.8;
     }
     
     /* Painel Lateral */
@@ -496,6 +479,7 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
 
 # --- PÁGINA DE LOGIN ---
 def login_page():
+    # Esta função agora só precisa de criar a caixa, o centramento é feito pelo CSS injetado no main()
     st.markdown('<div class="login-box">', unsafe_allow_html=True)
     st.markdown("<h2>✨ Painel de Análise de Processos</h2>", unsafe_allow_html=True)
     username = st.text_input("Utilizador", placeholder="admin", value="admin")
@@ -615,9 +599,9 @@ def render_pre_mining_dashboard():
         c1, c2 = st.columns(2)
         with c1:
             create_card("Tempo Médio de Execução por Atividade", "🛠️", chart_bytes=plots['activity_service_times'], key_suffix="ast")
-            create_card("Top 10 Handoffs por Custo de Espera", "💸", chart_bytes=plots['top_handoffs_cost'], key_suffix="thc")
         with c2:
             create_card("Top 10 Handoffs por Tempo de Espera", "⏳", chart_bytes=plots['top_handoffs'], key_suffix="tht")
+        create_card("Top 10 Handoffs por Custo de Espera", "💸", chart_bytes=plots['top_handoffs_cost'], key_suffix="thc")
     elif st.session_state.current_section == "resources":
         c1, c2 = st.columns(2)
         with c1:
@@ -662,9 +646,12 @@ def render_post_mining_dashboard():
         c1, c2 = st.columns(2)
         with c1:
             create_card("Modelo - Inductive Miner", "🧭", chart_bytes=plots['model_inductive_petrinet'], key_suffix="mip")
-            create_card("Métricas (Inductive Miner)", "📊", chart_bytes=plots['metrics_inductive'], key_suffix="mi")
         with c2:
             create_card("Modelo - Heuristics Miner", "🛠️", chart_bytes=plots['model_heuristic_petrinet'], key_suffix="mhp")
+        c1, c2 = st.columns(2)
+        with c1:
+            create_card("Métricas (Inductive Miner)", "📊", chart_bytes=plots['metrics_inductive'], key_suffix="mi")
+        with c2:
             create_card("Métricas (Heuristics Miner)", "📈", chart_bytes=plots['metrics_heuristic'], key_suffix="mh")
     elif st.session_state.current_section == "performance":
         create_card("Heatmap de Performance no Processo", "🔥", chart_bytes=plots['performance_heatmap'], key_suffix="ph")
@@ -688,10 +675,20 @@ def render_post_mining_dashboard():
 # --- CONTROLO PRINCIPAL DA APLICAÇÃO ---
 def main():
     if not st.session_state.authenticated:
-        st.markdown('<div class="login-page-wrapper">', unsafe_allow_html=True)
+        # ALTERAÇÃO FINAL: Injeta CSS específico para centrar a página de login
+        st.markdown("""
+            <style>
+                [data-testid="stAppViewContainer"] > .main {
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    align-items: center;
+                }
+            </style>
+            """, unsafe_allow_html=True)
         login_page()
-        st.markdown('</div>', unsafe_allow_html=True)
     else:
+        # Layout normal da aplicação para utilizadores autenticados
         with st.sidebar:
             st.markdown(f"### 👤 {st.session_state.user_name}")
             st.markdown("---")
