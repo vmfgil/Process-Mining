@@ -32,7 +32,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- ESTILO CSS (CORRIGIDO) ---
+# --- ESTILO CSS (REVISTO E CORRIGIDO) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
@@ -45,7 +45,7 @@ st.markdown("""
         --sidebar-background: #1E293B;
         --inactive-button-bg: rgba(51, 65, 85, 0.5);
         --text-color-dark-bg: #FFFFFF;
-        --text-color-light-bg: #0F172A;
+        --text-color-light-bg: #0F172A; /* Cor escura para fundos claros */
         --border-color: #334155;
         --card-background-color: #FFFFFF;
         --card-text-color: #0F172A;
@@ -84,70 +84,57 @@ st.markdown("""
     }
     
     /* --- CARTÕES --- */
+    /* SOLUÇÃO 3: Altura uniforme dos cartões */
     .card {
         background-color: var(--card-background-color);
         color: var(--card-text-color);
         border-radius: 12px;
         padding: 20px 25px;
         border: 1px solid var(--card-border-color);
-        height: 100%;
+        height: 100%; /* Força o cartão a preencher o espaço da coluna */
         display: flex;
         flex-direction: column;
         margin-bottom: 25px;
     }
     .card-header { padding-bottom: 10px; border-bottom: 1px solid var(--card-border-color); }
     .card .card-header h4 { color: var(--card-text-color); font-size: 1.1rem; margin: 0; display: flex; align-items: center; gap: 8px; }
-    .card-body { flex-grow: 1; padding-top: 15px; overflow: hidden; }
+    .card-body { flex-grow: 1; padding-top: 15px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
 
-    /* SOLUÇÃO 2: Estilo para tabelas DENTRO dos cartões */
-    .card .dataframe-container table {
-        width: 100%;
-        color: var(--card-text-color);
-        border-collapse: collapse;
-        font-size: 0.9rem;
-    }
-    .card .dataframe-container th {
-        background-color: #F8FAFC;
-        font-weight: 600;
-        text-align: left;
-        padding: 8px;
-    }
-    .card .dataframe-container td {
-        padding: 8px;
-        border-top: 1px solid var(--card-border-color);
-    }
-    
-    /* SOLUÇÃO 3: Altura uniforme dos cartões e imagens */
     .card .card-body img {
         width: 100%;
         height: 350px;
         object-fit: contain; /* Mantém o aspect ratio sem distorcer */
     }
-    /* Exceção para as redes de Petri */
     .petri-net-card .card-body img {
-        height: auto; /* Permite que a imagem use a sua altura original */
+        height: auto;
         object-fit: initial;
     }
+    
+    /* SOLUÇÃO 2: Estilo para tabelas DENTRO dos cartões */
+    .card .dataframe-container { overflow-x: auto; width: 100%; }
+    .card .dataframe-container table { width: 100%; color: var(--card-text-color); border-collapse: collapse; font-size: 0.9rem;}
+    .card .dataframe-container th { background-color: #F8FAFC; font-weight: 600; text-align: left; padding: 8px; }
+    .card .dataframe-container td { padding: 8px; border-top: 1px solid var(--card-border-color); }
 
     /* SOLUÇÃO 4: Cor do texto na página de Configurações */
-    section[data-testid="stFileUploader"] label, 
-    [data-testid="stFileUploader"] [data-testid="stText"],
-    [data-testid="stToggle"] label p {
+    section[data-testid="stFileUploader"] > div > div > p,
+    section[data-testid="stFileUploader"] section div[data-testid="stText"],
+    label[data-testid="stWidgetLabel"] > div > p {
         color: white !important;
-        font-weight: bold;
+        font-weight: bold !important;
     }
-    
+
     /* SOLUÇÃO 5: Cor do botão de Login */
     .login-container .stButton>button {
         background-color: var(--primary-color) !important;
         color: white !important;
+        font-weight: bold !important;
     }
 
     /* SOLUÇÃO 6: Cor do botão de Análise */
     .iniciar-analise-button .stButton>button {
         background-color: var(--baby-blue-bg) !important;
-        color: var(--text-color-light-bg) !important; /* Azul escuro/preto */
-        border: none !important;
+        color: var(--text-color-light-bg) !important;
         font-weight: 700 !important;
     }
     
@@ -181,18 +168,16 @@ def convert_gviz_to_bytes(gviz, format='png'):
 
 # FUNÇÃO MODIFICADA para resolver problemas 2 e 3
 def create_card(title, icon, chart_bytes=None, dataframe=None, card_class=""):
-    card_html_start = f'<div class="card {card_class}">'
-    st.markdown(card_html_start, unsafe_allow_html=True)
-    
-    st.markdown(f'<div class="card-header"><h4>{icon} {title}</h4></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="card {card_class}">', unsafe_allow_html=True)
+    st.markdown(f'  <div class="card-header"><h4>{icon} {title}</h4></div>', unsafe_allow_html=True)
 
     if chart_bytes:
         b64_image = base64.b64encode(chart_bytes.getvalue()).decode()
-        st.markdown(f'<div class="card-body"><img src="data:image/png;base64,{b64_image}"></div>', unsafe_allow_html=True)
+        st.markdown(f'  <div class="card-body"><img src="data:image/png;base64,{b64_image}"></div>', unsafe_allow_html=True)
     
     elif dataframe is not None:
         table_html = dataframe.to_html(index=False, classes=None, border=0)
-        st.markdown(f'<div class="card-body dataframe-container">{table_html}</div>', unsafe_allow_html=True)
+        st.markdown(f'  <div class="card-body dataframe-container">{table_html}</div>', unsafe_allow_html=True)
         
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -577,7 +562,7 @@ def settings_page():
     all_files_uploaded = all(st.session_state.dfs.get(name) is not None for name in file_names)
     
     if all_files_uploaded:
-        if st.toggle("Visualizar as primeiras 5 linhas dos ficheiros", value=False):
+        if st.toggle("Visualizar as primeiras 5 linhas dos ficheiros", value=False, key="toggle_preview"):
             for name, df in st.session_state.dfs.items():
                 st.markdown(f"**Ficheiro: `{name}.csv`**")
                 st.dataframe(df.head())
@@ -751,16 +736,16 @@ def render_post_mining_dashboard():
         create_card("Sequência de Atividades das Variantes", "🎶", chart_bytes=plots.get('custom_variants_sequence_plot'))
             
     elif st.session_state.current_section == "performance":
-        create_card("Heatmap de Performance no Processo", "🔥", chart_bytes=plots.get('performance_heatmap'))
+        create_card("Heatmap de Performance no Processo", "🔥", chart_bytes=plots.get('performance_heatmap'), card_class="petri-net-card") # Exception for this larger chart
         c1, c2 = st.columns(2)
         with c1:
-            create_card("Séries Temporais de KPIs (Lead Time vs Throughput)", "📈", chart_bytes=plots.get('kpi_time_series'))
+            create_card("Séries Temporais de KPIs", "📈", chart_bytes=plots.get('kpi_time_series'))
             create_card("Matriz de Tempo de Espera (horas)", "⏳", chart_bytes=plots.get('waiting_time_matrix_plot'))
         with c2:
             create_card("Atividades por Dia da Semana", "🗓️", chart_bytes=plots.get('temporal_heatmap_fixed'))
             create_card("Tempo de Espera Médio por Atividade", "⏱️", chart_bytes=plots.get('avg_waiting_time_by_activity_plot'))
         if 'gantt_chart_all_projects' in plots:
-             create_card("Linha do Tempo de Todos os Projetos (Gantt Chart)", "📊", chart_bytes=plots.get('gantt_chart_all_projects'))
+             create_card("Gantt Chart de Todos os Projetos", "📊", chart_bytes=plots.get('gantt_chart_all_projects'), card_class="petri-net-card")
              
     elif st.session_state.current_section == "resources":
         c1, c2 = st.columns(2)
