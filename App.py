@@ -654,38 +654,39 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
 
   return plots, metrics
 
-# Cartões
-# CÓDIGO CORRIGIDO PARA A FUNÇÃO card_header
-
 def card_header(title: str, icon: str = "📊", png_bytes: io.BytesIO = None, csv_df: pd.DataFrame = None, png_filename: str = "grafico.png", csv_filename: str = "tabela.csv", card_key: str = None):
-  # Renderiza o HTML do cabeçalho
+  # Renderiza o título do card com st.markdown
   st.markdown(f"""
   <div class="card-header">
     <div class="card-title">{icon} {title}</div>
+    <div class="card-actions"></div>
   </div>
   """, unsafe_allow_html=True)
-
-  # CORREÇÃO: As colunas e botões só são criados se existirem dados para download
+  
+  # Cria colunas para os botões de download, se necessário
   if png_bytes is not None or csv_df is not None:
-    # Use st.columns para alinhar os botões à direita, dentro do cabeçalho visual
-    _, col_actions = st.columns([0.8, 0.2])
-    with col_actions:
-        action_cols = st.columns(2)
-        if png_bytes is not None:
-            with action_cols[0]:
-                st.download_button("📥 PNG", data=png_bytes, file_name=png_filename, mime="image/png", key=f"dl_png_{card_key or title}_{uuid.uuid4()}")
-        if csv_df is not None:
-            with action_cols[1]:
-                st.download_button("📥 CSV", data=to_csv_bytes(csv_df), file_name=csv_filename, mime="text/csv", key=f"dl_csv_{card_key or title}_{uuid.uuid4()}")
+    c_exp = st.columns(2)
+    if png_bytes is not None:
+      with c_exp[0]:
+        st.download_button("📥 PNG", data=png_bytes, file_name=png_filename, mime="image/png", key=f"dl_png_{card_key or title}_{uuid.uuid4()}")
+    if csv_df is not None:
+      with c_exp[1]:
+        st.download_button("📥 CSV", data=to_csv_bytes(csv_df), file_name=csv_filename, mime="text/csv", key=f"dl_csv_{card_key or title}_{uuid.uuid4()}")
+
 
 def card(title: str, icon: str = "📊", body_fn=None, png_bytes: io.BytesIO = None, csv_df: pd.DataFrame = None, png_filename: str = "grafico.png", csv_filename: str = "tabela.csv", card_key: str = None, extra_class: str = ""):
-  # A correção é adicionar o "with st.container():" a envolver toda a lógica.
-  with st.container():
-    st.markdown(f'<div class="card {extra_class}">', unsafe_allow_html=True)
-    card_header(title, icon, png_bytes, csv_df, png_filename, csv_filename, card_key=card_key or str(uuid.uuid4()))
-    if body_fn is not None:
-      body_fn()
-    st.markdown('</div>', unsafe_allow_html=True)
+  # Usa st.markdown para criar a "moldura" do card com a classe CSS
+  st.markdown(f'<div class="card {extra_class}">', unsafe_allow_html=True)
+  
+  # Invoca o cabeçalho (que agora sabe como se renderizar corretamente)
+  card_header(title, icon, png_bytes, csv_df, png_filename, csv_filename, card_key=card_key or str(uuid.uuid4()))
+  
+  # Executa a função do corpo, que renderiza os widgets principais (gráficos, tabelas, etc.)
+  if body_fn is not None:
+    body_fn()
+    
+  # Fecha a "moldura" do card
+  st.markdown('</div>', unsafe_allow_html=True)
 
 # Login
 def render_login():
