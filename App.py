@@ -114,9 +114,7 @@ st.markdown("""
         background-color: var(--card-background-color) !important;
     }
 
-    /* --- NOVA ABORDAGEM: VÁRIOS SELETORES PARA OS BOTÕES DE UPLOAD ---
-    Vamos tentar várias combinações para garantir que uma delas funciona.
-    */
+    /* --- ABORDAGEM QUE FUNCIONOU PARA OS BOTÕES DE UPLOAD --- */
     section[data-testid="stFileUploader"] button,
     div[data-testid="stFileUploader"] button,
     div[data-baseweb="file-uploader"] button {
@@ -128,18 +126,18 @@ st.markdown("""
     section[data-testid="stFileUploader"] button:hover,
     div[data-testid="stFileUploader"] button:hover,
     div[data-baseweb="file-uploader"] button:hover {
-        background-color: #89DFF3 !important; /* Cor ligeiramente mais escura no hover */
+        background-color: #89DFF3 !important;
     }
     section[data-testid="stFileUploader"] label, 
     section[data-testid="stFileUploader"] small {
         color: var(--text-color-light-bg) !important;
     }
 
-    /* --- NOVA ABORDAGEM: VÁRIOS SELETORES PARA O BOTÃO DE ANÁLISE ---
-    Apesar de o ID ser específico, vamos adicionar um seletor mais genérico para garantir.
-    */
+    /* --- CORREÇÃO REFORÇADA E AGRESSIVA PARA O BOTÃO DE ANÁLISE --- */
+    #iniciar-analise-button div[data-testid="stButton"] button,
     #iniciar-analise-button .stButton>button,
-    #iniciar-analise-button button {
+    #iniciar-analise-button button,
+    #iniciar-analise-button [data-testid="baseButton-secondary"] {
         background-color: var(--baby-blue-bg) !important;
         color: var(--text-color-light-bg) !important;
         border: 2px solid var(--baby-blue-bg) !important;
