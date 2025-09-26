@@ -134,8 +134,6 @@ st.markdown("""
         color: var(--text-color-light-bg) !important;
     }
     
-    /* O CSS para o botão de análise foi removido porque vamos usar um botão HTML customizado */
-    
     /* --- ESTILO DOS CARTÕES DE MÉTRICAS (KPIs) PARA FUNDO BRANCO --- */
     [data-testid="stMetric"] {
         background-color: var(--card-background-color);
@@ -161,7 +159,6 @@ st.markdown("""
 
 
 # --- FUNÇÕES AUXILIARES ---
-# ... (As funções auxiliares como convert_fig_to_bytes, etc., permanecem as mesmas) ...
 def convert_fig_to_bytes(fig, format='png'):
     buf = io.BytesIO()
     fig.patch.set_facecolor('#FFFFFF')
@@ -214,10 +211,10 @@ def create_card(title, icon, chart_bytes=None, dataframe=None):
             </div>
             """, unsafe_allow_html=True)
 
+
 # --- INICIALIZAÇÃO DO ESTADO DA SESSÃO ---
 if 'authenticated' not in st.session_state: st.session_state.authenticated = False
 if 'current_page' not in st.session_state: st.session_state.current_page = "Dashboard"
-# ... (o resto da inicialização de estado permanece igual) ...
 if 'current_dashboard' not in st.session_state: st.session_state.current_dashboard = "Pré-Mineração"
 if 'current_section' not in st.session_state: st.session_state.current_section = "overview"
 if 'dfs' not in st.session_state:
@@ -230,7 +227,6 @@ if 'metrics' not in st.session_state: st.session_state.metrics = {}
 
 
 # --- FUNÇÕES DE ANÁLISE ---
-# ... (As funções de análise run_pre_mining_analysis e run_post_mining_analysis permanecem as mesmas) ...
 @st.cache_data
 def run_pre_mining_analysis(dfs):
     plots = {}
@@ -544,13 +540,16 @@ def settings_page():
     st.title("⚙️ Configurações e Upload de Dados")
     st.markdown("---")
 
-    # --- LÓGICA PARA ATIVAR A ANÁLISE VIA URL (NOVA ABORDAGEM) ---
-    if st.query_params.get("run_analysis") == "true":
-        # Usamos o session_state para garantir que a análise só corre uma vez
-        if not st.session_state.get('analysis_triggered_by_url', False):
-            st.session_state['analysis_triggered_by_url'] = True
-            
-            # Executar a análise
+    # --- LÓGICA CORRIGIDA PARA ATIVAR A ANÁLISE VIA URL ---
+    if "run_analysis" in st.query_params:
+        # Limpa o parâmetro do URL para evitar que a análise corra em cada refresh
+        st.query_params.clear()
+
+        # Verifica se os ficheiros estão todos carregados antes de prosseguir
+        file_names_check = ['projects', 'tasks', 'resources', 'resource_allocations', 'dependencies']
+        all_files_uploaded_check = all(st.session_state.dfs.get(name) is not None for name in file_names_check)
+
+        if all_files_uploaded_check:
             with st.spinner("A analisar os dados... Este processo pode demorar alguns minutos."):
                 plots_pre, tables_pre, event_log, df_p, df_t, df_r, df_fc = run_pre_mining_analysis(st.session_state.dfs)
                 st.session_state.plots_pre_mining = plots_pre
@@ -566,15 +565,8 @@ def settings_page():
             st.session_state.analysis_run = True
             st.success("✅ Análise concluída com sucesso! Navegue para o 'Dashboard Geral'.")
             st.balloons()
-        
-        # Limpar o parâmetro do URL para evitar re-execuções e recarregar a página
-        st.query_params.clear()
-        st.rerun()
-
-    # Reset do gatilho se o parâmetro já não estiver no URL
-    if "run_analysis" not in st.query_params:
-        st.session_state['analysis_triggered_by_url'] = False
-
+        else:
+            st.warning("Por favor, garanta que todos os 5 ficheiros CSV estão carregados antes de iniciar a análise.")
 
     st.subheader("Upload dos Ficheiros de Dados (.csv)")
     st.info("Por favor, carregue os 5 ficheiros CSV necessários para a análise.")
@@ -618,8 +610,11 @@ def settings_page():
                 font-family: 'Poppins', sans-serif;
                 border: 2px solid #A0E9FF;
                 cursor: pointer;
-                transition: background-color 0.2s ease-in-out;
-            ">
+                transition: all 0.2s ease-in-out;
+            "
+            onmouseover="this.style.backgroundColor='#89DFF3'; this.style.borderColor='#89DFF3';"
+            onmouseout="this.style.backgroundColor='#A0E9FF'; this.style.borderColor='#A0E9FF';"
+            >
                 🚀 Iniciar Análise Completa
             </div>
         </a>
@@ -631,7 +626,6 @@ def settings_page():
 
 
 # --- PÁGINAS DO DASHBOARD ---
-# ... (As funções do dashboard permanecem as mesmas) ...
 def dashboard_page():
     st.title("🏠 Dashboard Geral")
 
