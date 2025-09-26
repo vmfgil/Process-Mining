@@ -165,25 +165,32 @@ st.markdown("""
     }
     [data-testid="stAlert"] * { color: #BFDBFE !important; }
     
-/* --- BOTÃO DE LOGIN (Problema 5) --- */
+    /* --- BOTÃO DE LOGIN (Problema 5 - CORRIGIDO) --- */
     .login-button button {
-        background-color: var(--primary-color) !important; /* Cor de Fundo de Destaque (Vermelho EF4444) */
-        color: var(--text-color-dark-bg) !important; /* Cor do texto em branco */
+        background-color: var(--baby-blue-bg) !important; /* Fundo AZUL BEBÉ/Claro */
+        color: var(--text-color-light-bg) !important; /* Texto AZUL ESCURO/PRETO */
         font-weight: 700 !important;
-        border: 1px solid var(--primary-color) !important;
+        border: 1px solid var(--baby-blue-bg) !important;
     }
-    
-    /* Garantir que o hover (azul temporário) também tenha texto branco, 
-       embora já não deva ser necessário com a cor primária */
+    /* Garantir o contraste no hover também */
     .login-button button:hover {
-        background-color: var(--secondary-color) !important; /* Mudar para azul no hover */
-        color: var(--text-color-dark-bg) !important; /* Texto continua BRANCO */
+        background-color: #8DD9FF !important; /* Um pouco mais escuro no hover */
+        color: var(--text-color-light-bg) !important;
     }
     
-    /* E para o botão pressionado */
-    .login-button button:active {
-        background-color: var(--primary-color) !important;
+    /* Estilo para caixas de texto (st.text_input) - Para garantir que também têm fundo escuro e não branco */
+    [data-testid="stTextInput"] > div > div > input,
+    [data-testid="stTextInput"] > div > input,
+    [data-testid="stTextInput"] > div > div,
+    [data-testid="stTextArea"] > div > div > textarea,
+    [data-testid="stTextArea"] > div > textarea {
+        background-color: var(--sidebar-background) !important; 
+        color: var(--text-color-dark-bg) !important;
+        border: 1px solid var(--border-color) !important;
     }
+
+</style>
+""", unsafe_allow_html=True)
 
 
 # --- FUNÇÕES AUXILIARES ---
@@ -577,10 +584,10 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
 
 # --- PÁGINA DE LOGIN ---
 def login_page():
-    # Adicionado div para aplicar o CSS do botão de login (Problema 5)
     st.markdown("<h2>✨ Transformação Inteligente de Processos</h2>", unsafe_allow_html=True)
     username = st.text_input("Utilizador", placeholder="admin", value="admin")
     password = st.text_input("Senha", type="password", placeholder="admin", value="admin")
+    # Adicionado div para aplicar o CSS do botão de login (Problema 5)
     st.markdown('<div class="login-button">', unsafe_allow_html=True)
     if st.button("Entrar", use_container_width=True):
         if username == "admin" and password == "admin":
