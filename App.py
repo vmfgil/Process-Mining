@@ -60,7 +60,6 @@ st.markdown("""
     }
 
     /* --- ESTILOS PARA BOTÕES DE NAVEGAÇÃO ATIVOS E INATIVOS --- */
-    /* Removemos o estilo geral para o stButton para não interferir com o JS */
     div[data-testid="stHorizontalBlock"] .stButton>button {
         border: 1px solid var(--border-color) !important;
         background-color: var(--inactive-button-bg) !important;
@@ -151,7 +150,6 @@ st.markdown("""
 
 
 # --- FUNÇÕES AUXILIARES ---
-# ... (As funções auxiliares como convert_fig_to_bytes, etc., permanecem as mesmas) ...
 def convert_fig_to_bytes(fig, format='png'):
     buf = io.BytesIO()
     fig.patch.set_facecolor('#FFFFFF')
@@ -203,6 +201,7 @@ def create_card(title, icon, chart_bytes=None, dataframe=None):
                 </div>
             </div>
             """, unsafe_allow_html=True)
+
 
 # --- INICIALIZAÇÃO DO ESTADO DA SESSÃO ---
 if 'authenticated' not in st.session_state: st.session_state.authenticated = False
@@ -381,6 +380,7 @@ def run_pre_mining_analysis(dfs):
     plots['cycle_time_breakdown'] = convert_fig_to_bytes(fig)
     return plots, tables, event_log_pm4py, df_projects, df_tasks, df_resources, df_full_context
 
+# ... (O resto das funções, como run_post_mining_analysis, login_page, dashboard_page, etc., permanecem exatamente iguais) ...
 @st.cache_data
 def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_resources, _df_full_context):
     plots = {}
@@ -582,7 +582,7 @@ def settings_page():
             st.balloons()
         st.markdown('</div>', unsafe_allow_html=True)
 
-        # 2. Injetamos JavaScript para encontrar e pintar o botão
+        # 2. Injetamos JavaScript para encontrar e pintar o botão com !important
         js_code = """
         <script>
             // Damos um pequeno atraso para garantir que o botão já foi desenhado pelo Streamlit
@@ -593,14 +593,15 @@ def settings_page():
                     // Encontramos o elemento <button> dentro desse div
                     const button = wrapper.querySelector('button');
                     if (button) {
-                        // Aplicamos os estilos diretamente no elemento! Isto ignora os problemas de CSS.
-                        button.style.backgroundColor = '#A0E9FF';
-                        button.style.color = '#0F172A';
-                        button.style.border = '2px solid #A0E9FF';
-                        button.style.fontWeight = '700';
+                        // Aplicamos os estilos diretamente no elemento usando setProperty com '!important'
+                        // Isto força o estilo a sobrepor-se a quaisquer outras regras do Streamlit.
+                        button.style.setProperty('background-color', '#A0E9FF', 'important');
+                        button.style.setProperty('color', '#0F172A', 'important');
+                        button.style.setProperty('border', '2px solid #A0E9FF', 'important');
+                        button.style.setProperty('font-weight', '700', 'important');
                     }
                 }
-            }, 250); // 250 milissegundos de atraso
+            }, 300); // Atraso ligeiramente aumentado por segurança
         </script>
         """
         components.html(js_code, height=0, width=0)
