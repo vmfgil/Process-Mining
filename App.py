@@ -110,11 +110,11 @@ st.markdown("""
         padding: 0; /* Remover padding padrão para evitar barra de scroll dupla */
     }
     
-    /* --- BOTÕES DE UPLOAD --- */
+    /* --- BOTÕES DE UPLOAD (AGORA COM ESTILO AZUL) --- */
     section[data-testid="stFileUploader"] button,
     div[data-baseweb="file-uploader"] button {
-        background-color: var(--accent-color) !important; /* Ciano */
-        color: var(--text-color-light-bg) !important;
+        background-color: var(--primary-color) !important; /* Azul */
+        color: var(--text-color-dark-bg) !important;
         border: none !important;
         font-weight: 600 !important;
         border-radius: 8px !important;
@@ -660,12 +660,13 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
 # --- PÁGINA DE LOGIN ---
 def login_page():
     st.markdown("<h2>✨ Transformação Inteligente de Processos</h2>", unsafe_allow_html=True)
-    username = st.text_input("Utilizador", placeholder="admin", value="admin")
-    password = st.text_input("Senha", type="password", placeholder="admin", value="admin")
+    username = st.text_input("Utilizador", placeholder="Utilizador")
+    password = st.text_input("Senha", type="password", placeholder="Senha")
     if st.button("Entrar", use_container_width=True):
-        if username == "admin" and password == "admin":
+        if username == "Vasco" and password == "1234":
             st.session_state.authenticated = True
-            st.session_state.user_name = "Admin"
+            st.session_state.user_name = "Vasco"
+            st.session_state.show_welcome_message = True
             st.rerun()
         else:
             st.error("Utilizador ou senha inválidos.")
@@ -721,6 +722,10 @@ def settings_page():
 # --- PÁGINAS DO DASHBOARD (REESTRUTURADO) ---
 def dashboard_page():
     st.title("🏠 Dashboard Geral de Análise de Processos")
+
+    if st.session_state.get('show_welcome_message', False):
+        st.success(f"Bem-vindo, {st.session_state.user_name}!")
+        st.session_state.show_welcome_message = False
 
     if not st.session_state.analysis_run:
         st.warning("A análise ainda não foi executada. Vá à página de 'Configurações' para carregar os dados e iniciar.")
@@ -842,13 +847,16 @@ def dashboard_page():
         with c8:
             create_card("Top 10 Handoffs entre Recursos", "🔄", chart_bytes=plots_pre.get('resource_handoffs'))
         
-        if 'skill_vs_performance_adv' in plots_post:
-            create_card("Relação entre Skill e Performance", "🎓", chart_bytes=plots_post.get('skill_vs_performance_adv'))
+        # Coloca os dois gráficos seguintes lado a lado, se existirem
+        col_skill, col_bipartite = st.columns(2)
+        with col_skill:
+            if 'skill_vs_performance_adv' in plots_post:
+                create_card("Relação entre Skill e Performance", "🎓", chart_bytes=plots_post.get('skill_vs_performance_adv'))
+        with col_bipartite:
+            if 'resource_network_bipartite' in plots_post:
+                create_card("Rede de Recursos por Função", "🔗", chart_bytes=plots_post.get('resource_network_bipartite'))
 
         create_card("Rede Social de Recursos (Handovers)", "🌐", chart_bytes=plots_post.get('resource_network_adv'))
-        
-        if 'resource_network_bipartite' in plots_post:
-            create_card("Rede de Recursos por Função", "🔗", chart_bytes=plots_post.get('resource_network_bipartite'))
         
         create_card("Heatmap de Esforço (Recurso vs Atividade)", "🗺️", chart_bytes=plots_pre.get('resource_activity_matrix'))
 
