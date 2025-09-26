@@ -33,6 +33,7 @@ st.set_page_config(
 )
 
 # --- ESTILO CSS ---
+# --- ESTILO CSS ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
@@ -44,8 +45,8 @@ st.markdown("""
         --background-color: #0F172A;
         --sidebar-background: #1E293B;
         --inactive-button-bg: rgba(51, 65, 85, 0.5);
-        --text-color-dark-bg: #FFFFFF; /* BRANCO */
-        --text-color-light-bg: #0F172A; /* AZUL ESCURO/PRETO */
+        --text-color-dark-bg: #FFFFFF;
+        --text-color-light-bg: #0F172A;
         --border-color: #334155;
         --card-background-color: #FFFFFF;
         --card-text-color: #0F172A;
@@ -56,8 +57,7 @@ st.markdown("""
     
     [data-testid="stSidebar"] h3 { color: var(--text-color-dark-bg) !important; }
 
-    /* --- ESTILOS PARA BOTÕES DE NAVEGAÇÃO E SEÇÃO (Problema 1) --- */
-    /* Estilo Base dos botões no stHorizontalBlock */
+    /* --- ESTILOS PARA BOTÕES DE NAVEGAÇÃO --- */
     div[data-testid="stHorizontalBlock"] .stButton>button {
         border: 1px solid var(--border-color) !important;
         background-color: var(--inactive-button-bg) !important;
@@ -65,19 +65,17 @@ st.markdown("""
         font-weight: 600;
         transition: all 0.2s ease-in-out;
     }
-    /* Estilo Hover */
     div[data-testid="stHorizontalBlock"] .stButton>button:hover {
         border-color: var(--primary-color) !important;
         background-color: rgba(239, 68, 68, 0.2) !important;
     }
-    /* Estilo Ativo (Permanente) */
     div.active-button .stButton>button {
         background-color: var(--primary-color) !important;
         color: var(--text-color-dark-bg) !important;
         border: 1px solid var(--primary-color) !important;
         font-weight: 700 !important;
     }
-    
+
     /* Painel Lateral */
     [data-testid="stSidebar"] { background-color: var(--sidebar-background); border-right: 1px solid var(--border-color); }
     [data-testid="stSidebar"] .stButton>button {
@@ -85,18 +83,14 @@ st.markdown("""
         color: var(--card-text-color) !important;
     }
     
-    /* --- CARTÕES (Problemas 2 e 3) --- */
-    /* Aplica Flexbox para garantir que colunas têm o mesmo tamanho e que o corpo do card cresce */
-    [data-testid="stVerticalBlock"] > [data-testid="stVerticalBlock"] > [data-testid="stHorizontalBlock"] {
-        align-items: stretch;
-    }
+    /* --- CARTÕES --- */
     .card {
         background-color: var(--card-background-color);
         color: var(--card-text-color);
         border-radius: 12px;
         padding: 20px 25px;
         border: 1px solid var(--card-border-color);
-        height: 100%; /* Garante altura total na coluna */
+        height: 100%;
         display: flex;
         flex-direction: column;
         margin-bottom: 25px;
@@ -106,42 +100,27 @@ st.markdown("""
     .card-body { flex-grow: 1; padding-top: 15px; }
     .dataframe-card-body [data-testid="stDataFrame"] { border: none !important; }
     
-    /* Corrigir stDataFrame e stTable (Problema 2) */
-    .dataframe-card-body .st-emotion-cache-16ids9s.e1nzilvr4 {
-        color: var(--card-text-color) !important; /* Cor do texto dentro do cartão */
-    }
-    
-    /* --- BOTÕES DE UPLOAD (Problemas 4, 6) --- */
+    /* --- BOTÕES DE UPLOAD --- */
     section[data-testid="stFileUploader"] button,
     div[data-baseweb="file-uploader"] button {
         background-color: var(--baby-blue-bg) !important;
-        color: var(--text-color-light-bg) !important; /* Texto escuro no fundo azul claro */
+        color: var(--text-color-light-bg) !important;
         border: none !important;
         font-weight: 600 !important;
     }
     
-    /* Corrigir texto de upload (Problema 4) */
-    .stFileUploader > div > label > div > div.st-emotion-cache-1g8x7v1.e1nzilvr1 {
-        color: var(--text-color-dark-bg) !important; /* "Carregar nome.csv" em branco */
-        font-weight: 700 !important;
-    }
-    /* Corrigir cor do texto de sucesso após upload (Problema 4) */
-    .st-emotion-cache-l9b9p0.e1gfclks1 {
-        color: var(--text-color-dark-bg) !important;
-        font-weight: 700 !important;
-    }
-    /* Corrigir toggle e outros textos (Problema 4) */
-    label[data-testid="stConfigurableLabel"], 
-    [data-testid="stToggleV1"] label span,
-    [data-testid="stSubheader"] {
-        color: var(--text-color-dark-bg) !important;
+    /* --- BOTÃO DE ANÁLISE --- */
+    .iniciar-analise-button .stButton>button {
+        background-color: var(--baby-blue-bg) !important;
+        color: var(--text-color-light-bg) !important;
+        border: 2px solid var(--baby-blue-bg) !important;
         font-weight: 700 !important;
     }
     
-    /* --- BOTÃO DE ANÁLISE (Problema 6) --- */
-    .iniciar-analise-button .stButton>button {
+    /* --- BOTÃO DE LOGIN --- */
+    .login-button .stButton>button {
         background-color: var(--baby-blue-bg) !important;
-        color: var(--text-color-light-bg) !important; /* Corrigido para cor escura */
+        color: var(--text-color-light-bg) !important;
         border: 2px solid var(--baby-blue-bg) !important;
         font-weight: 700 !important;
     }
@@ -164,34 +143,8 @@ st.markdown("""
         border-radius: 8px !important;
     }
     [data-testid="stAlert"] * { color: #BFDBFE !important; }
-    
-    /* --- BOTÃO DE LOGIN (Problema 5 - CORRIGIDO) --- */
-    .login-button button {
-        background-color: var(--baby-blue-bg) !important; /* Fundo AZUL BEBÉ/Claro */
-        color: var(--text-color-light-bg) !important; /* Texto AZUL ESCURO/PRETO */
-        font-weight: 700 !important;
-        border: 1px solid var(--baby-blue-bg) !important;
-    }
-    /* Garantir o contraste no hover também */
-    .login-button button:hover {
-        background-color: #8DD9FF !important; /* Um pouco mais escuro no hover */
-        color: var(--text-color-light-bg) !important;
-    }
-    
-    /* Estilo para caixas de texto (st.text_input) - Para garantir que também têm fundo escuro e não branco */
-    [data-testid="stTextInput"] > div > div > input,
-    [data-testid="stTextInput"] > div > input,
-    [data-testid="stTextInput"] > div > div,
-    [data-testid="stTextArea"] > div > div > textarea,
-    [data-testid="stTextArea"] > div > textarea {
-        background-color: var(--sidebar-background) !important; 
-        color: var(--text-color-dark-bg) !important;
-        border: 1px solid var(--border-color) !important;
-    }
-
 </style>
 """, unsafe_allow_html=True)
-
 
 # --- FUNÇÕES AUXILIARES ---
 def convert_fig_to_bytes(fig, format='png'):
@@ -587,8 +540,9 @@ def login_page():
     st.markdown("<h2>✨ Transformação Inteligente de Processos</h2>", unsafe_allow_html=True)
     username = st.text_input("Utilizador", placeholder="admin", value="admin")
     password = st.text_input("Senha", type="password", placeholder="admin", value="admin")
-    # Adicionado div para aplicar o CSS do botão de login (Problema 5)
-    st.markdown('<div class="login-button">', unsafe_allow_html=True)
+    
+    # ENVOLVER O BOTÃO NA NOVA CLASSE CUSTOMIZADA
+    st.markdown('<div class="login-button">', unsafe_allow_html=True) 
     if st.button("Entrar", use_container_width=True):
         if username == "admin" and password == "admin":
             st.session_state.authenticated = True
