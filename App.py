@@ -102,7 +102,13 @@ st.markdown("""
     .card-header { padding-bottom: 10px; border-bottom: 1px solid var(--border-color); }
     .card .card-header h4 { color: var(--text-color-dark-bg); font-size: 1.1rem; margin: 0; display: flex; align-items: center; gap: 8px; }
     .card-body { flex-grow: 1; padding-top: 15px; }
-    .dataframe-card-body [data-testid="stDataFrame"] { border: none !important; }
+        /* Adicionar altura máxima e scroll interno para o corpo do cartão que contém o dataframe */
+    .dataframe-card-body {
+        max-height: 300px; /* Defina a altura máxima desejada para a caixa da tabela */
+        overflow-y: auto; /* Adicionar scroll vertical */
+        overflow-x: auto; /* Adicionar scroll horizontal (se a tabela for larga) */
+        padding: 0; /* Remover padding padrão para evitar barra de scroll dupla */
+    }
     
     /* --- BOTÕES DE UPLOAD --- */
     section[data-testid="stFileUploader"] button,
