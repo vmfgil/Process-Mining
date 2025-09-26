@@ -778,8 +778,7 @@ def render_config():
 def render_dashboard_pre():
   st.markdown("<h2>🏠 Dashboard Geral — Pré-mineração</h2>", unsafe_allow_html=True)
   if not st.session_state.tables_pre_mining:
-    st.markdown("")
-    return
+    return 
 
   kpis = st.session_state.tables_pre_mining['kpi_data']
   st.markdown('<div class="dashboard-grid">', unsafe_allow_html=True)
@@ -950,7 +949,6 @@ def render_dashboard_pre():
 def render_dashboard_post():
   st.markdown("<h2>🏠 Dashboard Geral — Pós-mineração</h2>", unsafe_allow_html=True)
   if not st.session_state.plots_post_mining:
-    st.markdown("")
     return
 
   st.markdown('<div class="dashboard-grid">', unsafe_allow_html=True)
