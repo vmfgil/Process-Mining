@@ -876,11 +876,11 @@ def dashboard_page():
         
     # --- Navegação das 5 secções ---
     sections = {
-        "visao_geral": "1. Visão Geral e Custos",
-        "performance": "2. Performance e Prazos",
-        "recursos": "3. Recursos e Equipa",
-        "gargalos": "4. Gargalos e Análise Causal",
-        "fluxo": "5. Fluxo e Complexidade"
+        "visao_geral": "Visão Geral e Custos",
+        "performance": "Performance e Prazos",
+        "recursos": "Recursos e Equipa",
+        "gargalos": "Handoffs e tempos de espera",
+        "fluxo": "Fluxo e conformidade"
     }
     
     nav_cols = st.columns(len(sections))
