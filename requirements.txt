@@ -7,6 +7,8 @@ networkx
 pm4py
 altair
 streamlit-option-menu
+missingno
+
 
 
 
