@@ -113,14 +113,26 @@ st.markdown("""
         padding: 0; /* Remover padding padrão para evitar barra de scroll dupla */
     }
     
-    /* --- BOTÕES DE UPLOAD (ATUALIZADO PARA AZUL BEBÉ E TEXTO BRANCO) --- */
-    section[data-testid="stFileUploader"] button,
-    div[data-baseweb="file-uploader"] button {
-        background-color: var(--upload-button-color) !important; /* NOVO: Azul Bebé */
-        color: var(--text-color-light-bg) !important; /* Manter o texto escuro se o fundo for claro */
+/* --- BOTÕES DE UPLOAD (SOLUÇÃO FORÇADA PARA AZUL BEBÉ E TEXTO ESCURO) --- */
+    /* Este seletor é mais específico e deve anular estilos anteriores. */
+    section[data-testid="stFileUploader"] button {
+        /* Força o Azul Bebé no fundo */
+        background-color: #A0D2EB !important; 
+        
+        /* Força o Azul Marinho Sólido (Quase Preto) no texto para alto contraste */
+        color: #0A112A !important; 
+        
         border: none !important;
         font-weight: 600 !important;
         border-radius: 8px !important;
+    }
+
+    /* Adicionalmente, forçamos o estilo também na área maior (caixa branca) se ela persistir */
+    section[data-testid="stFileUploader"] div[data-baseweb="file-uploader"] {
+        background-color: rgba(160, 210, 235, 0.1) !important; /* Azul Bebé muito transparente */
+        border: 1px dashed #A0D2EB !important;
+        border-radius: 12px;
+        padding: 15px; /* Para garantir que o botão fica bem enquadrado */
     }
     
     /* --- BOTÃO DE ANÁLISE --- */
