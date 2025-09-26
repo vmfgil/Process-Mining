@@ -10,6 +10,36 @@ import io
 import base64
 import streamlit.components.v1 as components
 
+# Global theme and layout normalization (auto-injected)
+import streamlit as st
+st.markdown(
+    """
+    <style>
+      :root { --primary: #3b82f6; --primary-contrast: #ffffff; --bg: #0b1220; --panel: #111827; --panel-2: #0f172a; --text: #e5e7eb; --muted: #9ca3af; --success: #10b981; --danger: #ef4444; }
+      html, body, [data-testid=stAppViewContainer] { background: var(--bg) !important; color: var(--text) !important; }
+      h1, h2, h3, h4, h5, h6 { color: var(--text) !important; }
+      .card { background: var(--panel); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 0; }
+      .card + .card { margin-top: 12px; }
+      .card-header { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0)); }
+      .card-header h4 { margin: 0; font-size: 15px; font-weight: 600; color: var(--text); }
+      .card-body { padding: 12px 14px; }
+      .dataframe-card-body { max-height: 360px; overflow: auto; }
+      .stButton>button, [data-testid=baseButton-secondary] { background: var(--primary) !important; color: var(--primary-contrast) !important; border: 0 !important; border-radius: 8px; font-weight: 600; }
+      .stButton>button:hover { filter: brightness(1.05); }
+      [data-baseweb=input] input, [data-testid=stSelectbox], [data-testid=stTextInput], [data-testid=stNumberInput] { color: var(--text) !important; background: var(--panel-2) !important; border-radius: 8px !important; }
+      [data-testid=stSidebar], [data-testid=stHeader] { background: transparent !important; }
+      .element-container:has(div[data-testid=stDataFrame]) { background: var(--panel); border-radius: 10px; }
+      [data-testid=stDataFrame] { border-radius: 8px; overflow: hidden; }
+      ::-webkit-scrollbar { width: 10px; height: 10px; }
+      ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 8px; }
+      ::-webkit-scrollbar-track { background: rgba(255,255,255,0.06); }
+      section.main > div.block-container { padding-top: 1rem; padding-bottom: 1.5rem; }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+
 # Imports de Process Mining (PM4PY)
 import pm4py
 from pm4py.objects.conversion.log import converter as log_converter
@@ -183,6 +213,8 @@ def convert_gviz_to_bytes(gviz, format='png'):
 def convert_df_to_csv(df):
     return df.to_csv(index=False).encode('utf-8')
 
+
+
 def create_card(title, icon, chart_bytes=None, dataframe=None):
     with st.container():
         if chart_bytes:
@@ -211,22 +243,6 @@ def create_card(title, icon, chart_bytes=None, dataframe=None):
             """, unsafe_allow_html=True)
 
 
-# --- INICIALIZAÇÃO DO ESTADO DA SESSÃO ---
-if 'authenticated' not in st.session_state: st.session_state.authenticated = False
-if 'current_page' not in st.session_state: st.session_state.current_page = "Dashboard"
-if 'current_dashboard' not in st.session_state: st.session_state.current_dashboard = "Pré-Mineração"
-if 'current_section' not in st.session_state: st.session_state.current_section = "overview"
-if 'dfs' not in st.session_state:
-    st.session_state.dfs = {'projects': None, 'tasks': None, 'resources': None, 'resource_allocations': None, 'dependencies': None}
-if 'analysis_run' not in st.session_state: st.session_state.analysis_run = False
-if 'plots_pre_mining' not in st.session_state: st.session_state.plots_pre_mining = {}
-if 'plots_post_mining' not in st.session_state: st.session_state.plots_post_mining = {}
-if 'tables_pre_mining' not in st.session_state: st.session_state.tables_pre_mining = {}
-if 'metrics' not in st.session_state: st.session_state.metrics = {}
-
-
-# --- FUNÇÕES DE ANÁLISE ---
-@st.cache_data
 def run_pre_mining_analysis(dfs):
     plots = {}
     tables = {}
