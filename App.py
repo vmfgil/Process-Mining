@@ -117,12 +117,20 @@ st.markdown("""
         font-weight: 700 !important;
     }
     
-    /* --- BOTÃO DE LOGIN --- */
-    .login-button .stButton>button {
-        background-color: var(--baby-blue-bg) !important;
+/* NOVO ESTILO ISOLADO PARA O BOTÃO DE LOGIN */
+    .login-button button {
+        /* Fundo Azul Bebé (Força a cor de fundo permanente) */
+        background-color: var(--baby-blue-bg) !important; 
+        /* Texto Azul Escuro/Preto (Para alto contraste) */
         color: var(--text-color-light-bg) !important;
         border: 2px solid var(--baby-blue-bg) !important;
         font-weight: 700 !important;
+    }
+    
+    /* Garantir que, mesmo ao passar o cursor (hover), o texto escuro se mantém */
+    .login-button button:hover {
+        background-color: #8DD9FF !important; /* Ligeiramente diferente no hover, mas ainda visível */
+        color: var(--text-color-light-bg) !important;
     }
     
     /* --- CARTÕES DE MÉTRICAS (KPIs) --- */
@@ -541,7 +549,7 @@ def login_page():
     username = st.text_input("Utilizador", placeholder="admin", value="admin")
     password = st.text_input("Senha", type="password", placeholder="admin", value="admin")
     
-    # ENVOLVER O BOTÃO NA NOVA CLASSE CUSTOMIZADA
+    # É fundamental que o botão esteja envolvido nesta DIV:
     st.markdown('<div class="login-button">', unsafe_allow_html=True) 
     if st.button("Entrar", use_container_width=True):
         if username == "admin" and password == "admin":
@@ -550,7 +558,7 @@ def login_page():
             st.rerun()
         else:
             st.error("Utilizador ou senha inválidos.")
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True) 
 
 
 # --- PÁGINA DE CONFIGURAÇÕES / UPLOAD ---
