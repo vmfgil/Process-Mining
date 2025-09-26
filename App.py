@@ -32,52 +32,58 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- ESTILO CSS REFORMULADO (TEMA CLARO E MODERNO) ---
+# --- ESTILO CSS REFORMULADO (NOVO ESQUEMA DE CORES) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
     html, body, [class*="st-"] { font-family: 'Poppins', sans-serif; }
     
-    /* Paleta de Cores: TEMA CLARO */
+    /* Nova Paleta de Cores Profissional e de Alto Contraste */
     :root {
-        --primary-color: #007bff;        /* Azul de Destaque */
-        --secondary-color: #ffc107;      /* Amarelo/Âmbar (Alertas) */
+        --primary-color: #2563EB; /* Azul de Realce (Botões Ativos, Bordas) */
+        --secondary-color: #FBBF24; /* Amarelo/Âmbar (Alertas, Destaque) */
+        --accent-color: #06B6D4; /* Ciano (Botões de Upload/Análise) */
         
-        --background-color: #F8F9FA;     /* Fundo Principal Muito Claro */
-        --sidebar-background: #FFFFFF;   /* Fundo da Sidebar Branco */
-        --card-background-color: #FFFFFF;/* Fundo dos Cartões Branco */
+        --background-color: #0A112A; /* Fundo Principal Escuro (Azul Marinho Sólido) */
+        --sidebar-background: #111827; /* Fundo da Sidebar Ligeiramente Mais Claro */
+        --card-background-color: #1E293B; /* Fundo dos Cartões (Azul Escuro Suave) */
         
-        --text-color-dark-bg: #212529;   /* Texto Principal Escuro */
-        --text-color-light-bg: #FFFFFF;  /* Texto em Elementos Claros */
-        --border-color: #dee2e6;         /* Cor da Borda/Separador Clara */
-        --inactive-button-bg: #E9ECEF;   /* Fundo de Botões Inativos (Cinza Claro) */
-        --metric-value-color: #007bff;   /* Cor para Valores de Métricas */
-        
-        /* NOVO: Cor para o botão de Upload (Azul Bebé) */
-        --upload-button-color: #A0D2EB;
+        --text-color-dark-bg: #E5E7EB; /* Texto Principal (Branco Sujo) */
+        --text-color-light-bg: #0A112A; /* Texto em Elementos Claros */
+        --border-color: #374151; /* Cor da Borda/Separador */
+        --inactive-button-bg: #374151; /* Fundo de Botões Inativos */
+        --metric-value-color: #FBBF24; /* Cor para Valores de Métricas */
     }
     
-    .stApp { 
-        background-color: var(--background-color); 
-        color: var(--text-color-dark-bg); 
+    .stApp { background-color: var(--background-color); color: var(--text-color-dark-bg); }
+    h1, h2, h3 { color: var(--text-color-dark-bg); font-weight: 600; }
+    
+    [data-testid="stSidebar"] h3 { color: var(--text-color-dark-bg) !important; }
+
+    /* --- ESTILOS PARA BOTÕES DE NAVEGAÇÃO --- */
+    div[data-testid="stHorizontalBlock"] .stButton>button {
+        border: 1px solid var(--border-color) !important;
+        background-color: var(--inactive-button-bg) !important;
+        color: var(--text-color-dark-bg) !important;
+        font-weight: 600;
+        transition: all 0.2s ease-in-out;
     }
-    h1, h2, h3 { 
-        color: var(--text-color-dark-bg); 
-        font-weight: 700; 
+    div[data-testid="stHorizontalBlock"] .stButton>button:hover {
+        border-color: var(--primary-color) !important;
+        background-color: rgba(37, 99, 235, 0.2) !important; /* Azul com 20% de opacidade */
+    }
+    div.active-button .stButton>button {
+        background-color: var(--primary-color) !important;
+        color: var(--text-color-dark-bg) !important;
+        border: 1px solid var(--primary-color) !important;
+        font-weight: 700 !important;
     }
 
     /* Painel Lateral */
-    [data-testid="stSidebar"] { 
-        background-color: var(--sidebar-background); 
-        border-right: 1px solid var(--border-color); 
-        box-shadow: 2px 0 5px rgba(0,0,0,0.05); /* Sombra suave para destacar */
-    }
-    [data-testid="stSidebar"] h3 { 
-        color: var(--text-color-dark-bg) !important; 
-    }
+    [data-testid="stSidebar"] { background-color: var(--sidebar-background); border-right: 1px solid var(--border-color); }
     [data-testid="stSidebar"] .stButton>button {
-        background-color: var(--primary-color) !important;
-        color: var(--text-color-light-bg) !important; /* Texto branco em botão azul */
+        background-color: var(--primary-color) !important; /* Botões da sidebar com cor de destaque */
+        color: var(--text-color-dark-bg) !important;
     }
     
     /* --- CARTÕES --- */
@@ -91,69 +97,98 @@ st.markdown("""
         display: flex;
         flex-direction: column;
         margin-bottom: 25px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
     }
     .card-header { padding-bottom: 10px; border-bottom: 1px solid var(--border-color); }
     .card .card-header h4 { color: var(--text-color-dark-bg); font-size: 1.1rem; margin: 0; display: flex; align-items: center; gap: 8px; }
     .card-body { flex-grow: 1; padding-top: 15px; }
-
-    /* --- BOTÕES DE UPLOAD (SOLUÇÃO FINAL PARA AZUL BEBÉ) --- */
-    /* Este seletor é o mais específico. O texto é forçado a ser escuro para o contraste. */
-    section[data-testid="stFileUploader"] button {
-        /* Fundo: Azul Bebé */
-        background-color: var(--upload-button-color) !important; 
-        
-        /* Texto: Azul Escuro (Garante o contraste com o fundo claro) */
-        color: #212529 !important; 
-        
+        /* Adicionar altura máxima e scroll interno para o corpo do cartão que contém o dataframe */
+    .dataframe-card-body {
+        max-height: 300px; /* Defina a altura máxima desejada para a caixa da tabela */
+        overflow-y: auto; /* Adicionar scroll vertical */
+        overflow-x: auto; /* Adicionar scroll horizontal (se a tabela for larga) */
+        padding: 0; /* Remover padding padrão para evitar barra de scroll dupla */
+    }
+    
+    /* --- BOTÕES DE UPLOAD --- */
+    section[data-testid="stFileUploader"] button,
+    div[data-baseweb="file-uploader"] button {
+        background-color: var(--accent-color) !important; /* Ciano */
+        color: var(--text-color-light-bg) !important;
         border: none !important;
-        font-weight: 700 !important;
+        font-weight: 600 !important;
         border-radius: 8px !important;
-        transition: background-color 0.2s;
     }
     
-    /* Estilo para a caixa do FileUploader para ficar em harmonia com o tema claro */
-    section[data-testid="stFileUploader"] div[data-baseweb="file-uploader"] {
-        background-color: #FFFFFF !important; /* Caixa branca */
-        border: 2px dashed #CED4DA !important; /* Borda mais suave */
-        border-radius: 12px;
-        padding: 20px;
+    /* --- BOTÃO DE ANÁLISE --- */
+    .iniciar-analise-button .stButton>button {
+        background-color: var(--secondary-color) !important; /* Amarelo */
+        color: var(--text-color-light-bg) !important;
+        border: 2px solid var(--secondary-color) !important;
+        font-weight: 700 !important;
     }
     
-    /* --- OUTROS ESTILOS (Apenas Ajustados para o Tema Claro) --- */
+    /* --- CARTÕES DE MÉTRICAS (KPIs) --- */
     [data-testid="stMetric"] {
         background-color: var(--card-background-color);
         border: 1px solid var(--border-color);
         border-radius: 12px;
         padding: 20px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+    [data-testid="stMetric"] label {
+        color: var(--text-color-dark-bg) !important; /* Label da métrica */
     }
     [data-testid="stMetric"] [data-testid="stMetricValue"] {
-        color: var(--metric-value-color) !important; 
+        color: var(--metric-value-color) !important; /* Valor da métrica (Âmbar) */
         font-weight: 700;
     }
+    
+    /* Alertas */
     [data-testid="stAlert"] {
-        background-color: #FFFFFF !important;
-        border: 1px solid var(--secondary-color) !important; 
-        border-left: 5px solid var(--secondary-color) !important; /* Linha de destaque */
+        background-color: #1E293B !important; /* Fundo ligeiramente mais claro */
+        border: 1px solid var(--secondary-color) !important; /* Borda de destaque (Amarelo) */
         border-radius: 8px !important;
     }
     [data-testid="stAlert"] * { color: var(--text-color-dark-bg) !important; }
-
+    
+/* Melhorar legibilidade de dataframes NATIVOS do Streamlit */
     .stDataFrame {
         color: var(--text-color-dark-bg) !important;
-        background-color: #FFFFFF !important;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
+        background-color: var(--card-background-color) !important;
     }
-    
+
+    /* Adicionar estilos para o DataFrame HTML gerado pela correção */
+    .pandas-df-card {
+        width: 100%;
+        border-collapse: collapse;
+        color: var(--text-color-dark-bg);
+        font-size: 0.85rem;
+    }
     .pandas-df-card th {
-        background-color: #F1F3F5; /* Fundo de cabeçalho cinza claro */
+        background-color: var(--sidebar-background); /* Fundo da sidebar */
         color: var(--text-color-dark-bg);
         border: 1px solid var(--border-color);
+        padding: 8px;
+        text-align: left;
+    }
+    .pandas-df-card td {
+        background-color: var(--card-background-color);
+        color: var(--text-color-dark-bg);
+        border: 1px solid var(--border-color);
+        padding: 8px;
+    }
+    .pandas-df-card tr:nth-child(even) td {
+        background-color: #2F394B; /* Linhas pares ligeiramente mais escuras */
+    }
+    
+    .stTextInput>div>div>input, .stTextInput>div>div>textarea {
+        background-color: var(--sidebar-background) !important;
+        color: var(--text-color-dark-bg) !important;
+        border: 1px solid var(--border-color) !important;
     }
 </style>
 """, unsafe_allow_html=True)
+
 
 # --- FUNÇÕES AUXILIARES ---
 def convert_fig_to_bytes(fig, format='png'):
