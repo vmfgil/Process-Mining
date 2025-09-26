@@ -228,9 +228,6 @@ def create_card(title, icon, chart_bytes=None, dataframe=None):
         """, unsafe_allow_html=True)
     elif dataframe is not None:
         # CONVERTER O DATAFRAME PARA HTML E APLICAR UMA CLASSE PARA ESTILOS
-        # Este método preserva o estilo básico do DataFrame do Pandas,
-        # mas precisa de estilos CSS adicionais para o modo escuro, que já tem no seu código.
-        # Adicionamos a classe 'pandas-df-card' para controlo de estilo.
         df_html = dataframe.to_html(classes=['pandas-df-card'], index=False)
         
         st.markdown(f"""
@@ -253,7 +250,7 @@ if 'analysis_run' not in st.session_state: st.session_state.analysis_run = False
 if 'plots_pre_mining' not in st.session_state: st.session_state.plots_pre_mining = {}
 if 'plots_post_mining' not in st.session_state: st.session_state.plots_post_mining = {}
 if 'tables_pre_mining' not in st.session_state: st.session_state.tables_pre_mining = {}
-if 'tables_post_mining' not in st.session_state: st.session_state.tables_post_mining = {} # Adicionado para garantir que existe
+if 'tables_post_mining' not in st.session_state: st.session_state.tables_post_mining = {} 
 if 'metrics' not in st.session_state: st.session_state.metrics = {}
 if 'event_log_df' not in st.session_state: st.session_state.event_log_df = None
 if 'user_name' not in st.session_state: st.session_state.user_name = 'Admin'
@@ -564,7 +561,7 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
     dfg_perf_gviz = dfg_visualizer.apply(dfg_discovery.apply(_event_log_pm4py, parameters={'activity_key': 'concept:name', 'timestamp_key': 'time:timestamp', 'case_id_key': 'case:concept:name', 'measure': 'performance'}))
     plots['dfg_performance_visualization'] = convert_gviz_to_bytes(dfg_perf_gviz)
     
-    # DFG de Frequência (usado para variantes_dfg_visualization)
+    # DFG de Frequência (usado para variants_dfg_visualization)
     dfg_freq_gviz = dfg_visualizer.apply(dfg_discovery.apply(_event_log_pm4py))
     plots['variants_dfg_visualization'] = convert_gviz_to_bytes(dfg_freq_gviz)
 
@@ -600,17 +597,73 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
     
     return plots, tables, metrics
 
-# --- PÁGINA DE CONFIGURAÇÕES ---
+# --- PÁGINA DE CONFIGURAÇÕES (Lógica reconstruída para garantir integridade) ---
 def settings_page():
     st.title("⚙️ Configurações e Carregamento de Dados")
     st.markdown("Faça o upload dos 5 ficheiros CSV necessários para a análise.")
+    
+    # Lógica de upload completa
+    df_files = {}
+    required_files = ['projects', 'tasks', 'resources', 'resource_allocations', 'dependencies']
+    
+    for filename in required_files:
+        uploaded_file = st.file_uploader(f"Upload: {filename}.csv", type=['csv'], key=f'file_{filename}')
+        if uploaded_file is not None:
+            try:
+                df_files[filename] = pd.read_csv(uploaded_file)
+                st.session_state.dfs[filename] = df_files[filename]
+                st.success(f"{filename}.csv carregado com sucesso.")
+            except Exception as e:
+                st.error(f"Erro ao carregar {filename}.csv: {e}")
 
-    # ... (Resto da lógica de settings_page) ...
+    all_files_loaded = all(st.session_state.dfs[f] is not None for f in required_files)
+    
+    st.markdown("---")
 
-    # --- PÁGINA LOGIN ---
+    if st.button("▶️ Iniciar Análise de Dados", disabled=not all_files_loaded, use_container_width=True, key='run_analysis', help="Carregue todos os 5 ficheiros CSV para iniciar."):
+        with st.spinner('A processar dados e a executar algoritmos de Mineração de Processos...'):
+            try:
+                plots_pre, tables_pre, event_log, df_projects, df_tasks, df_resources, df_full_context = run_pre_mining_analysis(st.session_state.dfs)
+                plots_post, tables_post, metrics_post = run_post_mining_analysis(event_log, df_projects, df_tasks, df_resources, df_full_context)
+                
+                st.session_state.plots_pre_mining = plots_pre
+                st.session_state.tables_pre_mining = tables_pre
+                st.session_state.plots_post_mining = plots_post
+                st.session_state.tables_post_mining = tables_post
+                st.session_state.metrics = metrics_post
+                st.session_state.event_log_df = pm4py.convert_to_dataframe(event_log) # Para a tabela no dashboard
+                st.session_state.analysis_run = True
+                st.success("Análise concluída com sucesso! Vá para o Dashboard Geral.")
+                
+            except Exception as e:
+                st.error(f"Ocorreu um erro durante a análise: {e}")
+                st.session_state.analysis_run = False
+                
+    if st.session_state.analysis_run:
+        st.success("Análise de dados pronta. Volte ao Dashboard Geral.")
+
+
+# --- PÁGINA LOGIN (Lógica reconstruída para garantir integridade) ---
 def login_page():
-    # ... (Resto da lógica de login_page) ...
-    pass # Simplificado para não precisar da lógica real de login
+    st.title("🔒 Login")
+    
+    # Controlo de layout para centralizar o login
+    col_login, col_empty = st.columns([1, 2])
+    
+    with col_login:
+        username = st.text_input("Utilizador", value="admin")
+        password = st.text_input("Palavra-passe", type="password", value="admin")
+        
+        if st.button("Entrar", use_container_width=True):
+            # Credenciais hardcoded como no código original
+            if username == "admin" and password == "admin":
+                st.session_state.authenticated = True
+                st.session_state.user_name = username
+                st.session_state.current_page = "Dashboard"
+                st.rerun()
+            else:
+                st.error("Credenciais Inválidas")
+
 
 # --- PÁGINA DASHBOARD (COM AS ALTERAÇÕES SOLICITADAS) ---
 def dashboard_page():
@@ -627,7 +680,9 @@ def dashboard_page():
     tables_post = st.session_state.tables_post_mining
     metrics_post = st.session_state.metrics
     
+    # ----------------------------------------------------
     # --- ALTERAÇÃO APLICADA: REORGANIZAÇÃO DAS ABAS ---
+    # ----------------------------------------------------
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "💰 Visão Geral e Custos",
         "⚡ Performance",
@@ -635,7 +690,9 @@ def dashboard_page():
         "🚦 Gargalos e Espera",
         "✅ Fluxo e Conformidade"
     ])
-    # --- FIM DA ALTERAÇÃO ---
+    # ----------------------------------------------------
+    # --- FIM DA ALTERAÇÃO NA DEFINIÇÃO DAS ABAS ---
+    # ----------------------------------------------------
 
     # --- 1. VISÃO GERAL E CUSTOS ---
     with tab1:
@@ -793,26 +850,12 @@ def dashboard_page():
             create_card("Resumo dos Desvios (Alignments)", "📝", dataframe=tables_post.get('alignments_summary'))
         
         st.subheader("Log de Eventos (Base de Dados)")
-        create_card("Log de Eventos (Primeiras 100 Linhas)", "🪵", dataframe=st.session_state.event_log_df.head(100))
-
-
-# --- PÁGINA DE CONFIGURAÇÕES (Simplificado) ---
-# A função settings_page foi omitida para brevidade, mas deve existir no código real
-
-# --- PÁGINA LOGIN (Simplificado) ---
-def login_page():
-    st.title("🔒 Login")
-    username = st.text_input("Utilizador", value="admin")
-    password = st.text_input("Palavra-passe", type="password", value="admin")
-    
-    if st.button("Entrar", use_container_width=True):
-        if username == "admin" and password == "admin":
-            st.session_state.authenticated = True
-            st.session_state.user_name = username
-            st.session_state.current_page = "Dashboard"
-            st.rerun()
+        # Verifica se o log_df_final existe no session state
+        if st.session_state.event_log_df is not None:
+            create_card("Log de Eventos (Primeiras 100 Linhas)", "🪵", dataframe=st.session_state.event_log_df.head(100))
         else:
-            st.error("Credenciais Inválidas")
+            st.warning("O Log de Eventos ainda não foi processado.")
+
 
 # --- CONTROLO PRINCIPAL DA APLICAÇÃO ---
 def main():
@@ -844,11 +887,8 @@ def main():
                 
         if st.session_state.current_page == "Dashboard":
             dashboard_page()
-        # O código settings_page() foi omitido por não ter sido fornecido, mas deve ser:
-        # elif st.session_state.current_page == "Settings":
-        #    settings_page()
-        else:
-            st.markdown("### Configurações (Função Omitida)")
+        elif st.session_state.current_page == "Settings":
+            settings_page()
             
 if __name__ == '__main__':
     main()
