@@ -752,7 +752,7 @@ def dashboard_page():
 
     # --- Renderização da secção ativa ---
     if st.session_state.current_section == "visao_geral":
-        st.subheader("Visão Geral e Custos")
+        st.subheader("1. Visão Geral e Custos")
         kpi_data = tables_pre.get('kpi_data', {})
         kpi_cols = st.columns(4)
         kpi_cols[0].metric(label="Total de Projetos", value=kpi_data.get('Total de Projetos'))
@@ -770,100 +770,155 @@ def dashboard_page():
         c1, c2 = st.columns(2)
         with c1:
             create_card("Matriz de Performance (Custo vs Prazo)", "🎯", chart_bytes=plots_pre.get('performance_matrix'))
-            create_card("Top 5 Projetos Mais Caros", "💰", dataframe=tables_pre.get('outlier_cost'))
-            create_card("Séries Temporais de KPIs de Performance", "📈", chart_bytes=plots_post.get('kpi_time_series'))
         with c2:
             create_card("Custo por Tipo de Recurso", "💶", chart_bytes=plots_pre.get('cost_by_resource_type'))
+        
+        c3, c4 = st.columns(2)
+        with c3:
+            create_card("Top 5 Projetos Mais Caros", "💰", dataframe=tables_pre.get('outlier_cost'))
+        with c4:
             create_card("Top 5 Projetos Mais Longos", "⏳", dataframe=tables_pre.get('outlier_duration'))
+
+        c5, c6 = st.columns(2)
+        with c5:
+            create_card("Séries Temporais de KPIs de Performance", "📈", chart_bytes=plots_post.get('kpi_time_series'))
+        with c6:
             create_card("Custo Médio por Dia ao Longo do Tempo", "💸", chart_bytes=plots_post.get('cost_per_day_time_series'))
 
+
     elif st.session_state.current_section == "performance":
-        st.subheader("Performance")
-        c1, c2 = st.columns([1, 2])
+        st.subheader("2. Performance")
+        c1, c2 = st.columns(2)
         with c1:
             create_card("Estatísticas de Performance", "📈", dataframe=tables_pre.get('perf_stats'))
-            create_card("Duração Média por Fase do Processo", "🗂️", chart_bytes=plots_pre.get('cycle_time_breakdown'))
         with c2:
-            create_card("Relação Lead Time vs Throughput", "🔗", chart_bytes=plots_pre.get('lead_time_vs_throughput'))
+            create_card("Duração Média por Fase do Processo", "🗂️", chart_bytes=plots_pre.get('cycle_time_breakdown'))
         
-        c3, c4, c5 = st.columns(3)
+        create_card("Relação Lead Time vs Throughput", "🔗", chart_bytes=plots_pre.get('lead_time_vs_throughput'))
+        
+        c3, c4 = st.columns(2)
         with c3:
             create_card("Distribuição do Lead Time", "⏱️", chart_bytes=plots_pre.get('lead_time_hist'))
-            create_card("Distribuição da Duração dos Projetos", "📊", chart_bytes=plots_pre.get('case_durations_boxplot'))
         with c4:
             create_card("Distribuição do Throughput (horas)", "🚀", chart_bytes=plots_pre.get('throughput_hist'))
-            create_card("Gráfico Acumulado de Throughput", "📈", chart_bytes=plots_post.get('cumulative_throughput_plot'))
+        
+        c5, c6 = st.columns(2)
         with c5:
+            create_card("Distribuição da Duração dos Projetos", "📊", chart_bytes=plots_pre.get('case_durations_boxplot'))
+        with c6:
             create_card("Boxplot do Throughput (horas)", "📦", chart_bytes=plots_pre.get('throughput_boxplot'))
+            
+        c7, c8 = st.columns(2)
+        with c7:
+            create_card("Gráfico Acumulado de Throughput", "📈", chart_bytes=plots_post.get('cumulative_throughput_plot'))
+        with c8:
             create_card("Atividades por Dia da Semana", "🗓️", chart_bytes=plots_post.get('temporal_heatmap_fixed'))
 
         create_card("Linha do Tempo de Todos os Projetos (Gantt Chart)", "📊", chart_bytes=plots_post.get('gantt_chart_all_projects'))
 
     elif st.session_state.current_section == "recursos":
-        st.subheader("Recursos e Equipa")
+        st.subheader("3. Recursos e Equipa")
         c1, c2 = st.columns(2)
         with c1:
             create_card("Top 10 Recursos por Horas Trabalhadas", "💪", chart_bytes=plots_pre.get('resource_workload'))
-            create_card("Impacto do Tamanho da Equipa no Atraso", "👨‍👩‍👧‍👦", chart_bytes=plots_pre.get('delay_by_teamsize'))
-            create_card("Eficiência Semanal (Horas Trabalhadas)", "🗓️", chart_bytes=plots_pre.get('weekly_efficiency'))
-            create_card("Métricas de Eficiência Individual por Recurso", "🎯", chart_bytes=plots_post.get('resource_efficiency_plot'))
-            if 'skill_vs_performance_adv' in plots_post:
-                create_card("Relação entre Skill e Performance", "🎓", chart_bytes=plots_post.get('skill_vs_performance_adv'))
-
         with c2:
             create_card("Recursos por Média de Tarefas/Projeto", "🧑‍💻", chart_bytes=plots_pre.get('resource_avg_events'))
-            create_card("Duração Mediana por Tamanho da Equipa", "⏱️", chart_bytes=plots_pre.get('median_duration_by_teamsize'))
-            create_card("Benchmark de Throughput por Equipa", "🏆", chart_bytes=plots_pre.get('throughput_benchmark_by_teamsize'))
-            create_card("Top 10 Handoffs entre Recursos", "🔄", chart_bytes=plots_pre.get('resource_handoffs'))
-            if 'resource_network_bipartite' in plots_post:
-                create_card("Rede de Recursos por Função", "🔗", chart_bytes=plots_post.get('resource_network_bipartite'))
-
+        
         c3, c4 = st.columns(2)
         with c3:
-            create_card("Rede Social de Recursos (Handovers)", "🌐", chart_bytes=plots_post.get('resource_network_adv'))
+            create_card("Impacto do Tamanho da Equipa no Atraso", "👨‍👩‍👧‍👦", chart_bytes=plots_pre.get('delay_by_teamsize'))
         with c4:
-            create_card("Heatmap de Esforço (Recurso vs Atividade)", "🗺️", chart_bytes=plots_pre.get('resource_activity_matrix'))
+            create_card("Duração Mediana por Tamanho da Equipa", "⏱️", chart_bytes=plots_pre.get('median_duration_by_teamsize'))
+
+        c5, c6 = st.columns(2)
+        with c5:
+            create_card("Eficiência Semanal (Horas Trabalhadas)", "🗓️", chart_bytes=plots_pre.get('weekly_efficiency'))
+        with c6:
+            create_card("Benchmark de Throughput por Equipa", "🏆", chart_bytes=plots_pre.get('throughput_benchmark_by_teamsize'))
+
+        c7, c8 = st.columns(2)
+        with c7:
+            create_card("Métricas de Eficiência Individual por Recurso", "🎯", chart_bytes=plots_post.get('resource_efficiency_plot'))
+        with c8:
+            create_card("Top 10 Handoffs entre Recursos", "🔄", chart_bytes=plots_pre.get('resource_handoffs'))
+        
+        if 'skill_vs_performance_adv' in plots_post:
+            create_card("Relação entre Skill e Performance", "🎓", chart_bytes=plots_post.get('skill_vs_performance_adv'))
+
+        create_card("Rede Social de Recursos (Handovers)", "🌐", chart_bytes=plots_post.get('resource_network_adv'))
+        
+        if 'resource_network_bipartite' in plots_post:
+            create_card("Rede de Recursos por Função", "🔗", chart_bytes=plots_post.get('resource_network_bipartite'))
+        
+        create_card("Heatmap de Esforço (Recurso vs Atividade)", "🗺️", chart_bytes=plots_pre.get('resource_activity_matrix'))
 
     elif st.session_state.current_section == "gargalos":
-        st.subheader("Gargalos e Espera")
+        st.subheader("4. Gargalos e Espera")
         create_card("Heatmap de Performance no Processo (Gargalos)", "🔥", chart_bytes=plots_post.get('performance_heatmap'))
+        
         c1, c2 = st.columns(2)
         with c1:
             create_card("Atividades Mais Frequentes", "⚡", chart_bytes=plots_pre.get('top_activities_plot'))
+        with c2:
             create_card("Tempo Médio de Execução por Atividade", "🛠️", chart_bytes=plots_pre.get('activity_service_times'))
-            create_card("Gargalos: Tempo de Serviço vs. Espera", "🚦", chart_bytes=plots_pre.get('service_vs_wait_stacked'))
-            create_card("Tempo Médio de Espera por Atividade", "⏱️", chart_bytes=plots_post.get('avg_waiting_time_by_activity_plot'))
-            create_card("Top 10 Handoffs por Custo de Espera", "💸", chart_bytes=plots_pre.get('top_handoffs_cost'))
-        with c2:
-            create_card("Top Recursos por Tempo de Espera Gerado", "🛑", chart_bytes=plots_pre.get('bottleneck_by_resource'))
-            create_card("Espera vs. Execução (Dispersão)", "🔍", chart_bytes=plots_pre.get('wait_vs_service_scatter'))
-            create_card("Evolução do Tempo Médio de Espera", "📈", chart_bytes=plots_pre.get('wait_time_evolution'))
-            create_card("Top 10 Handoffs por Tempo de Espera", "⏳", chart_bytes=plots_pre.get('top_handoffs'))
-            if 'milestone_time_analysis_plot' in plots_post:
-                create_card("Análise de Tempo entre Marcos do Processo", "🚩", chart_bytes=plots_post.get('milestone_time_analysis_plot'))
-        create_card("Matriz de Tempo de Espera entre Atividades (horas)", "⏳", chart_bytes=plots_post.get('waiting_time_matrix_plot'))
-
-    elif st.session_state.current_section == "fluxo":
-        st.subheader("Fluxo e Conformidade")
-        c1, c2 = st.columns(2)
-        with c1:
-            create_card("Modelo - Inductive Miner", "🧭", chart_bytes=plots_post.get('model_inductive_petrinet'))
-            create_card("Métricas (Inductive Miner)", "📊", chart_bytes=plots_post.get('metrics_inductive'))
-        with c2:
-            create_card("Modelo - Heuristics Miner", "🛠️", chart_bytes=plots_post.get('model_heuristic_petrinet'))
-            create_card("Métricas (Heuristics Miner)", "📈", chart_bytes=plots_post.get('metrics_heuristic'))
         
         c3, c4 = st.columns(2)
         with c3:
-            create_card("Frequência das 10 Principais Variantes", "🎭", dataframe=tables_pre.get('variants_table'))
-            create_card("Principais Loops de Rework", "🔁", dataframe=tables_pre.get('rework_loops_table'))
-            create_card("Dispersão: Fitness vs. Desvios", "🎯", chart_bytes=plots_post.get('deviation_scatter_plot'))
+            create_card("Gargalos: Tempo de Serviço vs. Espera", "🚦", chart_bytes=plots_pre.get('service_vs_wait_stacked'))
         with c4:
-            create_card("Duração Média das Variantes Mais Comuns", "⏳", chart_bytes=plots_post.get('variant_duration_plot'))
-            create_card("Top 10 Variantes de Processo por Frequência", "📊", chart_bytes=plots_pre.get('variants_frequency'))
-            create_card("Score de Conformidade ao Longo do Tempo", "📉", chart_bytes=plots_post.get('conformance_over_time_plot'))
+            create_card("Tempo Médio de Espera por Atividade", "⏱️", chart_bytes=plots_post.get('avg_waiting_time_by_activity_plot'))
+        
+        c5, c6 = st.columns(2)
+        with c5:
+            create_card("Top 10 Handoffs por Custo de Espera", "💸", chart_bytes=plots_pre.get('top_handoffs_cost'))
+        with c6:
+            create_card("Top 10 Handoffs por Tempo de Espera", "⏳", chart_bytes=plots_pre.get('top_handoffs'))
+        
+        c7, c8 = st.columns(2)
+        with c7:
+            create_card("Top Recursos por Tempo de Espera Gerado", "🛑", chart_bytes=plots_pre.get('bottleneck_by_resource'))
+        with c8:
+            create_card("Espera vs. Execução (Dispersão)", "🔍", chart_bytes=plots_pre.get('wait_vs_service_scatter'))
+
+        c9, c10 = st.columns(2)
+        with c9:
+             create_card("Evolução do Tempo Médio de Espera", "📈", chart_bytes=plots_pre.get('wait_time_evolution'))
+        with c10:
+            if 'milestone_time_analysis_plot' in plots_post:
+                create_card("Análise de Tempo entre Marcos do Processo", "🚩", chart_bytes=plots_post.get('milestone_time_analysis_plot'))
+
+        create_card("Matriz de Tempo de Espera entre Atividades (horas)", "⏳", chart_bytes=plots_post.get('waiting_time_matrix_plot'))
+
+    elif st.session_state.current_section == "fluxo":
+        st.subheader("5. Fluxo e Conformidade")
+
+        create_card("Modelo - Inductive Miner", "🧭", chart_bytes=plots_post.get('model_inductive_petrinet'))
+        create_card("Modelo - Heuristics Miner", "🛠️", chart_bytes=plots_post.get('model_heuristic_petrinet'))
+
+        c1, c2 = st.columns(2)
+        with c1:
+            create_card("Métricas (Inductive Miner)", "📊", chart_bytes=plots_post.get('metrics_inductive'))
+        with c2:
+            create_card("Métricas (Heuristics Miner)", "📈", chart_bytes=plots_post.get('metrics_heuristic'))
         
         create_card("Sequência de Atividades das 10 Variantes Mais Comuns", "🎶", chart_bytes=plots_post.get('custom_variants_sequence_plot'))
+        
+        c3, c4 = st.columns(2)
+        with c3:
+            create_card("Duração Média das Variantes Mais Comuns", "⏳", chart_bytes=plots_post.get('variant_duration_plot'))
+        with c4:
+            create_card("Score de Conformidade ao Longo do Tempo", "📉", chart_bytes=plots_post.get('conformance_over_time_plot'))
+        
+        create_card("Frequência das 10 Principais Variantes", "🎭", dataframe=tables_pre.get('variants_table'))
+        
+        c5, c6 = st.columns(2)
+        with c5:
+            create_card("Principais Loops de Rework", "🔁", dataframe=tables_pre.get('rework_loops_table'))
+        with c6:
+            create_card("Dispersão: Fitness vs. Desvios", "🎯", chart_bytes=plots_post.get('deviation_scatter_plot'))
+        
+        create_card("Top 10 Variantes de Processo por Frequência", "📊", chart_bytes=plots_pre.get('variants_frequency'))
+
 
 # --- CONTROLO PRINCIPAL DA APLICAÇÃO ---
 def main():
