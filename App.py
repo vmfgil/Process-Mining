@@ -655,13 +655,27 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
   return plots, metrics
 
 # Cartões
+# CÓDIGO CORRIGIDO PARA A FUNÇÃO card_header
+
 def card_header(title: str, icon: str = "📊", png_bytes: io.BytesIO = None, csv_df: pd.DataFrame = None, png_filename: str = "grafico.png", csv_filename: str = "tabela.csv", card_key: str = None):
+  # 1. Renderiza o HTML do cabeçalho como antes
   st.markdown(f"""
   <div class="card-header">
     <div class="card-title">{icon} {title}</div>
     <div class="card-actions"></div>
   </div>
   """, unsafe_allow_html=True)
+
+  # 2. Lógica corrigida: Só cria colunas e botões se houver dados para download
+  if png_bytes is not None or csv_df is not None:
+    # As colunas agora são criadas dentro desta condição
+    cols = st.columns(2)
+    if png_bytes is not None:
+      with cols[0]:
+        st.download_button("📥 PNG", data=png_bytes, file_name=png_filename, mime="image/png", key=f"dl_png_{card_key or title}_{uuid.uuid4()}")
+    if csv_df is not None:
+      with cols[1]:
+        st.download_button("📥 CSV", data=to_csv_bytes(csv_df), file_name=csv_filename, mime="text/csv", key=f"dl_csv_{card_key or title}_{uuid.uuid4()}")
 
   # SÓ CRIAR COLUNAS SE HOUVER ALGO PARA DESCARREGAR
   if png_bytes is not None or csv_df is not None:
