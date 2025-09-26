@@ -58,7 +58,7 @@ st.markdown("""
         color: var(--text-color-dark-bg) !important;
     }
 
-    /* --- ALTERAÇÃO 4 (Reforçada): Estilos para botões de navegação ativos e inativos --- */
+    /* --- ESTILOS PARA BOTÕES DE NAVEGAÇÃO ATIVOS E INATIVOS --- */
     /* Botão Inativo (Default) */
     .stButton>button {
         border: 1px solid var(--border-color) !important;
@@ -71,7 +71,7 @@ st.markdown("""
         border-color: var(--primary-color) !important;
         background-color: rgba(239, 68, 68, 0.2) !important;
     }
-    /* Botão Ativo (sobrescreve o estilo geral). A classe é aplicada via Python e permanece */
+    /* Botão Ativo (sobrescreve o estilo geral) */
     div.active-button .stButton>button {
         background-color: var(--primary-color) !important;
         color: var(--text-color-dark-bg) !important;
@@ -91,7 +91,7 @@ st.markdown("""
         color: var(--card-text-color) !important;
     }
     
-    /* --- ALTERAÇÃO 6: Garantir que os cartões têm a mesma altura e estão alinhados --- */
+    /* --- CARTÕES --- */
     .card {
         background-color: var(--card-background-color);
         color: var(--card-text-color);
@@ -107,7 +107,7 @@ st.markdown("""
     .card .card-header h4 { color: var(--card-text-color); font-size: 1.1rem; margin: 0; display: flex; align-items: center; gap: 8px; }
     .card-body { flex-grow: 1; padding-top: 15px; }
 
-    /* --- ALTERAÇÃO 5: Integração correta da tabela (dataframe) dentro do cartão --- */
+    /* --- INTEGRAÇÃO DE TABELA DENTRO DO CARTÃO --- */
     .dataframe-card-body {
         padding-top: 0 !important;
     }
@@ -121,7 +121,7 @@ st.markdown("""
         background-color: var(--card-background-color) !important;
     }
 
-    /* --- ALTERAÇÃO 1: Cor dos botões 'Browse files' para azul bebé --- */
+    /* --- CORREÇÃO DEFINITIVA 1: Cor dos botões 'Browse files' para azul bebé --- */
     section[data-testid="stFileUploader"] button {
         background-color: var(--baby-blue-bg) !important;
         color: var(--text-color-light-bg) !important;
@@ -135,7 +135,7 @@ st.markdown("""
         color: var(--text-color-light-bg) !important;
     }
 
-    /* --- ALTERAÇÃO 2: Cor do botão 'Iniciar Análise' para azul bebé --- */
+    /* --- CORREÇÃO DEFINITIVA 2: Cor do botão 'Iniciar Análise' para azul bebé --- */
     #iniciar-analise-button .stButton>button {
         background-color: var(--baby-blue-bg) !important;
         color: var(--text-color-light-bg) !important;
@@ -143,7 +143,7 @@ st.markdown("""
         font-weight: 700 !important;
     }
     
-    /* --- ALTERAÇÃO 7: Estilo dos cartões de métricas (KPIs) para terem fundo branco --- */
+    /* --- ESTILO DOS CARTÕES DE MÉTRICAS (KPIs) PARA FUNDO BRANCO --- */
     [data-testid="stMetric"] {
         background-color: var(--card-background-color);
         color: var(--card-text-color);
@@ -197,10 +197,7 @@ def convert_gviz_to_bytes(gviz, format='png'):
 def convert_df_to_csv(df):
     return df.to_csv(index=False).encode('utf-8')
 
-# --- ALTERAÇÃO 5 (Reforçada): Função `create_card` para garantir que tabelas ficam dentro dos cartões ---
 def create_card(title, icon, chart_bytes=None, dataframe=None):
-    # Usar st.container() garante que todos os elementos renderizados dentro dele
-    # são agrupados, respeitando a estrutura HTML/CSS do cartão.
     with st.container():
         if chart_bytes:
             b64_image = base64.b64encode(chart_bytes.getvalue()).decode()
@@ -220,7 +217,6 @@ def create_card(title, icon, chart_bytes=None, dataframe=None):
                 <div class="card-body dataframe-card-body">
             """, unsafe_allow_html=True)
             
-            # Renderizar o dataframe dentro do contexto do container
             st.dataframe(dataframe, use_container_width=True)
             
             st.markdown("""
@@ -243,7 +239,7 @@ if 'tables_pre_mining' not in st.session_state: st.session_state.tables_pre_mini
 if 'metrics' not in st.session_state: st.session_state.metrics = {}
 
 
-# --- FUNÇÕES DE ANÁLISE (O conteúdo destas funções permanece inalterado) ---
+# --- FUNÇÕES DE ANÁLISE ---
 @st.cache_data
 def run_pre_mining_analysis(dfs):
     plots = {}
@@ -567,7 +563,6 @@ def settings_page():
             uploaded_file = st.file_uploader(f"Carregar `{name}.csv`", type="csv", key=f"upload_{name}")
             if uploaded_file:
                 st.session_state.dfs[name] = pd.read_csv(uploaded_file)
-                # --- ALTERAÇÃO 3: Usar st.markdown para controlar o tamanho do texto de confirmação ---
                 st.markdown(f'<p style="font-size: small; color: #A0E9FF;">`{name}.csv` carregado.</p>', unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
@@ -586,7 +581,6 @@ def settings_page():
         st.subheader("Execução da Análise")
         st.success("Todos os ficheiros estão carregados. Pode iniciar a análise.")
         
-        # --- ALTERAÇÃO 2 (Reforçada): O ID no div garante que o CSS se aplica corretamente ---
         st.markdown('<div id="iniciar-analise-button">', unsafe_allow_html=True)
         if st.button("🚀 Iniciar Análise Completa", use_container_width=True):
             with st.spinner("A analisar os dados... Este processo pode demorar alguns minutos."):
@@ -617,8 +611,6 @@ def dashboard_page():
     
     sub_nav1, sub_nav2 = st.columns(2)
     with sub_nav1:
-        # --- ALTERAÇÃO 4 (Reforçada): A classe 'active-button' é aplicada condicionalmente. ---
-        # A classe permanece porque a página é redesenhada com base no session_state, mantendo a condição.
         button_class = "active-button" if is_pre_mining_active else ""
         st.markdown(f'<div class="{button_class}">', unsafe_allow_html=True)
         if st.button("📊 Análise Pré-Mineração", use_container_width=True):
@@ -665,7 +657,6 @@ def render_pre_mining_dashboard():
     if st.session_state.current_section == "overview":
         kpi_data = tables['kpi_data']
         kpi_cols = st.columns(4)
-        # --- ALTERAÇÃO 7 (Reforçada): O st.metric agora é estilizado via CSS para ter fundo branco.
         kpi_cols[0].metric(label="Total de Projetos", value=kpi_data['Total de Projetos'])
         kpi_cols[1].metric(label="Total de Tarefas", value=kpi_data['Total de Tarefas'])
         kpi_cols[2].metric(label="Total de Recursos", value=kpi_data['Total de Recursos'])
@@ -718,7 +709,6 @@ def render_pre_mining_dashboard():
     elif st.session_state.current_section == "advanced":
         kpi_data = tables.get('cost_of_delay_kpis', {})
         kpi_cols = st.columns(3)
-        # --- ALTERAÇÃO 7 (Reforçada): O st.metric agora é estilizado via CSS para ter fundo branco.
         kpi_cols[0].metric(label="Custo Total em Atraso", value=kpi_data.get('Custo Total Projetos Atrasados', 'N/A'))
         kpi_cols[1].metric(label="Atraso Médio", value=kpi_data.get('Atraso Médio (dias)', 'N/A'))
         kpi_cols[2].metric(label="Custo Médio/Dia de Atraso", value=kpi_data.get('Custo Médio/Dia Atraso', 'N/A'))
