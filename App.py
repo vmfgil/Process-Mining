@@ -228,6 +228,9 @@ def create_card(title, icon, chart_bytes=None, dataframe=None):
         """, unsafe_allow_html=True)
     elif dataframe is not None:
         # CONVERTER O DATAFRAME PARA HTML E APLICAR UMA CLASSE PARA ESTILOS
+        # Este método preserva o estilo básico do DataFrame do Pandas,
+        # mas precisa de estilos CSS adicionais para o modo escuro, que já tem no seu código.
+        # Adicionamos a classe 'pandas-df-card' para controlo de estilo.
         df_html = dataframe.to_html(classes=['pandas-df-card'], index=False)
         
         st.markdown(f"""
@@ -250,13 +253,10 @@ if 'analysis_run' not in st.session_state: st.session_state.analysis_run = False
 if 'plots_pre_mining' not in st.session_state: st.session_state.plots_pre_mining = {}
 if 'plots_post_mining' not in st.session_state: st.session_state.plots_post_mining = {}
 if 'tables_pre_mining' not in st.session_state: st.session_state.tables_pre_mining = {}
-if 'tables_post_mining' not in st.session_state: st.session_state.tables_post_mining = {} 
 if 'metrics' not in st.session_state: st.session_state.metrics = {}
-if 'event_log_df' not in st.session_state: st.session_state.event_log_df = None
-if 'user_name' not in st.session_state: st.session_state.user_name = 'Admin'
 
 
-# --- FUNÇÕES DE ANÁLISE (DO SCRIPT ORIGINAL) ---
+# --- FUNÇÕES DE ANÁLISE ---
 @st.cache_data
 def run_pre_mining_analysis(dfs):
     plots = {}
@@ -494,367 +494,497 @@ def run_pre_mining_analysis(dfs):
     fig, ax = plt.subplots(figsize=(8, 4)); avg_cycle_time_by_phase.plot(kind='bar', color=sns.color_palette('tab10'), ax=ax); ax.set_title("Duração Média por Fase do Processo"); plt.xticks(rotation=0)
     plots['cycle_time_breakdown'] = convert_fig_to_bytes(fig)
     
-    # Gráfico 26: Análise de Desvios de Tempo de Marcos do Processo
-    # Assumindo que df_projects tem 'days_diff' > 0 para atrasos
-    fig, ax = plt.subplots(figsize=(8, 5)); sns.histplot(df_projects['days_diff'], bins=30, kde=True, ax=ax, color='#FBBF24'); ax.set_title("Desvios de Prazo (Atraso em Dias)")
-    plots['milestone_time_analysis_plot'] = convert_fig_to_bytes(fig)
-
     return plots, tables, event_log_pm4py, df_projects, df_tasks, df_resources, df_full_context
 
 @st.cache_data
 def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_resources, _df_full_context):
     plots = {}
     metrics = {}
-    tables = {}
     
+    # Criação do Log Completo (Start/Complete)
     df_start_events = _df_tasks_raw[['project_id', 'task_id', 'task_name', 'start_date']].rename(columns={'start_date': 'time:timestamp', 'task_name': 'concept:name', 'project_id': 'case:concept:name'})
     df_start_events['lifecycle:transition'] = 'start'
+    
     df_complete_events = _df_tasks_raw[['project_id', 'task_id', 'task_name', 'end_date']].rename(columns={'end_date': 'time:timestamp', 'task_name': 'concept:name', 'project_id': 'case:concept:name'})
     df_complete_events['lifecycle:transition'] = 'complete'
-    log_df_full_lifecycle = pd.concat([df_start_events, df_complete_events]).sort_values('time:timestamp')
-    log_full_pm4py = pm4py.convert_to_event_log(log_df_full_lifecycle)
     
-    variants_dict = variants_filter.get_variants(_event_log_pm4py)
-    top_variants_list = sorted(variants_dict.items(), key=lambda x: len(x[1]), reverse=True)[:3]
-    top_variant_names = [v[0] for v in top_variants_list]
-    log_top_3_variants = variants_filter.apply(_event_log_pm4py, top_variant_names)
-
-    # Inductive Miner
-    pt_inductive = inductive_miner.apply(log_top_3_variants)
-    net_im, im_im, fm_im = pt_converter.apply(pt_inductive)
-    gviz_im = pn_visualizer.apply(net_im, im_im, fm_im)
-    plots['model_inductive_petrinet'] = convert_gviz_to_bytes(gviz_im)
-
-    def plot_metrics_chart(metrics_dict, title):
-        df_metrics = pd.DataFrame(list(metrics_dict.items()), columns=['Métrica', 'Valor'])
-        fig, ax = plt.subplots(figsize=(8, 4)); 
-        barplot = sns.barplot(data=df_metrics, x='Métrica', y='Valor', ax=ax, hue='Métrica', legend=False, palette='coolwarm')
-        for p in barplot.patches:
-            ax.annotate(f'{p.get_height():.2f}', (p.get_x() + p.get_width() / 2., p.get_height()), ha='center', va='center', xytext=(0, 9), textcoords='offset points', color='#E5E7EB')
-        ax.set_title(title); ax.set_ylim(0, 1.05); 
-        return fig
-
-    metrics_im = {
-        "Fitness": replay_fitness_evaluator.apply(log_top_3_variants, net_im, im_im, fm_im, variant=replay_fitness_evaluator.Variants.TOKEN_BASED).get('average_trace_fitness', 0),
-        "Precisão": precision_evaluator.apply(log_top_3_variants, net_im, im_im, fm_im),
-        "Generalização": generalization_evaluator.apply(log_top_3_variants, net_im, im_im, fm_im),
-        "Simplicidade": simplicity_evaluator.apply(net_im)
+    # Adicionar recurso. A associação recurso->tarefa é feita no full context
+    df_full_context_for_merge = _df_full_context[['task_id', 'resource_name']].drop_duplicates()
+    
+    df_start_events = df_start_events.merge(df_full_context_for_merge, on='task_id', how='left').rename(columns={'resource_name': 'org:resource'})
+    df_complete_events = df_complete_events.merge(df_full_context_for_merge, on='task_id', how='left').rename(columns={'resource_name': 'org:resource'})
+    
+    df_log = pd.concat([df_start_events, df_complete_events]).sort_values(['case:concept:name', 'time:timestamp'])
+    
+    # Filtra eventos sem carimbo de data/hora válido
+    df_log.dropna(subset=['time:timestamp'], inplace=True)
+    
+    full_event_log = pm4py.convert_to_event_log(df_log)
+    
+    # 1. Descoberta do Processo (DFG, Heuristics e Petri Net)
+    
+    # --- DFG (Directly-Follows Graph) ---
+    dfg = dfg_discovery.apply(full_event_log)
+    gviz_dfg = dfg_visualizer.apply(dfg, log=full_event_log, variant=dfg_visualizer.Variants.FREQUENCY)
+    plots['dfg_frequency'] = convert_gviz_to_bytes(gviz_dfg, format='svg') # SVG para maior qualidade e zoom
+    
+    dfg_perf = dfg_discovery.apply(full_event_log, parameters={dfg_discovery.Variants.PERFORMANCE.value.Parameters.ACTIVITY_KEY: "concept:name", dfg_discovery.Variants.PERFORMANCE.value.Parameters.TIMESTAMP_KEY: "time:timestamp"})
+    gviz_dfg_perf = dfg_visualizer.apply(dfg_perf, log=full_event_log, variant=dfg_visualizer.Variants.PERFORMANCE)
+    plots['dfg_performance'] = convert_gviz_to_bytes(gviz_dfg_perf, format='svg')
+    
+    # --- Descoberta de Petri Net (Inductive Miner) ---
+    net, initial_marking, final_marking = inductive_miner.apply(full_event_log, parameters={inductive_miner.Variants.IMf.value.Parameters.ACTIVITY_KEY: "concept:name"})
+    gviz_pn = pn_visualizer.apply(net, initial_marking, final_marking, parameters={pn_visualizer.Variants.FREQUENCY.value.Parameters.ACTIVITY_KEY: "concept:name"})
+    plots['petri_net_frequency'] = convert_gviz_to_bytes(gviz_pn, format='svg')
+    
+    # --- Heuristics Miner (para visualizar Loops/Caminhos Mais Comuns) ---
+    heu_net, heu_map = heuristics_miner.apply(full_event_log, parameters={heuristics_miner.Variants.CLASSIC.value.Parameters.ACTIVITY_KEY: "concept:name"})
+    gviz_heu_net = pn_visualizer.apply(heu_net, heu_map, heu_map, parameters={pn_visualizer.Variants.FREQUENCY.value.Parameters.ACTIVITY_KEY: "concept:name"})
+    plots['heuristics_net'] = convert_gviz_to_bytes(gviz_heu_net, format='svg')
+    
+    # 2. Conformidade
+    
+    # Avaliação de Fitness e Precisão (contra a Petri Net)
+    fitness = replay_fitness_evaluator.apply(full_event_log, net, initial_marking, final_marking, parameters={pm4py.util.constants.PARAMETER_CONSTANT_ACTIVITY_KEY: "concept:name"})
+    precision = precision_evaluator.apply(full_event_log, net, initial_marking, final_marking, parameters={pm4py.util.constants.PARAMETER_CONSTANT_ACTIVITY_KEY: "concept:name"})
+    generalization = generalization_evaluator.apply(full_event_log, net, initial_marking, final_marking, parameters={pm4py.util.constants.PARAMETER_CONSTANT_ACTIVITY_KEY: "concept:name"})
+    simplicity = simplicity_evaluator.apply(net)
+    
+    metrics['conformance_metrics'] = {
+        'Fitness (Ajuste)': f"{fitness['average_trace_fitness']:.3f}",
+        'Precision (Precisão)': f"{precision:.3f}",
+        'Generalization (Generalização)': f"{generalization:.3f}",
+        'Simplicity (Simplicidade)': f"{simplicity:.3f}"
     }
-    plots['metrics_inductive'] = convert_fig_to_bytes(plot_metrics_chart(metrics_im, 'Métricas de Qualidade (Inductive Miner)'))
-    metrics['inductive_miner'] = metrics_im
-
-    # Heuristics Miner
-    net_hm, im_hm, fm_hm = heuristics_miner.apply(log_top_3_variants, parameters={heuristics_miner.Variants.CLASSIC.value.Parameters.DEPENDENCY_THRESH: 0.5})
-    gviz_hm = pn_visualizer.apply(net_hm, im_hm, fm_hm)
-    plots['model_heuristic_petrinet'] = convert_gviz_to_bytes(gviz_hm)
     
-    metrics_hm = {
-        "Fitness": replay_fitness_evaluator.apply(log_top_3_variants, net_hm, im_hm, fm_hm, variant=replay_fitness_evaluator.Variants.TOKEN_BASED).get('average_trace_fitness', 0),
-        "Precisão": precision_evaluator.apply(log_top_3_variants, net_hm, im_hm, fm_hm),
-        "Generalização": generalization_evaluator.apply(log_top_3_variants, net_hm, im_hm, fm_hm),
-        "Simplicidade": simplicity_evaluator.apply(net_hm)
+    # Mapeamento de Atividades
+    activities = pm4py.get_event_attribute_values(full_event_log, "concept:name")
+    activities_df = pd.DataFrame(list(activities.items()), columns=['Activity', 'Frequency'])
+    
+    # 3. Análise de Desvio (Apenas para o caso de Conformance)
+    
+    # Alignment Analysis
+    aligned_traces = alignments_miner.apply_log(full_event_log, net, initial_marking, final_marking, parameters={pm4py.util.constants.PARAMETER_CONSTANT_ACTIVITY_KEY: "concept:name"})
+    
+    # Média de custo de desvio
+    mean_cost = np.mean([trace['cost'] for trace in aligned_traces])
+    
+    # Desvios mais comuns (movimentos fora do modelo)
+    deviations = []
+    for trace in aligned_traces:
+        for move in trace['alignment']:
+            if move[0] is not None and move[1] is None: # Move no Log (Skip no Modelo) - Desvio!
+                deviations.append(f"Move no Log (Activity: {move[0]})")
+            elif move[0] is None and move[1] is not None: # Move no Modelo (Skip no Log) - Desvio!
+                deviations.append(f"Move no Modelo (Transition: {move[1]})")
+                
+    deviation_counts = Counter(deviations)
+    df_deviations = pd.DataFrame(deviation_counts.most_common(10), columns=['Desvio', 'Frequência'])
+    
+    metrics['deviation_metrics'] = {
+        'Custo Médio de Desvio (Trilha)': f"{mean_cost:.2f}",
+        'Total de Desvios Detectados': len(deviations)
     }
-    plots['metrics_heuristic'] = convert_fig_to_bytes(plot_metrics_chart(metrics_hm, 'Métricas de Qualidade (Heuristics Miner)'))
-    metrics['heuristic_miner'] = metrics_hm
+    
+    # Gráfico 26: Top 10 Desvios de Conformidade
+    fig, ax = plt.subplots(figsize=(8, 5)); sns.barplot(data=df_deviations, y='Desvio', x='Frequência', ax=ax, hue='Desvio', legend=False, palette='coolwarm'); ax.set_title("Top 10 Desvios de Conformidade")
+    plots['top_deviations'] = convert_fig_to_bytes(fig)
+    
+    # 4. Análise de Desempenho no Modelo (DFG Performance)
+    # Já foi feito no DFG acima.
+    
+    # Mapeamento de Casos por Variante (reutilizando pre-mining)
+    variants_df = pm4py.get_variants(full_event_log)
+    df_variants_counts = pd.DataFrame(list(variants_df.items()), columns=['Variant', 'Traces'])
+    df_variants_counts['Frequency'] = df_variants_counts['Traces'].apply(len)
+    df_variants_counts.sort_values(by='Frequency', ascending=False, inplace=True)
+    df_variants_counts['Variant_Activities'] = df_variants_counts['Variant'].apply(lambda x: x.split(','))
+    df_variants_counts['Activities_Count'] = df_variants_counts['Variant_Activities'].apply(len)
+    
+    # Duração média por variante
+    variant_performance = pm4py.get_event_attribute_values(full_event_log, "case:concept:name")
+    
+    # Necessário converter para um log mapeado (case_id -> log)
+    # É mais fácil calcular fora do PM4PY a partir do DF log.
+    
+    # Calcular a duração de ponta a ponta (Lead Time) para cada variante
+    lead_time_df = df_log.groupby('case:concept:name')['time:timestamp'].agg(['min', 'max']).reset_index()
+    lead_time_df['duration'] = (lead_time_df['max'] - lead_time_df['min']).dt.total_seconds() / 3600
+    
+    # Mapear cada caso à sua variante
+    case_to_variant = {k: ','.join(v) for k, v in pm4py.get_variants(full_event_log, "concept:name").items()}
+    lead_time_df['Variant'] = lead_time_df['case:concept:name'].map(case_to_variant)
+    
+    avg_duration_by_variant = lead_time_df.groupby('Variant')['duration'].mean().sort_values(ascending=False).reset_index().head(10)
+    avg_duration_by_variant['Variant'] = avg_duration_by_variant['Variant'].str.replace(',', ' -> ')
+    
+    # Gráfico 27: Top 10 Variantes por Duração Média (Lead Time)
+    fig, ax = plt.subplots(figsize=(12, 6)); sns.barplot(x='duration', y='Variant', data=avg_duration_by_variant, ax=ax, hue='Variant', legend=False, palette='magma'); ax.set_title("Top 10 Variantes por Duração Média (Horas)")
+    plots['variant_lead_time'] = convert_fig_to_bytes(fig)
+    
+    # 5. Análise de Atividades (Baseado em Frequência)
+    activities_counts = pm4py.get_event_attribute_values(full_event_log, "concept:name")
+    df_activities_counts = pd.DataFrame(list(activities_counts.items()), columns=['Activity', 'Frequency']).sort_values('Frequency', ascending=False).head(10)
+    
+    # Média de ocorrências por caso (para normalizar)
+    num_cases = pm4py.get_trace_attribute_values(full_event_log, "case:concept:name")
+    df_activities_counts['Avg_Per_Case'] = df_activities_counts['Frequency'] / len(num_cases)
+    
+    # Gráfico 28: Média de Ocorrências por Atividade (por caso)
+    fig, ax = plt.subplots(figsize=(8, 5)); sns.barplot(data=df_activities_counts.sort_values('Avg_Per_Case', ascending=False), y='Activity', x='Avg_Per_Case', ax=ax, hue='Activity', legend=False, palette='flare'); ax.set_title("Média de Ocorrências por Atividade (por Caso)")
+    plots['activity_avg_per_case'] = convert_fig_to_bytes(fig)
+    
+    # 6. Análise de Recursos (Baseado em Workload e Handoffs - já está no pre-mining)
+    
+    return plots, metrics
 
-    # DFG de Performance
-    dfg_perf_gviz = dfg_visualizer.apply(dfg_discovery.apply(_event_log_pm4py, parameters={'activity_key': 'concept:name', 'timestamp_key': 'time:timestamp', 'case_id_key': 'case:concept:name', 'measure': 'performance'}))
-    plots['dfg_performance_visualization'] = convert_gviz_to_bytes(dfg_perf_gviz)
-    
-    # DFG de Frequência (usado para variants_dfg_visualization)
-    dfg_freq_gviz = dfg_visualizer.apply(dfg_discovery.apply(_event_log_pm4py))
-    plots['variants_dfg_visualization'] = convert_gviz_to_bytes(dfg_freq_gviz)
-
-    # Social Network
-    social_network_gviz = pm4py.viz.social_network.visualizer.apply(pm4py.discover_social_network(_event_log_pm4py))
-    plots['social_network_visualization'] = convert_gviz_to_bytes(social_network_gviz)
-
-    # Conformance (Alignments)
-    alignments = alignments_miner.apply(_event_log_pm4py, net_im, im_im, fm_im, parameters={alignments_miner.Variants.VERSION_TOKEN_BASED.value.Parameters.RET_COMP_STATS: True})
-    
-    # Resumo da Conformidade
-    df_alignments = pd.DataFrame([{
-        'Case ID': trace['case:concept:name'],
-        'Fitness': trace['fitness'],
-        'Custo (Modelo vs Real)': trace['cost'],
-        'É Desvio?': trace['cost'] > 0
-    } for trace in alignments])
-    
-    alignments_summary = df_alignments.groupby('É Desvio?').agg(
-        Num_Casos=('Case ID', 'count'),
-        Fitness_Media=('Fitness', 'mean'),
-        Custo_Total=('Custo (Modelo vs Real)', 'sum')
-    ).reset_index()
-    tables['alignments_summary'] = alignments_summary
-    
-    def plot_conformance_hist(df_alignments):
-        fig, ax = plt.subplots(figsize=(8, 5)); 
-        sns.histplot(df_alignments['Fitness'], bins=20, kde=True, ax=ax, color="#06B6D4"); 
-        ax.set_title("Distribuição do Fitness de Conformidade");
-        return fig
-    
-    plots['conformance_alignments_visualization'] = convert_fig_to_bytes(plot_conformance_hist(df_alignments))
-    
-    return plots, tables, metrics
-
-# --- PÁGINA DE CONFIGURAÇÕES (Lógica reconstruída para garantir integridade) ---
-def settings_page():
-    st.title("⚙️ Configurações e Carregamento de Dados")
-    st.markdown("Faça o upload dos 5 ficheiros CSV necessários para a análise.")
-    
-    # Lógica de upload completa
-    df_files = {}
-    required_files = ['projects', 'tasks', 'resources', 'resource_allocations', 'dependencies']
-    
-    for filename in required_files:
-        uploaded_file = st.file_uploader(f"Upload: {filename}.csv", type=['csv'], key=f'file_{filename}')
-        if uploaded_file is not None:
-            try:
-                df_files[filename] = pd.read_csv(uploaded_file)
-                st.session_state.dfs[filename] = df_files[filename]
-                st.success(f"{filename}.csv carregado com sucesso.")
-            except Exception as e:
-                st.error(f"Erro ao carregar {filename}.csv: {e}")
-
-    all_files_loaded = all(st.session_state.dfs[f] is not None for f in required_files)
-    
-    st.markdown("---")
-
-    if st.button("▶️ Iniciar Análise de Dados", disabled=not all_files_loaded, use_container_width=True, key='run_analysis', help="Carregue todos os 5 ficheiros CSV para iniciar."):
-        with st.spinner('A processar dados e a executar algoritmos de Mineração de Processos...'):
-            try:
-                plots_pre, tables_pre, event_log, df_projects, df_tasks, df_resources, df_full_context = run_pre_mining_analysis(st.session_state.dfs)
-                plots_post, tables_post, metrics_post = run_post_mining_analysis(event_log, df_projects, df_tasks, df_resources, df_full_context)
-                
-                st.session_state.plots_pre_mining = plots_pre
-                st.session_state.tables_pre_mining = tables_pre
-                st.session_state.plots_post_mining = plots_post
-                st.session_state.tables_post_mining = tables_post
-                st.session_state.metrics = metrics_post
-                st.session_state.event_log_df = pm4py.convert_to_dataframe(event_log) # Para a tabela no dashboard
-                st.session_state.analysis_run = True
-                st.success("Análise concluída com sucesso! Vá para o Dashboard Geral.")
-                
-            except Exception as e:
-                st.error(f"Ocorreu um erro durante a análise: {e}")
-                st.session_state.analysis_run = False
-                
-    if st.session_state.analysis_run:
-        st.success("Análise de dados pronta. Volte ao Dashboard Geral.")
-
-
-# --- PÁGINA LOGIN (Lógica reconstruída para garantir integridade) ---
+# --- FUNÇÕES DE NAVEGAÇÃO E LAYOUT ---
 def login_page():
-    st.title("🔒 Login")
-    
-    # Controlo de layout para centralizar o login
-    col_login, col_empty = st.columns([1, 2])
-    
-    with col_login:
-        username = st.text_input("Utilizador", value="admin")
-        password = st.text_input("Palavra-passe", type="password", value="admin")
-        
-        if st.button("Entrar", use_container_width=True):
-            # Credenciais hardcoded como no código original
-            if username == "admin" and password == "admin":
+    st.title("🔐 Login")
+    with st.form("login_form"):
+        st.text_input("Username", key="login_user")
+        st.text_input("Password", type="password", key="login_pass")
+        submitted = st.form_submit_button("Login")
+
+        if submitted:
+            if st.session_state.login_user == "admin" and st.session_state.login_pass == "admin":
                 st.session_state.authenticated = True
-                st.session_state.user_name = username
-                st.session_state.current_page = "Dashboard"
+                st.session_state.user_name = "Administrador"
                 st.rerun()
             else:
-                st.error("Credenciais Inválidas")
+                st.error("Credenciais inválidas.")
 
-
-# --- PÁGINA DASHBOARD (COM AS ALTERAÇÕES SOLICITADAS) ---
-def dashboard_page():
-    st.title("📊 Dashboard de Análise de Processos")
-    st.markdown("Uma visão abrangente dos resultados da Mineração de Processos e da Análise Exploratória.")
+def settings_page():
+    st.title("⚙️ Configurações e Upload de Dados")
     
+    file_ids = ['projects', 'tasks', 'resources', 'resource_allocations', 'dependencies']
+    file_names = {
+        'projects': 'projects.csv (Projetos)',
+        'tasks': 'tasks.csv (Tarefas)',
+        'resources': 'resources.csv (Recursos)',
+        'resource_allocations': 'resource_allocations.csv (Alocações)',
+        'dependencies': 'dependencies.csv (Dependências)'
+    }
+
+    uploaded_files = {}
+    
+    for id in file_ids:
+        uploaded_files[id] = st.file_uploader(f"Carregar {file_names[id]}", type=['csv'], key=f'uploader_{id}')
+    
+    all_files_uploaded = all(uploaded_files.values())
+    
+    if all_files_uploaded:
+        st.success("Todos os 5 ficheiros CSV foram carregados com sucesso. Pronto para análise!")
+        
+        if st.button("Iniciar Análise", key='start_analysis_btn', use_container_width=True):
+            with st.spinner('A carregar dados e a executar a análise inicial...'):
+                try:
+                    dfs = {}
+                    for id, file in uploaded_files.items():
+                        # Usar io.StringIO para ler o conteúdo do arquivo
+                        dfs[id] = pd.read_csv(io.StringIO(file.getvalue().decode('utf-8')))
+                    
+                    st.session_state.dfs = dfs
+                    
+                    # Run pre-mining analysis
+                    plots_pre, tables_pre, event_log, df_projects, df_tasks, df_resources, df_full_context = run_pre_mining_analysis(dfs)
+                    
+                    # Run post-mining analysis
+                    plots_post, metrics_post = run_post_mining_analysis(event_log, df_projects, df_tasks, df_resources, df_full_context)
+                    
+                    st.session_state.plots_pre_mining = plots_pre
+                    st.session_state.tables_pre_mining = tables_pre
+                    st.session_state.plots_post_mining = plots_post
+                    st.session_state.metrics = metrics_post
+                    st.session_state.analysis_run = True
+                    st.success("Análise concluída com sucesso!")
+                    st.session_state.current_page = "Dashboard"
+                    st.rerun()
+
+                except Exception as e:
+                    st.error(f"Ocorreu um erro durante o processamento ou análise: {e}")
+                    st.session_state.analysis_run = False
+    else:
+        st.warning("Por favor, carregue os 5 ficheiros CSV para iniciar a análise.")
+
+def dashboard_page():
+    st.title("📊 Dashboard de Transformação Inteligente de Processos")
+
     if not st.session_state.analysis_run:
-        st.info("Por favor, carregue os dados e inicie a análise nas Configurações.")
+        st.info("Por favor, vá a **Configurações** para carregar os ficheiros e iniciar a análise.")
         return
 
-    plots_pre = st.session_state.plots_pre_mining
-    tables_pre = st.session_state.tables_pre_mining
+    plots = st.session_state.plots_pre_mining
     plots_post = st.session_state.plots_post_mining
-    tables_post = st.session_state.tables_post_mining
-    metrics_post = st.session_state.metrics
+    tables = st.session_state.tables_pre_mining
+    metrics = st.session_state.metrics
+
+    # Navegação entre Pré-Mineração e Pós-Mineração
+    col_nav1, col_nav2 = st.columns([1, 1])
+    with col_nav1:
+        if st.button("Pré-Mineração (Dados Estruturais)", use_container_width=True, help="Análise de dados estruturais de projetos e recursos"):
+            st.session_state.current_dashboard = "Pré-Mineração"
+            st.rerun()
+    with col_nav2:
+        if st.button("Pós-Mineração (Process Mining)", use_container_width=True, help="Análise de fluxo, conformidade e desempenho do processo"):
+            st.session_state.current_dashboard = "Pós-Mineração"
+            st.rerun()
     
-    # ----------------------------------------------------
-    # --- ALTERAÇÃO APLICADA: REORGANIZAÇÃO DAS ABAS ---
-    # ----------------------------------------------------
+    st.markdown("---")
+    
+    # Reorganização em 5 abas para o Dashboard
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "💰 Visão Geral e Custos",
         "⚡ Performance",
-        "🧑‍💻 Recursos",
-        "🚦 Gargalos e Espera",
-        "✅ Fluxo e Conformidade"
+        "👥 Recursos",
+        "⏳ Gargalos e Espera",
+        "🌐 Fluxo e Conformidade"
     ])
-    # ----------------------------------------------------
-    # --- FIM DA ALTERAÇÃO NA DEFINIÇÃO DAS ABAS ---
-    # ----------------------------------------------------
 
-    # --- 1. VISÃO GERAL E CUSTOS ---
-    with tab1:
-        st.header("Visão Geral e Custos (Análise Exploratória)")
-        
-        # 1.1. KPIs (Linha 1)
-        col1, col2, col3, col4 = st.columns(4)
-        kpi_data = tables_pre.get('kpi_data', {})
-        col1.metric("Total de Projetos", kpi_data.get('Total de Projetos', 'N/A'))
-        col2.metric("Total de Tarefas", kpi_data.get('Total de Tarefas', 'N/A'))
-        col3.metric("Total de Recursos", kpi_data.get('Total de Recursos', 'N/A'))
-        col4.metric("Duração Média", f"{kpi_data.get('Duração Média (dias)', 'N/A')} dias")
+    if st.session_state.current_dashboard == "Pré-Mineração":
+        st.subheader("Análise Pré-Mineração: Estrutura e Métricas de Projeto")
 
-        st.markdown("---")
+        # ----------------------------------------------------
+        # TAB 1: VISÃO GERAL E CUSTOS (KPIs, Matriz, Custos)
+        # ----------------------------------------------------
+        with tab1:
+            st.subheader("Métricas Chave de Projeto")
+            kpi_data = tables.get('kpi_data', {})
+            colk1, colk2, colk3, colk4 = st.columns(4)
+            colk1.metric("Projetos", kpi_data.get('Total de Projetos', '-'))
+            colk2.metric("Tarefas", kpi_data.get('Total de Tarefas', '-'))
+            colk3.metric("Recursos", kpi_data.get('Total de Recursos', '-'))
+            colk4.metric("Duração Média", kpi_data.get('Duração Média (dias)', '-'), delta="dias")
 
-        # 1.2. KPIs de Custo e Atraso (Linha 2)
-        col_c1, col_c2, col_c3 = st.columns(3)
-        cost_delay_kpis = tables_pre.get('cost_of_delay_kpis', {})
-        col_c1.metric("Custo Total Projetos Atrasados", cost_delay_kpis.get('Custo Total Projetos Atrasados', 'N/A'))
-        col_c2.metric("Atraso Médio", f"{cost_delay_kpis.get('Atraso Médio (dias)', 'N/A')} dias")
-        col_c3.metric("Custo Médio/Dia Atraso", cost_delay_kpis.get('Custo Médio/Dia Atraso', 'N/A'))
-        
-        st.markdown("---")
-        
-        # 1.3. Gráficos Principais e Outliers
-        col_g1, col_g2 = st.columns(2)
-        
-        with col_g1:
-            create_card("Matriz de Performance (Desvio de Custo vs. Tempo)", "⚖️", chart_bytes=plots_pre.get('performance_matrix'))
-            create_card("Custo por Tipo de Recurso", "💸", chart_bytes=plots_pre.get('cost_by_resource_type'))
-        
-        with col_g2:
-            create_card("Distribuição da Duração dos Projetos", "📦", chart_bytes=plots_pre.get('case_durations_boxplot'))
+            st.markdown("---")
+            st.subheader("Análise Financeira e de Duração")
             
-        st.markdown("---")
-        
-        col_g3, col_g4 = st.columns(2)
-        with col_g3:
-            create_card("Top 10 Projetos Outliers de Duração", "⏰", dataframe=tables_pre.get('outlier_duration'))
-        with col_g4:
-            create_card("Top 10 Projetos Outliers de Custo", "💰", dataframe=tables_pre.get('outlier_cost'))
+            col1, col2 = st.columns(2)
+            with col1:
+                # Gráfico 1: Matriz de Performance
+                create_card("Matriz de Performance (Atraso vs Custo)", "📈", chart_bytes=plots.get('performance_matrix'))
+            with col2:
+                # Tabela: Top 5 Projetos com Maior Custo
+                create_card("Top 5 Projetos por Custo Total", "💸", dataframe=tables.get('outlier_cost'))
 
-    # --- 2. PERFORMANCE ---
-    with tab2:
-        st.header("Análise de Performance Temporal e Eficiência")
+            col3, col4 = st.columns(2)
+            with col3:
+                # Gráfico 15: Custo por Tipo de Recurso
+                create_card("Custo Total por Tipo de Recurso", "💰", chart_bytes=plots.get('cost_by_resource_type'))
+            with col4:
+                # Tabela: Top 5 Projetos com Maior Duração
+                create_card("Top 5 Projetos por Duração Real", "⏱️", dataframe=tables.get('outlier_duration'))
 
-        # 2.1. Gráficos de Distribuição de Tempo
-        col_p1, col_p2 = st.columns(2)
-        with col_p1:
-            create_card("Distribuição do Lead Time (dias)", "⏱️", chart_bytes=plots_pre.get('lead_time_hist'))
-            create_card("Distribuição do Throughput (horas)", "💨", chart_bytes=plots_pre.get('throughput_hist'))
+            st.markdown("---")
+            st.subheader("Custo e Impacto do Atraso")
+            kpi_delay = tables.get('cost_of_delay_kpis', {})
+            cold1, cold2, cold3 = st.columns(3)
+            cold1.metric("Custo Total Atrasos", kpi_delay.get('Custo Total Projetos Atrasados', '-'))
+            cold2.metric("Atraso Médio", kpi_delay.get('Atraso Médio (dias)', '-'), delta="dias")
+            cold3.metric("Custo/Dia de Atraso", kpi_delay.get('Custo Médio/Dia Atraso', '-'))
+
+        # ----------------------------------------------------
+        # TAB 2: PERFORMANCE (Duração, Lead Time, Throughput)
+        # ----------------------------------------------------
+        with tab2:
+            st.subheader("Métricas de Duração e Tempo de Ciclo")
             
-        with col_p2:
-            create_card("Relação Lead Time vs Throughput", "📈", chart_bytes=plots_pre.get('lead_time_vs_throughput'))
-            create_card("Boxplot do Throughput (horas)", "📦", chart_bytes=plots_pre.get('throughput_boxplot'))
+            col1, col2 = st.columns(2)
+            with col1:
+                # Gráfico 2: Distribuição da Duração dos Projetos
+                create_card("Distribuição da Duração dos Projetos (dias)", "📊", chart_bytes=plots.get('case_durations_boxplot'))
+            with col2:
+                # Gráfico 25: Duração Média por Fase do Processo
+                create_card("Duração Média por Fase do Processo", "🔄", chart_bytes=plots.get('cycle_time_breakdown'))
+                
+            st.markdown("---")
+            st.subheader("Análise de Lead Time e Throughput")
             
-        st.subheader("Performance do Fluxo (Process Mining)")
-        create_card("DFG de Performance (Tempo Médio)", "🗺️", chart_bytes=plots_post.get('dfg_performance_visualization'))
+            col3, col4 = st.columns(2)
+            with col3:
+                # Gráfico 3: Distribuição do Lead Time
+                create_card("Distribuição do Lead Time (dias)", "📈", chart_bytes=plots.get('lead_time_hist'))
+            with col4:
+                # Gráfico 4: Distribuição do Throughput (Horas)
+                create_card("Distribuição do Throughput (horas)", "📉", chart_bytes=plots.get('throughput_hist'))
+                
+            col5, col6 = st.columns(2)
+            with col5:
+                # Gráfico 6: Relação Lead Time vs Throughput
+                create_card("Relação Lead Time vs Throughput", "🎯", chart_bytes=plots.get('lead_time_vs_throughput'))
+            with col6:
+                # Gráfico 24: Benchmark de Throughput por Tamanho da Equipa
+                create_card("Benchmark de Throughput por Tamanho da Equipa", "⚖️", chart_bytes=plots.get('throughput_benchmark_by_teamsize'))
 
-        st.subheader("Performance por Atividade e Estrutura")
-        col_p3, col_p4 = st.columns(2)
-        with col_p3:
-            create_card("Tempo Médio de Execução por Atividade", "⏳", chart_bytes=plots_pre.get('activity_service_times'))
-            create_card("Duração Média por Fase do Processo", "🗂️", chart_bytes=plots_pre.get('cycle_time_breakdown'))
-        with col_p4:
-            create_card("Atividades Mais Frequentes", "🔢", chart_bytes=plots_pre.get('top_activities_plot'))
+
+        # ----------------------------------------------------
+        # TAB 3: RECURSOS (Workload, Handoffs, Impacto da Equipa)
+        # ----------------------------------------------------
+        with tab3:
+            st.subheader("Análise de Workload e Eficiência de Recursos")
             
-        st.subheader("Impacto Organizacional na Performance")
-        col_p5, col_p6 = st.columns(2)
-        with col_p5:
-            create_card("Impacto do Tamanho da Equipa no Atraso", "🧑‍🤝‍🧑", chart_bytes=plots_pre.get('delay_by_teamsize'))
-            create_card("Benchmark de Throughput por Tamanho da Equipa", "🚀", chart_bytes=plots_pre.get('throughput_benchmark_by_teamsize'))
-        with col_p6:
-            create_card("Duração Mediana por Tamanho da Equipa", "⏱️", chart_bytes=plots_pre.get('median_duration_by_teamsize'))
+            col1, col2 = st.columns(2)
+            with col1:
+                # Gráfico 11: Top 10 Recursos por Horas Trabalhadas
+                create_card("Top 10 Recursos por Horas Trabalhadas", "💪", chart_bytes=plots.get('resource_workload'))
+            with col2:
+                # Gráfico 13: Heatmap de Esforço por Recurso e Atividade
+                create_card("Heatmap de Esforço (Recurso vs. Atividade)", "🔥", chart_bytes=plots.get('resource_activity_matrix'))
 
-    # --- 3. RECURSOS ---
-    with tab3:
-        st.header("Análise de Carga de Trabalho e Interação de Recursos")
-
-        # 3.1. Carga de Trabalho e Utilização
-        col_r1, col_r2 = st.columns(2)
-        with col_r1:
-            create_card("Top 10 Recursos por Horas Trabalhadas", "💪", chart_bytes=plots_pre.get('resource_workload'))
-        with col_r2:
-            create_card("Recursos por Média de Tarefas por Projeto", "🎯", chart_bytes=plots_pre.get('resource_avg_events'))
-
-        st.subheader("Matriz de Esforço")
-        create_card("Heatmap de Esforço por Recurso e Atividade", "🔥", chart_bytes=plots_pre.get('resource_activity_matrix'))
-
-        st.subheader("Interação e Colaboração (Social Mining)")
-        col_r3, col_r4 = st.columns(2)
-        with col_r3:
-            create_card("Rede Social de Recursos (Handoffs)", "🌐", chart_bytes=plots_post.get('social_network_visualization'))
-        with col_r4:
-            create_card("Top 10 Handoffs entre Recursos (Frequência)", "🔄", chart_bytes=plots_pre.get('resource_handoffs'))
-        
-        st.subheader("Eficiência e Produtividade")
-        create_card("Eficiência Semanal (Horas Trabalhadas)", "📅", chart_bytes=plots_pre.get('weekly_efficiency'))
-
-    # --- 4. GARGALOS E ESPERA ---
-    with tab4:
-        st.header("Identificação de Tempos de Espera e Estrangulamentos")
-
-        # 4.1. Análise de Espera e Serviço
-        col_g1, col_g2 = st.columns(2)
-        with col_g1:
-            create_card("Gargalos: Tempo de Serviço vs. Espera (Stacked)", "🧱", chart_bytes=plots_pre.get('service_vs_wait_stacked'))
-            create_card("Evolução do Tempo Médio de Espera (Mensal)", "📉", chart_bytes=plots_pre.get('wait_time_evolution'))
-        with col_g2:
-            create_card("Top 15 Recursos por Tempo Médio de Espera", "⏳", chart_bytes=plots_pre.get('bottleneck_by_resource'))
-            create_card("Tempo de Espera vs. Tempo de Execução (Dispersão)", "🔍", chart_bytes=plots_pre.get('wait_vs_service_scatter'))
-
-        st.subheader("Análise de Transições e Custo da Espera")
-        col_g3, col_g4 = st.columns(2)
-        with col_g3:
-            create_card("Top 10 Handoffs por Tempo de Espera", "🛑", chart_bytes=plots_pre.get('top_handoffs'))
-            create_card("Top 10 Loops de Retrabalho (Rework Loops)", "🔁", dataframe=tables_pre.get('rework_loops_table'))
-        with col_g4:
-            create_card("Top 10 Handoffs por Custo de Espera", "💲", chart_bytes=plots_pre.get('top_handoffs_cost'))
-            create_card("Análise de Desvios de Tempo de Marcos do Processo", "🚩", chart_bytes=plots_pre.get('milestone_time_analysis_plot'))
-
-    # --- 5. FLUXO E CONFORMIDADE ---
-    with tab5:
-        st.header("Modelos de Processo e Avaliação de Qualidade (Process Mining)")
-        
-        # 5.1. Métricas de Qualidade (Fitness, Precision, etc.)
-        st.subheader("Métricas de Qualidade do Modelo")
-        col_m1, col_m2 = st.columns(2)
-        with col_m1:
-            create_card("Qualidade do Modelo (Inductive Miner)", "⭐", chart_bytes=plots_post.get('metrics_inductive'))
-        with col_m2:
-            create_card("Qualidade do Modelo (Heuristics Miner)", "⭐", chart_bytes=plots_post.get('metrics_heuristic'))
-        
-        # 5.2. Visualização do Modelo
-        st.subheader("Redes de Petri Descobertas")
-        col_v1, col_v2 = st.columns(2)
-        with col_v1:
-            create_card("Rede de Petri Descoberta (Inductive Miner)", "🗺️", chart_bytes=plots_post.get('model_inductive_petrinet'))
-        with col_v2:
-            create_card("Rede de Petri Descoberta (Heuristics Miner)", "🗺️", chart_bytes=plots_post.get('model_heuristic_petrinet'))
+            st.markdown("---")
+            st.subheader("Interação e Colaboração")
             
-        st.subheader("Variantes e Conformidade")
-        col_v3, col_v4 = st.columns(2)
-        with col_v3:
-            create_card("Top 10 Variantes de Processo por Frequência", "🔄", chart_bytes=plots_pre.get('variants_frequency'))
-            create_card("Tabela Top 10 Variantes", "📜", dataframe=tables_pre.get('variants_table'))
-        with col_v4:
-            create_card("DFG de Frequência (Análise de Fluxo)", "📈", chart_bytes=plots_post.get('variants_dfg_visualization'))
+            col3, col4 = st.columns(2)
+            with col3:
+                # Gráfico 14: Top 10 Handoffs entre Recursos
+                create_card("Top 10 Handoffs entre Recursos (Frequência)", "🤝", chart_bytes=plots.get('resource_handoffs'))
+            with col4:
+                # Gráfico 12: Recursos por Média de Tarefas por Projeto
+                create_card("Recursos por Média de Tarefas por Projeto", "📚", chart_bytes=plots.get('resource_avg_events'))
+                
+            st.markdown("---")
+            st.subheader("Impacto do Tamanho da Equipa")
             
-        st.subheader("Análise de Conformidade (Alignments)")
-        col_c1, col_c2 = st.columns(2)
-        with col_c1:
-            create_card("Conformidade (Desvios do Modelo)", "⚠️", chart_bytes=plots_post.get('conformance_alignments_visualization'))
-        with col_c2:
-            create_card("Resumo dos Desvios (Alignments)", "📝", dataframe=tables_post.get('alignments_summary'))
+            col5, col6 = st.columns(2)
+            with col5:
+                # Gráfico 17: Impacto do Tamanho da Equipa no Atraso
+                create_card("Impacto do Tamanho da Equipa no Atraso", "🐢", chart_bytes=plots.get('delay_by_teamsize'))
+            with col6:
+                # Gráfico 18: Duração Mediana por Tamanho da Equipa
+                create_card("Duração Mediana por Tamanho da Equipa", "📏", chart_bytes=plots.get('median_duration_by_teamsize'))
+            
+            # Gráfico 19: Eficiência Semanal (Horas Trabalhadas)
+            st.markdown("---")
+            create_card("Eficiência Semanal (Horas Trabalhadas)", "📅", chart_bytes=plots.get('weekly_efficiency'))
+
+
+        # ----------------------------------------------------
+        # TAB 4: GARGALOS E ESPERA (Handoffs de Atividades, Wait Time)
+        # ----------------------------------------------------
+        with tab4:
+            st.subheader("Análise de Tempo de Espera e Service Time")
+
+            col1, col2 = st.columns(2)
+            with col1:
+                # Gráfico 21: Gargalos: Tempo de Serviço vs. Espera
+                create_card("Gargalos: Tempo de Serviço vs. Espera (Atividade)", "🚧", chart_bytes=plots.get('service_vs_wait_stacked'))
+            with col2:
+                # Gráfico 20: Top 15 Recursos por Tempo Médio de Espera
+                create_card("Top 15 Recursos por Tempo Médio de Espera", "🛑", chart_bytes=plots.get('bottleneck_by_resource'))
+            
+            st.markdown("---")
+            st.subheader("Transições e Custo da Inatividade")
+
+            col3, col4 = st.columns(2)
+            with col3:
+                # Gráfico 8: Top 10 Handoffs por Tempo de Espera
+                create_card("Top 10 Handoffs Atividade (Tempo de Espera)", "🔗", chart_bytes=plots.get('top_handoffs'))
+            with col4:
+                # Gráfico 9: Top 10 Handoffs por Custo de Espera
+                create_card("Top 10 Handoffs Atividade (Custo de Espera)", "💰", chart_bytes=plots.get('top_handoffs_cost'))
+            
+            st.markdown("---")
+            st.subheader("Evolução Temporal")
+            # Gráfico 23: Evolução do Tempo Médio de Espera
+            create_card("Evolução do Tempo Médio de Espera", "📉", chart_bytes=plots.get('wait_time_evolution'))
+
+
+        # ----------------------------------------------------
+        # TAB 5: FLUXO E CONFORMIDADE (Variantes, Rework)
+        # ----------------------------------------------------
+        with tab5:
+            st.subheader("Análise de Variantes de Processo")
+
+            col1, col2 = st.columns(2)
+            with col1:
+                # Tabela: Top 10 Variantes
+                create_card("Top 10 Variantes de Processo (Tabela)", "📋", dataframe=tables.get('variants_table'))
+            with col2:
+                # Gráfico 16: Top 10 Variantes de Processo por Frequência
+                create_card("Top 10 Variantes por Frequência", "📈", chart_bytes=plots.get('variants_frequency'))
+
+            st.markdown("---")
+            st.subheader("Rework e Atividades Comuns")
+
+            col3, col4 = st.columns(2)
+            with col3:
+                # Tabela: Top 10 Rework Loops
+                create_card("Top 10 Rework Loops Detetados", "🔁", dataframe=tables.get('rework_loops_table'))
+            with col4:
+                # Gráfico 10: Atividades Mais Frequentes
+                create_card("Top 10 Atividades Mais Frequentes", "📌", chart_bytes=plots.get('top_activities_plot'))
+
+    elif st.session_state.current_dashboard == "Pós-Mineração":
+        st.subheader("Análise Pós-Mineração: Descoberta e Conformidade do Processo")
         
-        st.subheader("Log de Eventos (Base de Dados)")
-        # Verifica se o log_df_final existe no session state
-        if st.session_state.event_log_df is not None:
-            create_card("Log de Eventos (Primeiras 100 Linhas)", "🪵", dataframe=st.session_state.event_log_df.head(100))
-        else:
-            st.warning("O Log de Eventos ainda não foi processado.")
+        # ----------------------------------------------------
+        # TAB 1: VISÃO GERAL E CUSTOS (Fluxo de Alto Nível)
+        # ----------------------------------------------------
+        with tab1:
+            st.subheader("Métricas de Desempenho e Modelo")
+            
+            colk1, colk2 = st.columns(2)
+            with colk1:
+                # Gráfico 27: Top 10 Variantes por Duração Média (Lead Time)
+                create_card("Top 10 Variantes por Duração Média (Horas)", "⏳", chart_bytes=plots_post.get('variant_lead_time'))
+            with colk2:
+                # DFG de Frequência
+                create_card("DFG (Directly-Follows Graph) - Frequência", "🔗", chart_bytes=plots_post.get('dfg_frequency'))
+                
+            st.markdown("---")
+            st.subheader("Modelos de Processo Descobertos")
+            # Petri Net (Modelo Formal)
+            create_card("Rede de Petri (Modelo Descoberto)", "🗺️", chart_bytes=plots_post.get('petri_net_frequency'))
+        
+        # ----------------------------------------------------
+        # TAB 2: PERFORMANCE (DFG de Performance)
+        # ----------------------------------------------------
+        with tab2:
+            st.subheader("Análise de Performance no Fluxo")
+            # DFG de Performance
+            create_card("DFG (Directly-Follows Graph) - Desempenho (Tempo)", "⏱️", chart_bytes=plots_post.get('dfg_performance'))
+
+        # ----------------------------------------------------
+        # TAB 3: RECURSOS (Heuristics Net)
+        # ----------------------------------------------------
+        with tab3:
+            st.subheader("Visão Heurística do Processo")
+            # Heuristics Net
+            create_card("Heuristics Net (Fluxo Mais Comum e Loops)", "🧠", chart_bytes=plots_post.get('heuristics_net'))
+        
+        # ----------------------------------------------------
+        # TAB 4: GARGALOS E ESPERA (Desvios mais comuns)
+        # ----------------------------------------------------
+        with tab4:
+            st.subheader("Análise Detalhada de Conformidade e Desvios")
+            
+            conformance_metrics = metrics.get('conformance_metrics', {})
+            colc1, colc2, colc3, colc4 = st.columns(4)
+            colc1.metric("Fitness (Ajuste)", conformance_metrics.get('Fitness (Ajuste)', '-'))
+            colc2.metric("Precision (Precisão)", conformance_metrics.get('Precision (Precisão)', '-'))
+            colc3.metric("Generalization", conformance_metrics.get('Generalization (Generalização)', '-'))
+            colc4.metric("Simplicity", conformance_metrics.get('Simplicity (Simplicidade)', '-'))
+            
+            st.markdown("---")
+            st.subheader("Análise de Desvios (Mapeamento de Alinhamento)")
+            
+            col_dev1, col_dev2 = st.columns(2)
+            with col_dev1:
+                # Gráfico 26: Top 10 Desvios de Conformidade
+                create_card("Top 10 Desvios de Conformidade Detetados", "🚫", chart_bytes=plots_post.get('top_deviations'))
+            with col_dev2:
+                # Métricas de Desvio
+                dev_metrics = metrics.get('deviation_metrics', {})
+                st.metric("Custo Médio de Desvio (por Trilha)", dev_metrics.get('Custo Médio de Desvio (Trilha)', '-'))
+                st.metric("Total de Desvios", dev_metrics.get('Total de Desvios Detectados', '-'))
+
+        # ----------------------------------------------------
+        # TAB 5: FLUXO E CONFORMIDADE (Atividades por Caso)
+        # ----------------------------------------------------
+        with tab5:
+            st.subheader("Frequência de Atividades Normalizada")
+            # Gráfico 28: Média de Ocorrências por Atividade (por caso)
+            create_card("Média de Ocorrências por Atividade (por Caso)", "🔢", chart_bytes=plots_post.get('activity_avg_per_case'))
 
 
 # --- CONTROLO PRINCIPAL DA APLICAÇÃO ---
@@ -889,6 +1019,6 @@ def main():
             dashboard_page()
         elif st.session_state.current_page == "Settings":
             settings_page()
-            
+
 if __name__ == '__main__':
     main()
