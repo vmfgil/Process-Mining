@@ -1,4 +1,8 @@
 import streamlit as st
+# Session state defaults (auto-injected)
+if 'authenticated' not in st.session_state:
+    st.session_state.authenticated = False
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
