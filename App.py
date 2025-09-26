@@ -60,14 +60,15 @@ st.markdown("""
     }
 
     /* --- ESTILOS PARA BOTÕES DE NAVEGAÇÃO ATIVOS E INATIVOS --- */
-    .stButton>button {
+    /* Removemos o estilo geral para o stButton para não interferir com o JS */
+    div[data-testid="stHorizontalBlock"] .stButton>button {
         border: 1px solid var(--border-color) !important;
         background-color: var(--inactive-button-bg) !important;
         color: var(--text-color-dark-bg) !important;
         font-weight: 600;
         transition: all 0.2s ease-in-out;
     }
-    .stButton>button:hover {
+    div[data-testid="stHorizontalBlock"] .stButton>button:hover {
         border-color: var(--primary-color) !important;
         background-color: rgba(239, 68, 68, 0.2) !important;
     }
@@ -115,7 +116,7 @@ st.markdown("""
         background-color: var(--card-background-color) !important;
     }
 
-    /* --- ABORDAGEM QUE FUNCIONOU PARA OS BOTÕES DE UPLOAD --- */
+    /* --- CSS PARA OS BOTÕES DE UPLOAD (MANTIDO) --- */
     section[data-testid="stFileUploader"] button,
     div[data-testid="stFileUploader"] button,
     div[data-baseweb="file-uploader"] button {
@@ -123,15 +124,6 @@ st.markdown("""
         color: var(--text-color-light-bg) !important;
         border: none !important;
         font-weight: 600 !important;
-    }
-    section[data-testid="stFileUploader"] button:hover,
-    div[data-testid="stFileUploader"] button:hover,
-    div[data-baseweb="file-uploader"] button:hover {
-        background-color: #89DFF3 !important;
-    }
-    section[data-testid="stFileUploader"] label, 
-    section[data-testid="stFileUploader"] small {
-        color: var(--text-color-light-bg) !important;
     }
     
     /* --- ESTILO DOS CARTÕES DE MÉTRICAS (KPIs) PARA FUNDO BRANCO --- */
@@ -159,6 +151,7 @@ st.markdown("""
 
 
 # --- FUNÇÕES AUXILIARES ---
+# ... (As funções auxiliares como convert_fig_to_bytes, etc., permanecem as mesmas) ...
 def convert_fig_to_bytes(fig, format='png'):
     buf = io.BytesIO()
     fig.patch.set_facecolor('#FFFFFF')
@@ -210,7 +203,6 @@ def create_card(title, icon, chart_bytes=None, dataframe=None):
                 </div>
             </div>
             """, unsafe_allow_html=True)
-
 
 # --- INICIALIZAÇÃO DO ESTADO DA SESSÃO ---
 if 'authenticated' not in st.session_state: st.session_state.authenticated = False
@@ -540,34 +532,6 @@ def settings_page():
     st.title("⚙️ Configurações e Upload de Dados")
     st.markdown("---")
 
-    # --- LÓGICA CORRIGIDA PARA ATIVAR A ANÁLISE VIA URL ---
-    if "run_analysis" in st.query_params:
-        # Limpa o parâmetro do URL para evitar que a análise corra em cada refresh
-        st.query_params.clear()
-
-        # Verifica se os ficheiros estão todos carregados antes de prosseguir
-        file_names_check = ['projects', 'tasks', 'resources', 'resource_allocations', 'dependencies']
-        all_files_uploaded_check = all(st.session_state.dfs.get(name) is not None for name in file_names_check)
-
-        if all_files_uploaded_check:
-            with st.spinner("A analisar os dados... Este processo pode demorar alguns minutos."):
-                plots_pre, tables_pre, event_log, df_p, df_t, df_r, df_fc = run_pre_mining_analysis(st.session_state.dfs)
-                st.session_state.plots_pre_mining = plots_pre
-                st.session_state.tables_pre_mining = tables_pre
-                st.session_state.event_log_for_cache = pm4py.convert_to_dataframe(event_log)
-                st.session_state.dfs_for_cache = {'projects': df_p, 'tasks_raw': df_t, 'resources': df_r, 'full_context': df_fc}
-                log_from_df = pm4py.convert_to_event_log(st.session_state.event_log_for_cache)
-                dfs_cache = st.session_state.dfs_for_cache
-                plots_post, metrics = run_post_mining_analysis(log_from_df, dfs_cache['projects'], dfs_cache['tasks_raw'], dfs_cache['resources'], dfs_cache['full_context'])
-                st.session_state.plots_post_mining = plots_post
-                st.session_state.metrics = metrics
-            
-            st.session_state.analysis_run = True
-            st.success("✅ Análise concluída com sucesso! Navegue para o 'Dashboard Geral'.")
-            st.balloons()
-        else:
-            st.warning("Por favor, garanta que todos os 5 ficheiros CSV estão carregados antes de iniciar a análise.")
-
     st.subheader("Upload dos Ficheiros de Dados (.csv)")
     st.info("Por favor, carregue os 5 ficheiros CSV necessários para a análise.")
     file_names = ['projects', 'tasks', 'resources', 'resource_allocations', 'dependencies']
@@ -597,29 +561,49 @@ def settings_page():
         st.subheader("Execução da Análise")
         st.success("Todos os ficheiros estão carregados. Pode iniciar a análise.")
         
-        # --- BOTÃO CUSTOMIZADO EM HTML (NOVA ABORDAGEM) ---
-        button_html = """
-        <a href="?run_analysis=true" target="_self" style="text-decoration: none;">
-            <div style="
-                background-color: #A0E9FF;
-                color: #0F172A;
-                padding: 0.75rem 1rem;
-                border-radius: 0.5rem;
-                text-align: center;
-                font-weight: 700;
-                font-family: 'Poppins', sans-serif;
-                border: 2px solid #A0E9FF;
-                cursor: pointer;
-                transition: all 0.2s ease-in-out;
-            "
-            onmouseover="this.style.backgroundColor='#89DFF3'; this.style.borderColor='#89DFF3';"
-            onmouseout="this.style.backgroundColor='#A0E9FF'; this.style.borderColor='#A0E9FF';"
-            >
-                🚀 Iniciar Análise Completa
-            </div>
-        </a>
+        # --- ABORDAGEM FINAL: BOTÃO ORIGINAL + JAVASCRIPT PARA ESTILO ---
+        
+        # 1. Colocamos o botão original do Streamlit que funciona
+        st.markdown('<div id="iniciar-analise-button">', unsafe_allow_html=True)
+        if st.button("🚀 Iniciar Análise Completa", use_container_width=True, key="start_analysis_button"):
+            with st.spinner("A analisar os dados... Este processo pode demorar alguns minutos."):
+                plots_pre, tables_pre, event_log, df_p, df_t, df_r, df_fc = run_pre_mining_analysis(st.session_state.dfs)
+                st.session_state.plots_pre_mining = plots_pre
+                st.session_state.tables_pre_mining = tables_pre
+                st.session_state.event_log_for_cache = pm4py.convert_to_dataframe(event_log)
+                st.session_state.dfs_for_cache = {'projects': df_p, 'tasks_raw': df_t, 'resources': df_r, 'full_context': df_fc}
+                log_from_df = pm4py.convert_to_event_log(st.session_state.event_log_for_cache)
+                dfs_cache = st.session_state.dfs_for_cache
+                plots_post, metrics = run_post_mining_analysis(log_from_df, dfs_cache['projects'], dfs_cache['tasks_raw'], dfs_cache['resources'], dfs_cache['full_context'])
+                st.session_state.plots_post_mining = plots_post
+                st.session_state.metrics = metrics
+            st.session_state.analysis_run = True
+            st.success("✅ Análise concluída com sucesso! Navegue para o 'Dashboard Geral'.")
+            st.balloons()
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # 2. Injetamos JavaScript para encontrar e pintar o botão
+        js_code = """
+        <script>
+            // Damos um pequeno atraso para garantir que o botão já foi desenhado pelo Streamlit
+            setTimeout(() => {
+                // Encontramos o div que envolve o botão pelo ID que lhe demos
+                const wrapper = document.getElementById('iniciar-analise-button');
+                if (wrapper) {
+                    // Encontramos o elemento <button> dentro desse div
+                    const button = wrapper.querySelector('button');
+                    if (button) {
+                        // Aplicamos os estilos diretamente no elemento! Isto ignora os problemas de CSS.
+                        button.style.backgroundColor = '#A0E9FF';
+                        button.style.color = '#0F172A';
+                        button.style.border = '2px solid #A0E9FF';
+                        button.style.fontWeight = '700';
+                    }
+                }
+            }, 250); // 250 milissegundos de atraso
+        </script>
         """
-        components.html(button_html, height=60)
+        components.html(js_code, height=0, width=0)
             
     else:
         st.warning("Aguardando o carregamento de todos os ficheiros CSV para poder iniciar a análise.")
