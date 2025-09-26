@@ -28,9 +28,6 @@ from pm4py.algo.conformance.alignments.petri_net import algorithm as alignments_
 # Página
 st.set_page_config(page_title="Painel de Análise de Processos de IT", page_icon="✨", layout="wide")
 
-# Opções Streamlit: remover caixas de aviso no dashboard (amarelas)
-st.set_option('deprecation.showPyplotGlobalUse', False)
-
 # CSS
 st.markdown("""
 <style>
@@ -46,7 +43,7 @@ st.markdown("""
 
   /* Sidebar */
   [data-testid="stSidebar"]{ background:linear-gradient(180deg,#0F172A 0%,#0B1220 100%)!important; border-right:1px solid var(--border); }
-  [data-testid="stSidebar"] *{ color:#FFFFFF!important; font-weight:700; }
+  [data-testid="stSidebar"] *{ color:#FFFFFF!important; font-weight:800; }
   .sidebar-header{ font-size:1.2rem; letter-spacing:0.2px; margin-bottom:8px; }
   .sidebar-note{ color:#FFFFFF!important; opacity:1; font-size:0.95rem; font-weight:800; }
 
@@ -60,9 +57,8 @@ st.markdown("""
   .stFileUploader label{ color:#FFFFFF!important; font-weight:800; }
   section[data-testid="stFileUploadDropzone"] div[data-testid="stMarkdownContainer"] p{ color:#FFFFFF!important; font-weight:800; }
 
-  /* Mensagens (esconder warnings no dashboard) */
+  /* Mensagens: evitar warnings visuais no dashboard */
   [data-testid="stWarning"]{ display:none!important; }
-  /* Info/Success com contraste alto */
   [data-testid="stSuccess"]{ background-color:rgba(22,163,74,0.18)!important; border:1px solid rgba(22,163,74,0.5)!important; }
   [data-testid="stInfo"]{ background-color:rgba(59,130,246,0.18)!important; border:1px solid rgba(59,130,246,0.5)!important; }
 
@@ -81,7 +77,7 @@ st.markdown("""
   .card .stMetric{ color:var(--card-text)!important; }
   .card .metric-label, .card .metric-value{ color:var(--card-text)!important; }
 
-  /* Botões gerais e de exportação */
+  /* Botões gerais e de exportação (sempre visíveis) */
   .stButton>button{
     background-color:var(--accent)!important; color:#FFFFFF!important; font-weight:900!important;
     border-radius:10px; border:1px solid rgba(59,130,246,0.5)!important; padding:10px 14px;
@@ -92,14 +88,13 @@ st.markdown("""
   }
 
   /* Alinhamento e tamanhos consistentes para cartões no dashboard */
-  .dashboard-grid .card{ min-height:380px; } /* altura base consistente */
+  .dashboard-grid .card{ min-height:380px; }
   .dashboard-grid .card.kpi{ min-height:150px; }
   .dashboard-grid .card.tall{ min-height:520px; }
   .dashboard-grid .card.wide{ min-height:460px; }
 
-  /* Remover “caixas vazias” visuais: evitar padding extra em colunas */
+  /* Remover “caixas vazias” visuais */
   .element-container:has(.card) { margin-bottom:0!important; }
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -421,7 +416,6 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
       ax.annotate(f'{p.get_height():.2f}', (p.get_x()+p.get_width()/2., p.get_height()), ha='center', va='center', xytext=(0,9), textcoords='offset points', color='black')
     ax.set_title(title); ax.set_ylim(0,1.05); return fig
 
-    # Nota: a indentação é intencional para manter fig retornado
   metrics_im = {
     "Fitness": replay_fitness_evaluator.apply(log_top_3_variants, net_im, im_im, fm_im, variant=replay_fitness_evaluator.Variants.TOKEN_BASED).get('average_trace_fitness', 0),
     "Precisão": precision_evaluator.apply(log_top_3_variants, net_im, im_im, fm_im),
@@ -704,7 +698,7 @@ def render_config():
   st.markdown("<h2>⚙️ Configurações — Upload de dados</h2>", unsafe_allow_html=True)
   file_names = ['projects','tasks','resources','resource_allocations','dependencies']
 
-  # Linha única com 5 uploaders (compacto, sem scroll)
+  # Linha única com 5 uploaders (compacto)
   cols = st.columns(5)
   for i, name in enumerate(file_names):
     with cols[i]:
@@ -754,7 +748,6 @@ def render_config():
 def render_dashboard_pre():
   st.markdown("<h2>🏠 Dashboard Geral — Pré-mineração</h2>", unsafe_allow_html=True)
   if not st.session_state.tables_pre_mining:
-    # Retirar caixas amarelas: não mostramos info aqui
     st.markdown("")
     return
 
@@ -927,12 +920,11 @@ def render_dashboard_pre():
 def render_dashboard_post():
   st.markdown("<h2>🏠 Dashboard Geral — Pós-mineração</h2>", unsafe_allow_html=True)
   if not st.session_state.plots_post_mining:
-    st.markdown("")  # sem info/aviso
+    st.markdown("")
     return
 
   st.markdown('<div class="dashboard-grid">', unsafe_allow_html=True)
 
-  # Dois cartões de Petri Net “ao comprido”, um a seguir ao outro
   img = st.session_state.plots_post_mining['model_inductive_petrinet']
   def body_ind(): st.image(img, use_container_width=True)
   card("Modelo de Processo (Petri Net) — Inductive Miner", "🧩", body_fn=body_ind, png_bytes=img, png_filename="model_inductive.png", extra_class="wide")
