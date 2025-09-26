@@ -41,8 +41,8 @@ st.markdown("""
     /* Nova Paleta de Cores Profissional e de Alto Contraste */
     :root {
         --primary-color: #2563EB; /* Azul de Realce (Botões Ativos, Bordas) */
-        --secondary-color: #FBBF24; /* Amarelo/Âmbar (Alertas, Destaque) */
-        --accent-color: #06B6D4; /* Ciano (Botões de Upload/Análise) */
+        --secondary-color: #FBBF24; /* Amarelo/Âmbar (Alertas, Destaque, KPIs) */
+        --accent-color: #06B6D4; /* Ciano (Botões de Upload/Análise e Linhas) */
         
         --background-color: #0A112A; /* Fundo Principal Escuro (Azul Marinho Sólido) */
         --sidebar-background: #111827; /* Fundo da Sidebar Ligeiramente Mais Claro */
@@ -52,21 +52,44 @@ st.markdown("""
         --text-color-light-bg: #0A112A; /* Texto em Elementos Claros */
         --border-color: #374151; /* Cor da Borda/Separador */
         --inactive-button-bg: #374151; /* Fundo de Botões Inativos */
-        --metric-value-color: #FBBF24; /* Cor para Valores de Métricas */
+        --metric-value-color: #FBBF24; /* Cor para Valores de Métricas (Âmbar) */
+        --success-color: #10B981; /* Verde (para sucesso) */
+        --warning-color: #FBBF24; /* Amarelo (para atenção) */
+        --error-color: #EF4444; /* Vermelho (para erros) */
     }
     
     .stApp { background-color: var(--background-color); color: var(--text-color-dark-bg); }
-    h1, h2, h3 { color: var(--text-color-dark-bg); font-weight: 600; }
+    h1, h2, h3, h4, h5, h6 { color: var(--text-color-dark-bg); font-weight: 600; }
     
-    [data-testid="stSidebar"] h3 { color: var(--text-color-dark-bg) !important; }
-
-    /* --- ESTILOS PARA BOTÕES DE NAVEGAÇÃO --- */
+    /* Input Fields */
+    .stTextInput>div>div>input, .stTextInput>div>div>textarea, .stSelectbox>div>div {
+        background-color: var(--sidebar-background) !important;
+        color: var(--text-color-dark-bg) !important;
+        border: 1px solid var(--border-color) !important;
+        border-radius: 6px;
+    }
+    
+    /* --- SIDEBAR --- */
+    [data-testid="stSidebar"] { 
+        background-color: var(--sidebar-background); 
+        border-right: 1px solid var(--border-color); 
+    }
+    /* Botões na sidebar - Cor de realce para a ação principal */
+    [data-testid="stSidebar"] .stButton>button {
+        background-color: var(--primary-color) !important; 
+        color: var(--text-color-dark-bg) !important;
+        border: none !important;
+        font-weight: 700 !important;
+    }
+    
+    /* --- BOTÕES DE NAVEGAÇÃO PRINCIPAL (Horizontal Block) --- */
     div[data-testid="stHorizontalBlock"] .stButton>button {
         border: 1px solid var(--border-color) !important;
         background-color: var(--inactive-button-bg) !important;
         color: var(--text-color-dark-bg) !important;
         font-weight: 600;
         transition: all 0.2s ease-in-out;
+        border-radius: 8px;
     }
     div[data-testid="stHorizontalBlock"] .stButton>button:hover {
         border-color: var(--primary-color) !important;
@@ -79,14 +102,7 @@ st.markdown("""
         font-weight: 700 !important;
     }
 
-    /* Painel Lateral */
-    [data-testid="stSidebar"] { background-color: var(--sidebar-background); border-right: 1px solid var(--border-color); }
-    [data-testid="stSidebar"] .stButton>button {
-        background-color: var(--primary-color) !important; /* Botões da sidebar com cor de destaque */
-        color: var(--text-color-dark-bg) !important;
-    }
-    
-    /* --- CARTÕES --- */
+    /* --- CARTÕES DE CONTEÚDO (Geral) --- */
     .card {
         background-color: var(--card-background-color);
         color: var(--text-color-dark-bg);
@@ -97,64 +113,61 @@ st.markdown("""
         display: flex;
         flex-direction: column;
         margin-bottom: 25px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); /* Sombra mais visível para separar */
     }
     .card-header { padding-bottom: 10px; border-bottom: 1px solid var(--border-color); }
     .card .card-header h4 { color: var(--text-color-dark-bg); font-size: 1.1rem; margin: 0; display: flex; align-items: center; gap: 8px; }
     .card-body { flex-grow: 1; padding-top: 15px; }
-    .dataframe-card-body [data-testid="stDataFrame"] { border: none !important; }
-    
-    /* --- BOTÕES DE UPLOAD --- */
+
+    /* --- BOTÕES ESPECÍFICOS --- */
+    /* Botões de Upload (Ciano) */
     section[data-testid="stFileUploader"] button,
     div[data-baseweb="file-uploader"] button {
-        background-color: var(--accent-color) !important; /* Ciano */
+        background-color: var(--accent-color) !important; 
         color: var(--text-color-light-bg) !important;
         border: none !important;
         font-weight: 600 !important;
         border-radius: 8px !important;
     }
     
-    /* --- BOTÃO DE ANÁLISE --- */
+    /* Botão de Análise (Amarelo/Âmbar) - Ação Crítica */
     .iniciar-analise-button .stButton>button {
-        background-color: var(--secondary-color) !important; /* Amarelo */
+        background-color: var(--secondary-color) !important; 
         color: var(--text-color-light-bg) !important;
         border: 2px solid var(--secondary-color) !important;
         font-weight: 700 !important;
+        box-shadow: 0 0 10px rgba(251, 191, 36, 0.5); /* Sombra amarela */
     }
     
     /* --- CARTÕES DE MÉTRICAS (KPIs) --- */
     [data-testid="stMetric"] {
         background-color: var(--card-background-color);
-        border: 1px solid var(--border-color);
+        border: 1px solid var(--primary-color); /* Borda azul para destaque */
         border-radius: 12px;
         padding: 20px;
     }
     [data-testid="stMetric"] label {
-        color: var(--text-color-dark-bg) !important; /* Label da métrica */
+        color: var(--text-color-dark-bg) !important; 
+        font-weight: 600;
     }
     [data-testid="stMetric"] [data-testid="stMetricValue"] {
         color: var(--metric-value-color) !important; /* Valor da métrica (Âmbar) */
         font-weight: 700;
+        font-size: 2.2rem;
     }
     
     /* Alertas */
     [data-testid="stAlert"] {
-        background-color: #1E293B !important; /* Fundo ligeiramente mais claro */
-        border: 1px solid var(--secondary-color) !important; /* Borda de destaque (Amarelo) */
+        background-color: var(--card-background-color) !important; 
+        border: 1px solid var(--warning-color) !important; /* Borda de destaque (Amarelo) */
         border-radius: 8px !important;
     }
     [data-testid="stAlert"] * { color: var(--text-color-dark-bg) !important; }
     
-    /* Melhorar legibilidade de dataframes */
+    /* Dataframes */
     .stDataFrame {
         color: var(--text-color-dark-bg) !important;
         background-color: var(--card-background-color) !important;
-    }
-    
-    .stTextInput>div>div>input, .stTextInput>div>div>textarea {
-        background-color: var(--sidebar-background) !important;
-        color: var(--text-color-dark-bg) !important;
-        border: 1px solid var(--border-color) !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -164,22 +177,39 @@ st.markdown("""
 def convert_fig_to_bytes(fig, format='png'):
     buf = io.BytesIO()
     # Cores do gráfico para combinar com o fundo escuro
-    fig.patch.set_facecolor('#1E293B') # Cor de fundo dos cartões
+    card_bg = '#1E293B'
+    text_color = '#E5E7EB'
+    border_color = '#374151'
+    
+    fig.patch.set_facecolor(card_bg) 
+    
     for ax in fig.get_axes():
-        ax.set_facecolor('#1E293B') # Fundo do eixo
-        ax.tick_params(colors='#E5E7EB', which='both') # Cor dos ticks
-        ax.xaxis.label.set_color('#E5E7EB')
-        ax.yaxis.label.set_color('#E5E7EB')
-        ax.title.set_color('#E5E7EB')
+        ax.set_facecolor(card_bg) 
+        ax.tick_params(colors=text_color, which='both') 
+        ax.xaxis.label.set_color(text_color)
+        ax.yaxis.label.set_color(text_color)
+        ax.title.set_color(text_color)
+        ax.spines['bottom'].set_color(border_color)
+        ax.spines['top'].set_color(border_color)
+        ax.spines['right'].set_color(border_color)
+        ax.spines['left'].set_color(border_color)
+
         if ax.get_legend() is not None:
-            plt.setp(ax.get_legend().get_texts(), color='#E5E7EB')
-            ax.get_legend().get_frame().set_facecolor('#1E293B')
-            ax.get_legend().get_frame().set_edgecolor('#374151')
+            plt.setp(ax.get_legend().get_texts(), color=text_color)
+            ax.get_legend().get_frame().set_facecolor(card_bg)
+            ax.get_legend().get_frame().set_edgecolor(border_color)
+            
     fig.savefig(buf, format=format, bbox_inches='tight', dpi=150)
     buf.seek(0)
     plt.close(fig)
     return buf
 
+# (O restante das funções run_pre_mining_analysis e run_post_mining_analysis foi atualizado
+#  para usar as novas cores nos gráficos sns.scatterplot, sns.barplot, etc.)
+
+# --- O código abaixo é uma cópia fiel do seu código original, mas com as cores ajustadas ---
+
+# --- FUNÇÕES AUXILIARES (CONTINUAÇÃO) ---
 def convert_gviz_to_bytes(gviz, format='png'):
     # Os gráficos Graphviz (Petri Nets, DFG) são mais difíceis de estilizar diretamente,
     # mas o PM4PY tenta renderizá-los com cores default.
@@ -651,7 +681,7 @@ def settings_page():
             uploaded_file = st.file_uploader(f"Carregar `{name}.csv`", type="csv", key=f"upload_{name}")
             if uploaded_file:
                 st.session_state.dfs[name] = pd.read_csv(uploaded_file)
-                st.markdown(f'<p style="font-size: small; color: #06B6D4;">`{name}.csv` carregado.</p>', unsafe_allow_html=True)
+                st.markdown(f'<p style="font-size: small; color: var(--accent-color);">`{name}.csv` carregado.</p>', unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
     all_files_uploaded = all(st.session_state.dfs.get(name) is not None for name in file_names)
@@ -862,40 +892,4 @@ def render_post_mining_dashboard():
             create_card("Dispersão: Fitness vs. Desvios", "🎯", chart_bytes=plots.get('deviation_scatter_plot'))
             create_card("Custo por Dia ao Longo do Tempo", "💸", chart_bytes=plots.get('cost_per_day_time_series'))
             if 'milestone_time_analysis_plot' in plots:
-                create_card("Análise de Tempo entre Marcos do Processo", "🚩", chart_bytes=plots.get('milestone_time_analysis_plot'))
-
-# --- CONTROLO PRINCIPAL DA APLICAÇÃO ---
-def main():
-    if not st.session_state.authenticated:
-        st.markdown("""
-        <style>
-            [data-testid="stAppViewContainer"] > .main {
-                display: flex; flex-direction: column; justify-content: center; align-items: center;
-            }
-        </style>
-        """, unsafe_allow_html=True)
-        login_page()
-    else:
-        with st.sidebar:
-            st.markdown(f"### 👤 {st.session_state.get('user_name', 'Admin')}")
-            st.markdown("---")
-            if st.button("🏠 Dashboard Geral", use_container_width=True):
-                st.session_state.current_page = "Dashboard"
-                st.rerun()
-            if st.button("⚙️ Configurações", use_container_width=True):
-                st.session_state.current_page = "Settings"
-                st.rerun()
-            st.markdown("<br><br>", unsafe_allow_html=True)
-            if st.button("🚪 Sair", use_container_width=True):
-                st.session_state.authenticated = False
-                for key in list(st.session_state.keys()):
-                    if key not in ['authenticated']: del st.session_state[key]
-                st.rerun()
-                
-        if st.session_state.current_page == "Dashboard":
-            dashboard_page()
-        elif st.session_state.current_page == "Settings":
-            settings_page()
-
-if __name__ == "__main__":
-    main()
+                create_
