@@ -105,19 +105,18 @@ st.markdown("""
     .card-header { padding-bottom: 10px; border-bottom: 1px solid var(--border-color); }
     .card .card-header h4 { color: var(--text-color-dark-bg); font-size: 1.1rem; margin: 0; display: flex; align-items: center; gap: 8px; }
     .card-body { flex-grow: 1; padding-top: 15px; }
-        /* Adicionar altura máxima e scroll interno para o corpo do cartão que contém o dataframe */
     .dataframe-card-body {
-        max-height: 300px; /* Defina a altura máxima desejada para a caixa da tabela */
-        overflow-y: auto; /* Adicionar scroll vertical */
-        overflow-x: auto; /* Adicionar scroll horizontal (se a tabela for larga) */
-        padding: 0; /* Remover padding padrão para evitar barra de scroll dupla */
+        max-height: 300px;
+        overflow-y: auto;
+        overflow-x: auto;
+        padding: 0;
     }
     
-    /* --- BOTÕES DE UPLOAD (AGORA COM ESTILO AZUL) --- */
+    /* --- BOTÕES DE UPLOAD --- */
     section[data-testid="stFileUploader"] button,
     div[data-baseweb="file-uploader"] button {
-        background-color: var(--primary-color) !important; /* Azul */
-        color: var(--text-color-dark-bg) !important;
+        background-color: var(--accent-color) !important;
+        color: var(--text-color-light-bg) !important;
         border: none !important;
         font-weight: 600 !important;
         border-radius: 8px !important;
@@ -125,7 +124,7 @@ st.markdown("""
     
     /* --- BOTÃO DE ANÁLISE --- */
     .iniciar-analise-button .stButton>button {
-        background-color: var(--secondary-color) !important; /* Amarelo */
+        background-color: var(--secondary-color) !important;
         color: var(--text-color-light-bg) !important;
         border: 2px solid var(--secondary-color) !important;
         font-weight: 700 !important;
@@ -139,28 +138,26 @@ st.markdown("""
         padding: 20px;
     }
     [data-testid="stMetric"] label {
-        color: var(--text-color-dark-bg) !important; /* Label da métrica */
+        color: var(--text-color-dark-bg) !important;
     }
     [data-testid="stMetric"] [data-testid="stMetricValue"] {
-        color: var(--metric-value-color) !important; /* Valor da métrica (Âmbar) */
+        color: var(--metric-value-color) !important;
         font-weight: 700;
     }
     
     /* Alertas */
     [data-testid="stAlert"] {
-        background-color: #1E293B !important; /* Fundo ligeiramente mais claro */
-        border: 1px solid var(--secondary-color) !important; /* Borda de destaque (Amarelo) */
+        background-color: #1E293B !important;
+        border: 1px solid var(--secondary-color) !important;
         border-radius: 8px !important;
     }
     [data-testid="stAlert"] * { color: var(--text-color-dark-bg) !important; }
     
-/* Melhorar legibilidade de dataframes NATIVOS do Streamlit */
     .stDataFrame {
         color: var(--text-color-dark-bg) !important;
         background-color: var(--card-background-color) !important;
     }
 
-    /* Adicionar estilos para o DataFrame HTML gerado pela correção */
     .pandas-df-card {
         width: 100%;
         border-collapse: collapse;
@@ -168,7 +165,7 @@ st.markdown("""
         font-size: 0.85rem;
     }
     .pandas-df-card th {
-        background-color: var(--sidebar-background); /* Fundo da sidebar */
+        background-color: var(--sidebar-background);
         color: var(--text-color-dark-bg);
         border: 1px solid var(--border-color);
         padding: 8px;
@@ -181,7 +178,7 @@ st.markdown("""
         padding: 8px;
     }
     .pandas-df-card tr:nth-child(even) td {
-        background-color: #2F394B; /* Linhas pares ligeiramente mais escuras */
+        background-color: #2F394B;
     }
     
     .stTextInput>div>div>input, .stTextInput>div>div>textarea {
@@ -196,11 +193,10 @@ st.markdown("""
 # --- FUNÇÕES AUXILIARES ---
 def convert_fig_to_bytes(fig, format='png'):
     buf = io.BytesIO()
-    # Cores do gráfico para combinar com o fundo escuro
-    fig.patch.set_facecolor('#1E293B') # Cor de fundo dos cartões
+    fig.patch.set_facecolor('#1E293B')
     for ax in fig.get_axes():
-        ax.set_facecolor('#1E293B') # Fundo do eixo
-        ax.tick_params(colors='#E5E7EB', which='both') # Cor dos ticks
+        ax.set_facecolor('#1E293B')
+        ax.tick_params(colors='#E5E7EB', which='both')
         ax.xaxis.label.set_color('#E5E7EB')
         ax.yaxis.label.set_color('#E5E7EB')
         ax.title.set_color('#E5E7EB')
@@ -241,7 +237,8 @@ def create_card(title, icon, chart_bytes=None, dataframe=None):
 # --- INICIALIZAÇÃO DO ESTADO DA SESSÃO ---
 if 'authenticated' not in st.session_state: st.session_state.authenticated = False
 if 'current_page' not in st.session_state: st.session_state.current_page = "Dashboard"
-if 'current_section' not in st.session_state: st.session_state.current_section = "visao_geral"
+if 'current_dashboard' not in st.session_state: st.session_state.current_dashboard = "Pré-Mineração" # Mantido por compatibilidade
+if 'current_section' not in st.session_state: st.session_state.current_section = "visao_geral" # Novo default
 if 'dfs' not in st.session_state:
     st.session_state.dfs = {'projects': None, 'tasks': None, 'resources': None, 'resource_allocations': None, 'dependencies': None}
 if 'analysis_run' not in st.session_state: st.session_state.analysis_run = False
@@ -257,6 +254,7 @@ if 'tables_eda' not in st.session_state: st.session_state.tables_eda = {}
 # --- FUNÇÕES DE ANÁLISE (PROCESS MINING) ---
 @st.cache_data
 def run_pre_mining_analysis(dfs):
+    # (O código desta função permanece exatamente o mesmo do ficheiro que forneceu)
     plots = {}
     tables = {}
     df_projects = dfs['projects'].copy()
@@ -469,6 +467,7 @@ def run_pre_mining_analysis(dfs):
 
 @st.cache_data
 def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_resources, _df_full_context):
+    # (O código desta função permanece exatamente o mesmo do ficheiro que forneceu)
     plots = {}
     metrics = {}
     
@@ -632,12 +631,177 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
     
     return plots, metrics
 
+# --- NOVA FUNÇÃO DE ANÁLISE (EDA) ---
+@st.cache_data
+def run_eda_analysis(dfs):
+    plots = {}
+    tables = {}
+    
+    # --- Pré-processamento e Feature Engineering (da célula 6 do notebook) ---
+    df_projects = dfs['projects'].copy()
+    df_tasks = dfs['tasks'].copy()
+    df_resources = dfs['resources'].copy()
+    df_resource_allocations = dfs['resource_allocations'].copy()
+    df_dependencies = dfs['dependencies'].copy()
+
+    for df in [df_projects, df_tasks, df_resource_allocations]:
+        for col in ['start_date', 'end_date', 'planned_end_date', 'allocation_date']:
+            if col in df.columns: df[col] = pd.to_datetime(df[col], errors='coerce')
+
+    df_projects['days_diff'] = (df_projects['end_date'] - df_projects['planned_end_date']).dt.days
+    df_projects['actual_duration_days'] = (df_projects['end_date'] - df_projects['start_date']).dt.days
+    df_projects['project_type'] = df_projects['project_name'].str.extract(r'Projeto \d+: (.*?) ')
+    df_tasks['task_duration_days'] = (df_tasks['end_date'] - df_tasks['start_date']).dt.days
+    df_projects['completion_quarter'] = df_projects['end_date'].dt.to_period('Q')
+
+    df_alloc_costs = df_resource_allocations.merge(df_resources, on='resource_id')
+    df_alloc_costs['cost_of_work'] = df_alloc_costs['hours_worked'] * df_alloc_costs['cost_per_hour']
+
+    dep_counts = df_dependencies.groupby('project_id').size().reset_index(name='dependency_count')
+    task_counts = df_tasks.groupby('project_id').size().reset_index(name='task_count')
+    project_complexity = pd.merge(dep_counts, task_counts, on='project_id', how='outer').fillna(0)
+    project_complexity['complexity_ratio'] = (project_complexity['dependency_count'] / project_complexity['task_count']).fillna(0)
+
+    project_aggregates = df_alloc_costs.groupby('project_id').agg(
+        total_actual_cost=('cost_of_work', 'sum'),
+        avg_hourly_rate=('cost_per_hour', 'mean'),
+        num_resources=('resource_id', 'nunique')
+    ).reset_index()
+
+    df_projects = df_projects.merge(project_aggregates, on='project_id', how='left')
+    df_projects = df_projects.merge(project_complexity, on='project_id', how='left')
+    df_projects['cost_diff'] = df_projects['total_actual_cost'] - df_projects['budget_impact']
+    df_projects['cost_per_day'] = df_projects['total_actual_cost'] / df_projects['actual_duration_days'].replace(0, np.nan)
+
+    df_full_context = df_tasks.merge(df_projects, on='project_id', suffixes=('_task', '_project'))
+    df_full_context = df_full_context.merge(df_resource_allocations.drop(columns=['project_id'], errors='ignore'), on='task_id')
+    df_full_context = df_full_context.merge(df_resources, on='resource_id')
+    df_full_context['cost_of_work'] = df_full_context['hours_worked'] * df_full_context['cost_per_hour']
+    
+    tables['stats_table'] = df_projects[['actual_duration_days', 'days_diff', 'budget_impact', 'total_actual_cost', 'cost_diff', 'num_resources', 'avg_hourly_rate']].describe().round(2)
+
+    # --- Geração dos Gráficos (da célula 6 do notebook) ---
+    
+    # plot_01
+    fig, ax = plt.subplots(figsize=(10, 6)); sns.countplot(data=df_projects, x='project_status', ax=ax, palette='viridis'); ax.set_title('Distribuição do Status dos Projetos')
+    plots['plot_01'] = convert_fig_to_bytes(fig)
+    
+    # plot_03
+    fig, ax = plt.subplots(figsize=(10, 6)); sns.histplot(data=df_projects, x='days_diff', kde=True, color='salmon', ax=ax); ax.set_title('Diferença entre Data Real e Planeada')
+    plots['plot_03'] = convert_fig_to_bytes(fig)
+    
+    # plot_04
+    fig, ax = plt.subplots(figsize=(15, 8)); df_projects_sorted = df_projects.sort_values('budget_impact', ascending=False); sns.barplot(data=df_projects_sorted, x='project_name', y='budget_impact', color='lightblue', label='Orçamento', ax=ax); sns.barplot(data=df_projects_sorted, x='project_name', y='total_actual_cost', color='salmon', alpha=0.8, label='Custo Real', ax=ax); ax.tick_params(axis='x', rotation=90); ax.legend(); ax.set_title('Custo Real vs. Orçamento por Projeto')
+    plots['plot_04'] = convert_fig_to_bytes(fig)
+    
+    # plot_05
+    df_projects_q = df_projects.dropna(subset=['completion_quarter']).copy()
+    df_projects_q['completion_quarter'] = df_projects_q['completion_quarter'].astype(str)
+    fig, ax = plt.subplots(figsize=(10, 6)); sns.boxplot(data=df_projects_q, x='completion_quarter', y='days_diff', ax=ax, palette='coolwarm'); ax.set_title('Performance de Prazos por Trimestre')
+    plots['plot_05'] = convert_fig_to_bytes(fig)
+    
+    # plot_06
+    fig, ax = plt.subplots(figsize=(10, 6)); sns.barplot(data=df_projects_q.groupby('completion_quarter')['total_actual_cost'].mean().reset_index(), x='completion_quarter', y='total_actual_cost', ax=ax, palette='viridis'); ax.set_title('Custo Médio dos Projetos por Trimestre')
+    plots['plot_06'] = convert_fig_to_bytes(fig)
+    
+    # plot_07
+    fig, ax = plt.subplots(figsize=(10, 6)); sns.barplot(data=df_projects_q.groupby('completion_quarter')['num_resources'].mean().reset_index(), x='completion_quarter', y='num_resources', ax=ax, palette='crest'); ax.set_title('Nº Médio de Recursos por Projeto a Cada Trimestre')
+    plots['plot_07'] = convert_fig_to_bytes(fig)
+    
+    # plot_08
+    fig, ax = plt.subplots(figsize=(10, 6)); sns.countplot(data=df_tasks, y='task_type', order=df_tasks['task_type'].value_counts().index, ax=ax, palette='crest'); ax.set_title('Distribuição de Tarefas por Tipo')
+    plots['plot_08'] = convert_fig_to_bytes(fig)
+    
+    # plot_09
+    fig, ax = plt.subplots(figsize=(10, 6)); sns.countplot(data=df_tasks, x='priority', ax=ax, palette='magma'); ax.set_title('Distribuição de Tarefas por Prioridade')
+    plots['plot_09'] = convert_fig_to_bytes(fig)
+    
+    # plot_10
+    fig, ax = plt.subplots(figsize=(10, 6)); sns.histplot(data=df_tasks, x='task_duration_days', kde=True, color='indigo', ax=ax); ax.set_title('Distribuição da Duração das Tarefas')
+    plots['plot_10'] = convert_fig_to_bytes(fig)
+    
+    # plot_11
+    fig, ax = plt.subplots(figsize=(10, 6)); sns.barplot(data=df_tasks.sort_values('task_duration_days', ascending=False).head(10), x='task_duration_days', y='task_name', ax=ax, palette='rocket'); ax.set_title('Top 10 Tarefas Específicas Mais Demoradas')
+    plots['plot_11'] = convert_fig_to_bytes(fig)
+    
+    # plot_12
+    fig, ax = plt.subplots(figsize=(10, 6)); sns.countplot(data=df_resources, x='resource_type', ax=ax, palette='cubehelix'); ax.set_title('Distribuição de Recursos por Tipo')
+    plots['plot_12'] = convert_fig_to_bytes(fig)
+    
+    # plot_14
+    fig, ax = plt.subplots(figsize=(10, 6)); sns.barplot(data=df_full_context.groupby('resource_name')['days_diff'].mean().sort_values(ascending=False).reset_index().head(20), y='resource_name', x='days_diff', ax=ax, palette='cividis'); ax.set_title('Atraso Médio por Recurso')
+    plots['plot_14'] = convert_fig_to_bytes(fig)
+    
+    # plot_16
+    fig, ax = plt.subplots(figsize=(10, 6)); sns.histplot(data=df_projects, x='cost_per_day', kde=True, color='teal', ax=ax); ax.set_title('Distribuição do Custo por Dia (Eficiência)')
+    plots['plot_16'] = convert_fig_to_bytes(fig)
+    
+    # plot_17
+    df_projects['budget_bin'] = pd.cut(df_projects['budget_impact'], bins=4)
+    data_plot_17 = df_full_context.merge(df_projects[['project_id', 'budget_bin']], on='project_id').groupby(['budget_bin', 'resource_type'], observed=False)['cost_of_work'].sum().unstack()
+    fig = data_plot_17.plot(kind='bar', stacked=True, colormap='viridis', figsize=(14, 8)).get_figure()
+    plots['plot_17'] = convert_fig_to_bytes(fig)
+    
+    # plot_18
+    fig, ax = plt.subplots(figsize=(10, 6)); sns.regplot(data=df_projects, x='total_actual_cost', y='days_diff', color='crimson', ax=ax); ax.set_title('Custo Real vs. Atraso')
+    plots['plot_18'] = convert_fig_to_bytes(fig)
+    
+    # plot_19
+    fig, ax = plt.subplots(figsize=(10, 6)); sns.regplot(data=df_projects, x='avg_hourly_rate', y='days_diff', color='olivedrab', ax=ax); ax.set_title('Rate Horário Médio vs. Atraso')
+    plots['plot_19'] = convert_fig_to_bytes(fig)
+    
+    # plot_20
+    fig, ax = plt.subplots(figsize=(10, 6)); sns.regplot(data=df_projects, x='num_resources', y='total_actual_cost', color='darkorange', ax=ax); ax.set_title('Nº de Recursos vs. Custo Total')
+    plots['plot_20'] = convert_fig_to_bytes(fig)
+    
+    # plot_22
+    fig, ax = plt.subplots(figsize=(10, 6)); sns.boxplot(x=df_projects['budget_bin'], y=df_projects['days_diff'], ax=ax, palette='pastel'); ax.set_title('Atraso por Faixa de Orçamento')
+    plots['plot_22'] = convert_fig_to_bytes(fig)
+    
+    # plot_23
+    df_skill_delay = df_full_context[['skill_level', 'project_id', 'days_diff']].drop_duplicates().dropna()
+    if not df_skill_delay.empty:
+        fig, ax = plt.subplots(figsize=(10, 6)); sns.violinplot(data=df_skill_delay, x='skill_level', y='days_diff', ax=ax, palette='muted'); ax.set_title('Atraso por Nível de Competência')
+        plots['plot_23'] = convert_fig_to_bytes(fig)
+    
+    # plot_24
+    fig, ax = plt.subplots(figsize=(10, 6)); sns.histplot(data=df_projects, x='complexity_ratio', kde=True, color='darkslateblue', ax=ax); ax.set_title('Distribuição da Complexidade dos Projetos')
+    plots['plot_24'] = convert_fig_to_bytes(fig)
+    
+    # plot_25
+    predecessor_counts = df_dependencies.merge(df_tasks, left_on='task_id_predecessor', right_on='task_id')['task_type'].value_counts()
+    successor_counts = df_dependencies.merge(df_tasks, left_on='task_id_successor', right_on='task_id')['task_type'].value_counts()
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 7)); predecessor_counts.plot(kind='bar', color=sns.color_palette("Paired")[1], title='Mais Comuns como Predecessoras', ax=ax1); successor_counts.plot(kind='bar', color=sns.color_palette("Paired")[3], title='Mais Comuns como Sucessoras', ax=ax2);
+    plots['plot_25'] = convert_fig_to_bytes(fig)
+
+    # plot_26
+    PROJECT_ID_EXAMPLE = 25
+    project_deps = df_dependencies[df_dependencies['project_id'] == str(PROJECT_ID_EXAMPLE)]
+    if not project_deps.empty:
+        G = nx.from_pandas_edgelist(project_deps, 'task_id_predecessor', 'task_id_successor', create_using=nx.DiGraph()); pos = nx.spring_layout(G, seed=42)
+        fig, ax = plt.subplots(figsize=(14, 9)); nx.draw(G, pos, with_labels=True, node_color='skyblue', node_size=2000, ax=ax); ax.set_title(f'Grafo de Dependências: Projeto {PROJECT_ID_EXAMPLE}')
+        plots['plot_26'] = convert_fig_to_bytes(fig)
+    
+    # plot_27
+    fig, ax = plt.subplots(figsize=(10, 6)); sns.regplot(data=df_projects, x='complexity_ratio', y='days_diff', scatter_kws={'alpha':0.5}, line_kws={'color':'red'}, ax=ax); ax.set_title('Relação entre Complexidade e Atraso')
+    plots['plot_27'] = convert_fig_to_bytes(fig)
+    
+    # plot_28
+    fig, ax = plt.subplots(figsize=(10, 6)); sns.regplot(data=df_projects, x='dependency_count', y='cost_diff', scatter_kws={'alpha':0.5}, line_kws={'color':'red'}, ax=ax); ax.set_title('Relação entre Dependências e Desvio de Custo')
+    plots['plot_28'] = convert_fig_to_bytes(fig)
+
+    # plot_29
+    df_numeric = df_full_context[['budget_impact', 'total_actual_cost', 'days_diff', 'skill_level', 'cost_per_hour', 'priority']].dropna()
+    fig, ax = plt.subplots(figsize=(10, 8)); sns.heatmap(df_numeric.corr(), annot=True, cmap='coolwarm', fmt=".2f", ax=ax); ax.set_title('Matriz de Correlação')
+    plots['plot_29'] = convert_fig_to_bytes(fig)
+
+    return plots, tables
 
 # --- PÁGINA DE LOGIN ---
 def login_page():
     st.markdown("<h2>✨ Transformação Inteligente de Processos</h2>", unsafe_allow_html=True)
-    username = st.text_input("Utilizador", placeholder="Utilizador")
-    password = st.text_input("Senha", type="password", placeholder="Senha")
+    username = st.text_input("Utilizador", placeholder="Vasco", value="Vasco")
+    password = st.text_input("Senha", type="password", placeholder="1234", value="1234")
     if st.button("Entrar", use_container_width=True):
         if username == "Vasco" and password == "1234":
             st.session_state.authenticated = True
@@ -676,17 +840,20 @@ def settings_page():
         st.subheader("Execução da Análise")
         st.markdown('<div class="iniciar-analise-button">', unsafe_allow_html=True)
         if st.button("🚀 Iniciar Análise Completa", use_container_width=True):
-            with st.spinner("A analisar os dados... Este processo pode demorar alguns minutos."):
+            with st.spinner("A executar a análise... Este processo pode demorar alguns minutos."):
+                # Análise de Process Mining
                 plots_pre, tables_pre, event_log, df_p, df_t, df_r, df_fc = run_pre_mining_analysis(st.session_state.dfs)
                 st.session_state.plots_pre_mining = plots_pre
                 st.session_state.tables_pre_mining = tables_pre
-                st.session_state.event_log_for_cache = pm4py.convert_to_dataframe(event_log)
-                st.session_state.dfs_for_cache = {'projects': df_p, 'tasks_raw': df_t, 'resources': df_r, 'full_context': df_fc}
-                log_from_df = pm4py.convert_to_event_log(st.session_state.event_log_for_cache)
-                dfs_cache = st.session_state.dfs_for_cache
-                plots_post, metrics = run_post_mining_analysis(log_from_df, dfs_cache['projects'], dfs_cache['tasks_raw'], dfs_cache['resources'], dfs_cache['full_context'])
+                log_from_df = pm4py.convert_to_event_log(pm4py.convert_to_dataframe(event_log))
+                plots_post, metrics = run_post_mining_analysis(log_from_df, df_p, df_t, df_r, df_fc)
                 st.session_state.plots_post_mining = plots_post
                 st.session_state.metrics = metrics
+                # Análise Exploratória de Dados (EDA)
+                plots_eda, tables_eda = run_eda_analysis(st.session_state.dfs)
+                st.session_state.plots_eda = plots_eda
+                st.session_state.tables_eda = tables_eda
+
             st.session_state.analysis_run = True
             st.success("✅ Análise concluída! Navegue para o 'Dashboard Geral'.")
             st.balloons()
