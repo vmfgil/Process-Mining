@@ -53,6 +53,9 @@ st.markdown("""
         --border-color: #374151; /* Cor da Borda/Separador */
         --inactive-button-bg: #374151; /* Fundo de Botões Inativos */
         --metric-value-color: #FBBF24; /* Cor para Valores de Métricas */
+        
+        /* NOVO: Cor para o botão de Upload (Azul Bebé) */
+        --upload-button-color: #A0D2EB;
     }
     
     .stApp { background-color: var(--background-color); color: var(--text-color-dark-bg); }
@@ -110,11 +113,11 @@ st.markdown("""
         padding: 0; /* Remover padding padrão para evitar barra de scroll dupla */
     }
     
-    /* --- BOTÕES DE UPLOAD --- */
+    /* --- BOTÕES DE UPLOAD (ATUALIZADO PARA AZUL BEBÉ E TEXTO BRANCO) --- */
     section[data-testid="stFileUploader"] button,
     div[data-baseweb="file-uploader"] button {
-        background-color: var(--accent-color) !important; /* Ciano */
-        color: var(--text-color-light-bg) !important;
+        background-color: var(--upload-button-color) !important; /* NOVO: Azul Bebé */
+        color: var(--text-color-light-bg) !important; /* Manter o texto escuro se o fundo for claro */
         border: none !important;
         font-weight: 600 !important;
         border-radius: 8px !important;
@@ -188,7 +191,6 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
-
 
 # --- FUNÇÕES AUXILIARES ---
 def convert_fig_to_bytes(fig, format='png'):
