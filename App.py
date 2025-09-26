@@ -8,6 +8,7 @@ import networkx as nx
 from collections import Counter
 import io
 import base64
+import streamlit.components.v1 as components
 
 # Imports de Process Mining (PM4PY)
 import pm4py
@@ -32,7 +33,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- ESTILO CSS COM NOVA ABORDAGEM ---
+# --- ESTILO CSS ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
@@ -132,17 +133,8 @@ st.markdown("""
     section[data-testid="stFileUploader"] small {
         color: var(--text-color-light-bg) !important;
     }
-
-    /* --- CORREÇÃO REFORÇADA E AGRESSIVA PARA O BOTÃO DE ANÁLISE --- */
-    #iniciar-analise-button div[data-testid="stButton"] button,
-    #iniciar-analise-button .stButton>button,
-    #iniciar-analise-button button,
-    #iniciar-analise-button [data-testid="baseButton-secondary"] {
-        background-color: var(--baby-blue-bg) !important;
-        color: var(--text-color-light-bg) !important;
-        border: 2px solid var(--baby-blue-bg) !important;
-        font-weight: 700 !important;
-    }
+    
+    /* O CSS para o botão de análise foi removido porque vamos usar um botão HTML customizado */
     
     /* --- ESTILO DOS CARTÕES DE MÉTRICAS (KPIs) PARA FUNDO BRANCO --- */
     [data-testid="stMetric"] {
@@ -169,6 +161,7 @@ st.markdown("""
 
 
 # --- FUNÇÕES AUXILIARES ---
+# ... (As funções auxiliares como convert_fig_to_bytes, etc., permanecem as mesmas) ...
 def convert_fig_to_bytes(fig, format='png'):
     buf = io.BytesIO()
     fig.patch.set_facecolor('#FFFFFF')
@@ -221,10 +214,10 @@ def create_card(title, icon, chart_bytes=None, dataframe=None):
             </div>
             """, unsafe_allow_html=True)
 
-
 # --- INICIALIZAÇÃO DO ESTADO DA SESSÃO ---
 if 'authenticated' not in st.session_state: st.session_state.authenticated = False
 if 'current_page' not in st.session_state: st.session_state.current_page = "Dashboard"
+# ... (o resto da inicialização de estado permanece igual) ...
 if 'current_dashboard' not in st.session_state: st.session_state.current_dashboard = "Pré-Mineração"
 if 'current_section' not in st.session_state: st.session_state.current_section = "overview"
 if 'dfs' not in st.session_state:
@@ -237,6 +230,7 @@ if 'metrics' not in st.session_state: st.session_state.metrics = {}
 
 
 # --- FUNÇÕES DE ANÁLISE ---
+# ... (As funções de análise run_pre_mining_analysis e run_post_mining_analysis permanecem as mesmas) ...
 @st.cache_data
 def run_pre_mining_analysis(dfs):
     plots = {}
@@ -549,6 +543,39 @@ def login_page():
 def settings_page():
     st.title("⚙️ Configurações e Upload de Dados")
     st.markdown("---")
+
+    # --- LÓGICA PARA ATIVAR A ANÁLISE VIA URL (NOVA ABORDAGEM) ---
+    if st.query_params.get("run_analysis") == "true":
+        # Usamos o session_state para garantir que a análise só corre uma vez
+        if not st.session_state.get('analysis_triggered_by_url', False):
+            st.session_state['analysis_triggered_by_url'] = True
+            
+            # Executar a análise
+            with st.spinner("A analisar os dados... Este processo pode demorar alguns minutos."):
+                plots_pre, tables_pre, event_log, df_p, df_t, df_r, df_fc = run_pre_mining_analysis(st.session_state.dfs)
+                st.session_state.plots_pre_mining = plots_pre
+                st.session_state.tables_pre_mining = tables_pre
+                st.session_state.event_log_for_cache = pm4py.convert_to_dataframe(event_log)
+                st.session_state.dfs_for_cache = {'projects': df_p, 'tasks_raw': df_t, 'resources': df_r, 'full_context': df_fc}
+                log_from_df = pm4py.convert_to_event_log(st.session_state.event_log_for_cache)
+                dfs_cache = st.session_state.dfs_for_cache
+                plots_post, metrics = run_post_mining_analysis(log_from_df, dfs_cache['projects'], dfs_cache['tasks_raw'], dfs_cache['resources'], dfs_cache['full_context'])
+                st.session_state.plots_post_mining = plots_post
+                st.session_state.metrics = metrics
+            
+            st.session_state.analysis_run = True
+            st.success("✅ Análise concluída com sucesso! Navegue para o 'Dashboard Geral'.")
+            st.balloons()
+        
+        # Limpar o parâmetro do URL para evitar re-execuções e recarregar a página
+        st.query_params.clear()
+        st.rerun()
+
+    # Reset do gatilho se o parâmetro já não estiver no URL
+    if "run_analysis" not in st.query_params:
+        st.session_state['analysis_triggered_by_url'] = False
+
+
     st.subheader("Upload dos Ficheiros de Dados (.csv)")
     st.info("Por favor, carregue os 5 ficheiros CSV necessários para a análise.")
     file_names = ['projects', 'tasks', 'resources', 'resource_allocations', 'dependencies']
@@ -578,29 +605,33 @@ def settings_page():
         st.subheader("Execução da Análise")
         st.success("Todos os ficheiros estão carregados. Pode iniciar a análise.")
         
-        st.markdown('<div id="iniciar-analise-button">', unsafe_allow_html=True)
-        if st.button("🚀 Iniciar Análise Completa", use_container_width=True):
-            with st.spinner("A analisar os dados... Este processo pode demorar alguns minutos."):
-                plots_pre, tables_pre, event_log, df_p, df_t, df_r, df_fc = run_pre_mining_analysis(st.session_state.dfs)
-                st.session_state.plots_pre_mining = plots_pre
-                st.session_state.tables_pre_mining = tables_pre
-                st.session_state.event_log_for_cache = pm4py.convert_to_dataframe(event_log)
-                st.session_state.dfs_for_cache = {'projects': df_p, 'tasks_raw': df_t, 'resources': df_r, 'full_context': df_fc}
-                log_from_df = pm4py.convert_to_event_log(st.session_state.event_log_for_cache)
-                dfs_cache = st.session_state.dfs_for_cache
-                plots_post, metrics = run_post_mining_analysis(log_from_df, dfs_cache['projects'], dfs_cache['tasks_raw'], dfs_cache['resources'], dfs_cache['full_context'])
-                st.session_state.plots_post_mining = plots_post
-                st.session_state.metrics = metrics
-            st.session_state.analysis_run = True
-            st.success("✅ Análise concluída com sucesso! Navegue para o 'Dashboard Geral'.")
-            st.balloons()
-        st.markdown('</div>', unsafe_allow_html=True)
+        # --- BOTÃO CUSTOMIZADO EM HTML (NOVA ABORDAGEM) ---
+        button_html = """
+        <a href="?run_analysis=true" target="_self" style="text-decoration: none;">
+            <div style="
+                background-color: #A0E9FF;
+                color: #0F172A;
+                padding: 0.75rem 1rem;
+                border-radius: 0.5rem;
+                text-align: center;
+                font-weight: 700;
+                font-family: 'Poppins', sans-serif;
+                border: 2px solid #A0E9FF;
+                cursor: pointer;
+                transition: background-color 0.2s ease-in-out;
+            ">
+                🚀 Iniciar Análise Completa
+            </div>
+        </a>
+        """
+        components.html(button_html, height=60)
             
     else:
         st.warning("Aguardando o carregamento de todos os ficheiros CSV para poder iniciar a análise.")
 
 
 # --- PÁGINAS DO DASHBOARD ---
+# ... (As funções do dashboard permanecem as mesmas) ...
 def dashboard_page():
     st.title("🏠 Dashboard Geral")
 
