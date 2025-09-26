@@ -1,4 +1,19 @@
 import streamlit as st
+
+import io, zipfile
+
+def export_all_csvs(named_dfs):
+  mem = io.BytesIO()
+  with zipfile.ZipFile(mem, mode='w', compression=zipfile.ZIP_DEFLATED) as zf:
+    for name, df in named_dfs:
+      try:
+        csv_bytes = df.to_csv(index=False).encode('utf-8')
+      except Exception:
+        continue
+      zf.writestr(str(name) + '.csv', csv_bytes)
+  mem.seek(0)
+  return mem
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -33,103 +48,96 @@ st.markdown("""
 <style>
   :root{
     --bg:#0B1220; --panel:#111827; --text:#FFFFFF; --accent:#3B82F6; --accent-2:#60A5FA;
-    --border:#1f2a37; --card:#FFFFFF; --card-text:#0F172A;
+    --border:#1f2a37; --card:#FFFFFF; --card-text:#0F172A; --muted:#93A4BF;
   }
-
-  html, body, .stApp{
-    background-color:var(--bg)!important;
-    color:var(--text)!important;
-    font-family:'Inter', sans-serif;
-  }
+  html, body, .stApp{ background-color:var(--bg)!important; color:var(--text)!important;
+    font-family:'Inter', -apple-system, BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,'Helvetica Neue',Arial,sans-serif; }
+  .main .block-container{ padding:2rem 2.5rem; }
+  h1,h2,h3,h4,h5,h6{ color:var(--text); font-weight:800; }
+  h2{ border-bottom:2px solid var(--accent); padding-bottom:8px; margin-bottom:16px; }
 
   /* Sidebar */
-  [data-testid="stSidebar"]{
-    background:linear-gradient(180deg,#0F172A 0%,#0B1220 100%)!important;
-    border-right:1px solid var(--border);
-  }
-  [data-testid="stSidebar"] *{
-    color:#FFFFFF!important;
-    font-weight:800!important;
-  }
+  [data-testid="stSidebar"]{ background:linear-gradient(180deg,#0F172A 0%,#0B1220 100%)!important; border-right:1px solid var(--border); }
+  [data-testid="stSidebar"] *{ color:#FFFFFF!important; font-weight:800; }
+  .sidebar-header{ font-size:1.2rem; letter-spacing:0.2px; margin-bottom:8px; }
+  .sidebar-note{ color:#FFFFFF!important; opacity:1; font-size:0.95rem; font-weight:800; }
 
-  /* Inputs e Uploaders */
-  .stTextInput>div>div>input,
-  .stSelectbox, .stTextArea textarea{
-    color:#FFFFFF!important;
-    background-color:var(--panel)!important;
-    border:1px solid var(--border)!important;
-    font-weight:800!important;
+  /* Inputs / Uploaders */
+  .stTextInput>div>div>input, .stSelectbox, .stTextArea textarea{
+    color:#FFFFFF!important; background-color:var(--panel)!important; border:1px solid var(--border)!important; font-weight:800;
   }
   .stFileUploader{
-    background-color:var(--panel)!important;
-    border:1px solid var(--border)!important;
-    border-radius:10px;
-    padding:10px;
+    background-color:var(--panel)!important; border:1px solid var(--border)!important; border-radius:10px; padding:10px;
   }
-  .stFileUploader label{
-    color:#FFFFFF!important;
-    font-weight:800!important;
-  }
-  .stFileUploader button{
-    background-color:var(--accent)!important;
-    color:#FFFFFF!important;
-    font-weight:800!important;
-    border-radius:8px!important;
-  }
+  .stFileUploader label{ color:#FFFFFF!important; font-weight:800; }
+  section[data-testid="stFileUploadDropzone"] div[data-testid="stMarkdownContainer"] p{ color:#FFFFFF!important; font-weight:800; }
 
-  /* Mensagens */
+  /* Mensagens: evitar warnings visuais no dashboard */
   [data-testid="stWarning"]{ display:none!important; }
-  [data-testid="stInfo"], [data-testid="stSuccess"]{
-    background-color:rgba(59,130,246,0.18)!important;
-    border:1px solid rgba(59,130,246,0.5)!important;
-    color:#FFFFFF!important;
-    font-weight:800!important;
-  }
+  [data-testid="stSuccess"]{ background-color:rgba(22,163,74,0.18)!important; border:1px solid rgba(22,163,74,0.5)!important; }
+  [data-testid="stInfo"]{ background-color:rgba(59,130,246,0.18)!important; border:1px solid rgba(59,130,246,0.5)!important; }
 
-  /* Cartões */
+  /* Card branco com texto escuro para legibilidade */
   .card{
-    background-color:var(--card)!important;
-    color:var(--card-text)!important;
-    border:1px solid #e5e7eb;
-    border-radius:14px;
-    padding:18px;
-    box-shadow:0 6px 18px rgba(0,0,0,0.2);
-    margin-bottom:16px;
+    background-color:var(--card)!important; color:var(--card-text)!important;
+    border:1px solid #e5e7eb; border-radius:14px; padding:18px 18px; box-shadow:0 6px 18px rgba(0,0,0,0.2); margin-bottom:16px;
   }
-  .card-header{
-    display:flex; align-items:center; justify-content:space-between;
-    border-bottom:1px solid #e5e7eb;
-    padding-bottom:10px; margin-bottom:14px;
-  }
-  .card-title{
-    font-weight:900; font-size:1.05rem;
-    color:var(--card-text)!important;
-  }
-  .card-actions{ display:inline-flex; gap:6px; }
+  .card-header{ display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #e5e7eb;
+    padding-bottom:10px; margin-bottom:14px; }
+  .card-title{ display:inline-flex; align-items:center; gap:10px; font-weight:900; font-size:1.05rem; color:var(--card-text)!important; }
+  .card-actions{ display:inline-flex; align-items:center; gap:8px; }
 
-  /* Conteúdo dentro do card */
+  /* Dentro do card, forçar textos escuros */
   .card *{ color:var(--card-text)!important; }
-  .stMetric{ color:var(--card-text)!important; }
+  .card .stMetric{ color:var(--card-text)!important; }
+  .card .metric-label, .card .metric-value{ color:var(--card-text)!important; }
 
-  /* Botões */
-  .stButton>button,
+  /* Botões gerais e de exportação (sempre visíveis) */
+  .stButton>button{
+    background-color:var(--accent)!important; color:#FFFFFF!important; font-weight:900!important;
+    border-radius:10px; border:1px solid rgba(59,130,246,0.5)!important; padding:10px 14px;
+  }
   [data-testid="stDownloadButton"] button{
-    background-color:var(--accent)!important;
-    color:#FFFFFF!important;
-    font-weight:900!important;
-    border-radius:8px!important;
-    border:1px solid rgba(59,130,246,0.5)!important;
-    padding:6px 10px!important;
+    background-color:var(--accent)!important; color:#FFFFFF!important; font-weight:900!important;
+    border-radius:10px; border:1px solid rgba(59,130,246,0.5)!important; padding:8px 12px;
   }
 
-  /* Dashboard grid */
+  /* Alinhamento e tamanhos consistentes para cartões no dashboard */
   .dashboard-grid .card{ min-height:380px; }
   .dashboard-grid .card.kpi{ min-height:150px; }
   .dashboard-grid .card.tall{ min-height:520px; }
   .dashboard-grid .card.wide{ min-height:460px; }
 
-  /* Remover caixas vazias */
-  .element-container:has(.card){ margin-bottom:0!important; }
+  /* Remover “caixas vazias” visuais */
+  .element-container:has(.card) { margin-bottom:0!important; }
+
+/* Overrides injected by Julius */
+
+
+  /* Stronger contrast on dark backgrounds */
+  .stApp, body { color: #FFFFFF !important; }
+  h1, h2, h3, h4, h5, h6 { color: #FFFFFF !important; }
+
+  /* Card base and equal height layout */
+  .card { background: #FFFFFF; color: #0F172A; border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; }
+  .card .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .card .card-title { font-weight: 700; color: #0F172A; }
+  .card .card-body { flex: 1; }
+
+  /* KPI cards should be white too */
+  .card.kpi { background: #FFFFFF; color: #0F172A; }
+
+  /* Dashboard grid for uniform sizing and alignment */
+  .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; align-items: stretch; }
+
+  /* Make Streamlit file uploader readable */
+  [data-testid="stFileUploader"] * { color: #0F172A !important; }
+  [data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"] { background: #FFFFFF !important; border: 1px dashed #cbd5e1 !important; }
+  [data-testid="stFileUploader"] button { background: #111827 !important; color: #FFFFFF !important; border-color: #111827 !important; }
+
+  /* Buttons inside headers */
+  .card .stDownloadButton { margin-left: 8px; }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -783,7 +791,6 @@ def render_config():
 def render_dashboard_pre():
   st.markdown("<h2>🏠 Dashboard Geral — Pré-mineração</h2>", unsafe_allow_html=True)
   if not st.session_state.tables_pre_mining:
-    st.markdown("")
     return
 
   kpis = st.session_state.tables_pre_mining['kpi_data']
@@ -955,7 +962,6 @@ def render_dashboard_pre():
 def render_dashboard_post():
   st.markdown("<h2>🏠 Dashboard Geral — Pós-mineração</h2>", unsafe_allow_html=True)
   if not st.session_state.plots_post_mining:
-    st.markdown("")
     return
 
   st.markdown('<div class="dashboard-grid">', unsafe_allow_html=True)
