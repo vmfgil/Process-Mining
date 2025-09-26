@@ -165,14 +165,25 @@ st.markdown("""
     }
     [data-testid="stAlert"] * { color: #BFDBFE !important; }
     
-    /* --- BOTÃO DE LOGIN (Problema 5) --- */
+/* --- BOTÃO DE LOGIN (Problema 5) --- */
     .login-button button {
-        background-color: var(--primary-color) !important;
+        background-color: var(--primary-color) !important; /* Cor de Fundo de Destaque (Vermelho EF4444) */
         color: var(--text-color-dark-bg) !important; /* Cor do texto em branco */
         font-weight: 700 !important;
+        border: 1px solid var(--primary-color) !important;
     }
-</style>
-""", unsafe_allow_html=True)
+    
+    /* Garantir que o hover (azul temporário) também tenha texto branco, 
+       embora já não deva ser necessário com a cor primária */
+    .login-button button:hover {
+        background-color: var(--secondary-color) !important; /* Mudar para azul no hover */
+        color: var(--text-color-dark-bg) !important; /* Texto continua BRANCO */
+    }
+    
+    /* E para o botão pressionado */
+    .login-button button:active {
+        background-color: var(--primary-color) !important;
+    }
 
 
 # --- FUNÇÕES AUXILIARES ---
