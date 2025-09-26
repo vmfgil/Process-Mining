@@ -5,9 +5,12 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import seaborn as sns
 import networkx as nx
-from collections import Counter
+from collections import Counter, defaultdict
 import io
 import base64
+import time
+import random
+from datetime import timedelta
 
 # Imports de Process Mining (PM4PY)
 import pm4py
@@ -24,9 +27,6 @@ from pm4py.algo.evaluation.generalization import algorithm as generalization_eva
 from pm4py.algo.evaluation.simplicity import algorithm as simplicity_evaluator
 from pm4py.algo.filtering.log.variants import variants_filter
 from pm4py.algo.conformance.alignments.petri_net import algorithm as alignments_miner
-
-# Imports para Análise Exploratória (EDA)
-import missingno as msno
 
 # --- 1. CONFIGURAÇÃO DA PÁGINA E ESTILO ---
 st.set_page_config(
@@ -181,7 +181,7 @@ st.markdown("""
         background-color: #2F394B;
     }
     
-    .stTextInput>div>div>input, .stTextInput>div>div>textarea {
+    .stTextInput>div>div>input, .stTextInput>div>div>textarea, .stNumberInput>div>div>input {
         background-color: var(--sidebar-background) !important;
         color: var(--text-color-dark-bg) !important;
         border: 1px solid var(--border-color) !important;
@@ -212,7 +212,7 @@ def convert_fig_to_bytes(fig, format='png'):
 def convert_gviz_to_bytes(gviz, format='png'):
     return io.BytesIO(gviz.pipe(format=format))
 
-def create_card(title, icon, chart_bytes=None, dataframe=None):
+def create_card(title, icon, chart_bytes=None, dataframe=None, use_container_width=False):
     if chart_bytes:
         b64_image = base64.b64encode(chart_bytes.getvalue()).decode()
         st.markdown(f"""
@@ -241,16 +241,20 @@ if 'current_section' not in st.session_state: st.session_state.current_section =
 if 'dfs' not in st.session_state:
     st.session_state.dfs = {'projects': None, 'tasks': None, 'resources': None, 'resource_allocations': None, 'dependencies': None}
 if 'analysis_run' not in st.session_state: st.session_state.analysis_run = False
+if 'rl_analysis_run' not in st.session_state: st.session_state.rl_analysis_run = False
 if 'plots_pre_mining' not in st.session_state: st.session_state.plots_pre_mining = {}
 if 'plots_post_mining' not in st.session_state: st.session_state.plots_post_mining = {}
 if 'tables_pre_mining' not in st.session_state: st.session_state.tables_pre_mining = {}
 if 'metrics' not in st.session_state: st.session_state.metrics = {}
-# Novas variáveis de estado para a análise EDA
 if 'plots_eda' not in st.session_state: st.session_state.plots_eda = {}
 if 'tables_eda' not in st.session_state: st.session_state.tables_eda = {}
+if 'plots_rl' not in st.session_state: st.session_state.plots_rl = {}
+if 'tables_rl' not in st.session_state: st.session_state.tables_rl = {}
+if 'logs_rl' not in st.session_state: st.session_state.logs_rl = {}
 
 
-# --- FUNÇÕES DE ANÁLISE (PROCESS MINING) ---
+# --- FUNÇÕES DE ANÁLISE (PROCESS MINING E EDA) ---
+# ... (As funções run_pre_mining_analysis, run_post_mining_analysis, e run_eda_analysis permanecem as mesmas da versão anterior)
 @st.cache_data
 def run_pre_mining_analysis(dfs):
     # (O código desta função permanece exatamente o mesmo do ficheiro que forneceu)
@@ -784,6 +788,362 @@ def run_eda_analysis(dfs):
 
     return plots, tables
 
+# --- NOVA FUNÇÃO DE ANÁLISE (REINFORCEMENT LEARNING) ---
+@st.cache_data
+def run_rl_analysis(dfs, project_id_to_simulate, num_episodes, reward_config):
+    # Dicionários para guardar os resultados
+    plots = {}
+    tables = {}
+    logs = {}
+
+    # --- Carregamento e Pré-processamento dos dados (da célula de RL) ---
+    df_projects = dfs['projects'].copy()
+    df_tasks = dfs['tasks'].copy()
+    df_resources = dfs['resources'].copy()
+    df_resource_allocations = dfs['resource_allocations'].copy()
+    df_dependencies = dfs['dependencies'].copy()
+
+    for df in [df_projects, df_tasks, df_resource_allocations, df_dependencies]:
+        for col in ['start_date', 'end_date', 'planned_end_date', 'allocation_date']:
+            if col in df.columns:
+                df[col] = pd.to_datetime(df[col], errors='coerce')
+
+    def calculate_business_days(start, end):
+        return np.busday_count(start.date(), end.date())
+
+    df_projects['planned_duration_days'] = df_projects.apply(lambda row: calculate_business_days(row['start_date'], row['planned_end_date']), axis=1)
+    df_projects['total_duration_days'] = df_projects.apply(lambda row: calculate_business_days(row['start_date'], row['end_date']), axis=1)
+
+    df_real_costs = (df_resource_allocations.merge(df_resources[['resource_id', 'cost_per_hour']], on='resource_id')
+                     .assign(cost=lambda df: df.hours_worked * df.cost_per_hour)
+                     .groupby('project_id')['cost'].sum().rename('actual_historical_cost').reset_index())
+    df_projects = df_projects.merge(df_real_costs, on='project_id', how='left').fillna({'actual_historical_cost': 0})
+
+    # --- AMBIENTE E AGENTE (CLASSES) ---
+    class ProjectManagementEnv:
+        def __init__(self, df_tasks, df_resources, df_dependencies, min_progress_for_next_phase=0.7, reward_config=None):
+            self.rewards = reward_config
+            self.df_tasks = df_tasks
+            self.df_resources = df_resources
+            self.df_dependencies = df_dependencies
+            self.resource_types = sorted(self.df_resources['resource_type'].unique().tolist())
+            self.task_types = sorted(self.df_tasks['task_type'].unique().tolist())
+            self.resources_by_type = {rt: self.df_resources[self.df_resources['resource_type'] == rt] for rt in self.resource_types}
+            self.all_actions = self._generate_all_actions()
+            self.min_progress_for_next_phase = min_progress_for_next_phase
+            self.reset(df_projects.iloc[0]['project_id'])
+
+        def _generate_all_actions(self):
+            actions = set()
+            for res_type in self.resource_types:
+                actions.add((res_type, 'idle'))
+                for task_type in self.task_types:
+                    actions.add((res_type, task_type))
+            return tuple(sorted(list(actions)))
+
+        def reset(self, project_id):
+            self.current_project_id = project_id
+            project_info = df_projects.loc[df_projects['project_id'] == project_id].iloc[0]
+            self.current_cost = 0.0
+            self.day_count = 0
+            self.current_date = project_info['start_date']
+            self.episode_logs = []
+            project_tasks = self.df_tasks[self.df_tasks['project_id'] == project_id].sort_values('task_id')
+            self.tasks_to_do_count = len(project_tasks)
+            self.total_estimated_budget = project_info['actual_historical_cost']
+            self.total_estimated_effort = project_tasks[['estimated_effort_dev', 'estimated_effort_qa', 'estimated_effort_ops', 'estimated_effort_dba']].sum().sum()
+            project_dependencies = self.df_dependencies[self.df_dependencies['project_id'] == project_id]
+            self.task_dependencies = {row['task_id_successor']: row['task_id_predecessor'] for _, row in project_dependencies.iterrows()}
+            self.tasks_state = {
+                task['task_id']: {'status': 'Pendente', 'progress_dev': 0.0, 'progress_qa': 0.0, 'progress_ops': 0.0, 'progress_dba': 0.0,
+                                  'estimated_effort_dev': task['estimated_effort_dev'], 'estimated_effort_qa': task['estimated_effort_qa'],
+                                  'estimated_effort_ops': task['estimated_effort_ops'], 'estimated_effort_dba': task['estimated_effort_dba'],
+                                  'priority': task['priority'], 'task_type': task['task_type']}
+                for _, task in project_tasks.iterrows()
+            }
+            return self.get_state()
+
+        def get_state(self):
+            progress_total = sum(d.get('progress_dev',0) + d.get('progress_qa',0) + d.get('progress_ops',0) + d.get('progress_dba',0) for d in self.tasks_state.values())
+            progress_ratio = progress_total / self.total_estimated_effort if self.total_estimated_effort > 0 else 1.0
+            budget_ratio = self.current_cost / self.total_estimated_budget if self.total_estimated_budget > 0 else 0.0
+            project_info = df_projects.loc[df_projects['project_id'] == self.current_project_id].iloc[0]
+            time_ratio = self.day_count / project_info['total_duration_days'] if project_info['total_duration_days'] > 0 else 0.0
+            pending_tasks = sum(1 for t in self.tasks_state.values() if t['status'] != 'Concluída')
+            return (int(progress_ratio * 10), int(budget_ratio * 10), int(time_ratio * 10), pending_tasks)
+
+        def get_possible_actions_for_state(self):
+            possible_actions = set()
+            for res_type in self.resource_types:
+                has_eligible_task_for_type = False
+                for task_type in self.task_types:
+                    if any(t_data['task_type'] == task_type and self._is_task_eligible(t_id, res_type) for t_id, t_data in self.tasks_state.items()):
+                        possible_actions.add((res_type, task_type))
+                        has_eligible_task_for_type = True
+                if not has_eligible_task_for_type:
+                    possible_actions.add((res_type, 'idle'))
+            return list(possible_actions)
+
+        def _is_task_eligible(self, task_id, res_type):
+            task_data = self.tasks_state[task_id]
+            if task_data['status'] == 'Concluída': return False
+            pred_id = self.task_dependencies.get(task_id)
+            if pred_id and self.tasks_state.get(pred_id, {}).get('status') != 'Concluída': return False
+            effort_map = {'Desenvolvedor': 'dev', 'Testador': 'qa', 'Eng. DevOps': 'ops', 'DBA': 'dba'}
+            phase = effort_map.get(res_type)
+            if not phase or task_data[f'progress_{phase}'] >= task_data[f'estimated_effort_{phase}']: return False
+            dependencies = {'qa': 'dev', 'ops': 'qa', 'dba': 'dev'}
+            if phase in dependencies:
+                dep_phase = dependencies[phase]
+                if task_data[f'estimated_effort_{dep_phase}'] > 0:
+                    progress_ratio = task_data[f'progress_{dep_phase}'] / task_data[f'estimated_effort_{dep_phase}']
+                    if progress_ratio < self.min_progress_for_next_phase: return False
+            return True
+
+        def step(self, action_set):
+            if self.current_date.weekday() >= 5:
+                self.current_date += timedelta(days=1)
+                daily_cost = 0; reward_from_tasks = 0
+            else:
+                daily_cost = 0; reward_from_tasks = 0; resources_used_today = set()
+                for res_type, task_type in action_set:
+                    if task_type == "idle":
+                        reward_from_tasks -= self.rewards['idle_penalty']; continue
+                    available_resources = self.resources_by_type[res_type][~self.resources_by_type[res_type]['resource_id'].isin(resources_used_today)]
+                    if available_resources.empty: continue
+                    res_info = available_resources.sample(1).iloc[0]
+                    eligible_tasks = [tid for tid, tdata in self.tasks_state.items() if tdata['task_type'] == task_type and self._is_task_eligible(tid, res_type)]
+                    if not eligible_tasks: continue
+                    resources_used_today.add(res_info['resource_id'])
+                    eligible_tasks.sort(key=lambda tid: self.tasks_state[tid]['priority'], reverse=True)
+                    task_id_to_work = eligible_tasks[0]
+                    task_data = self.tasks_state[task_id_to_work]
+                    effort_type = {'Desenvolvedor': 'dev', 'Testador': 'qa', 'Eng. DevOps': 'ops', 'DBA': 'dba'}[res_type]
+                    remaining_effort = task_data[f'estimated_effort_{effort_type}'] - task_data[f'progress_{effort_type}']
+                    hours_to_work = min(res_info['daily_capacity'], remaining_effort)
+                    cost_today = hours_to_work * res_info['cost_per_hour']
+                    daily_cost += cost_today
+                    self.episode_logs.append({'day': self.day_count, 'resource_id': res_info['resource_id'], 'resource_type': res_type, 'task_id': task_id_to_work, 'hours_worked': hours_to_work, 'daily_cost': cost_today, 'action': f'Work on {task_type}'})
+                    if task_data['status'] == 'Pendente': task_data['status'] = 'Em Andamento'
+                    task_data[f'progress_{effort_type}'] += hours_to_work
+                    if (task_data['progress_dev'] >= task_data['estimated_effort_dev'] and task_data['progress_qa'] >= task_data['estimated_effort_qa'] and
+                        task_data['progress_ops'] >= task_data['estimated_effort_ops'] and task_data['progress_dba'] >= task_data['estimated_effort_dba']):
+                        task_data['status'] = 'Concluída'; reward_from_tasks += task_data['priority'] * self.rewards['priority_task_bonus_factor']
+
+                self.current_cost += daily_cost
+                self.current_date += timedelta(days=1)
+                if self.current_date.weekday() < 5: self.day_count += 1
+
+            project_is_done = all(t['status'] == 'Concluída' for t in self.tasks_state.values())
+            total_reward = reward_from_tasks - self.rewards['daily_time_penalty']
+            if project_is_done:
+                project_info = df_projects.loc[df_projects['project_id'] == self.current_project_id].iloc[0]
+                time_diff = project_info['total_duration_days'] - self.day_count
+                total_reward += self.rewards['completion_base']
+                total_reward += time_diff * self.rewards['per_day_early_bonus'] if time_diff >= 0 else time_diff * self.rewards['per_day_late_penalty']
+                total_reward -= self.current_cost * self.rewards['cost_impact_factor']
+            return total_reward, project_is_done
+
+    class QLearningAgent:
+        def __init__(self, actions, lr=0.1, gamma=0.9, epsilon=1.0, epsilon_decay=0.9995, min_epsilon=0.01):
+            self.actions = actions
+            self.action_to_index = {action: i for i, action in enumerate(actions)}
+            self.q_table = defaultdict(lambda: np.zeros(len(self.actions)))
+            self.lr, self.gamma, self.epsilon = lr, gamma, epsilon
+            self.epsilon_decay, self.min_epsilon = epsilon_decay, min_epsilon
+            self.epsilon_history, self.episode_rewards, self.episode_durations, self.episode_costs = [], [], [], []
+
+        def choose_action(self, state, possible_actions):
+            if not possible_actions: return None
+            if random.uniform(0, 1) < self.epsilon: return random.choice(possible_actions)
+            else:
+                q_values = {action: self.q_table[state][self.action_to_index[action]] for action in possible_actions if action in self.action_to_index}
+                if not q_values: return random.choice(possible_actions)
+                max_q = max(q_values.values()); best_actions = sorted([action for action, q_val in q_values.items() if q_val == max_q])
+                return best_actions[0]
+
+        def update_q_table(self, state, action, reward, next_state):
+            action_index = self.action_to_index.get(action)
+            if action_index is None: return
+            old_value = self.q_table[state][action_index]
+            next_max = np.max(self.q_table[next_state]) if next_state in self.q_table else 0.0
+            new_value = old_value + self.lr * (reward + self.gamma * next_max - old_value)
+            self.q_table[state][action_index] = new_value
+
+        def decay_epsilon(self):
+            self.epsilon = max(self.min_epsilon, self.epsilon * self.epsilon_decay)
+            self.epsilon_history.append(self.epsilon)
+    
+    # --- EXECUÇÃO PRINCIPAL DO RL ---
+    SEED = 123
+    random.seed(SEED)
+    np.random.seed(SEED)
+    
+    df_projects_train = df_projects.sample(frac=0.8, random_state=SEED)
+    df_projects_test = df_projects.drop(df_projects_train.index)
+
+    env = ProjectManagementEnv(df_tasks, df_resources, df_dependencies, reward_config=reward_config)
+    agent = QLearningAgent(actions=env.all_actions)
+    
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    time_per_episode = 0.06 
+    
+    for episode in range(num_episodes):
+        project_id = df_projects_train.sample(1, random_state=episode).iloc[0]['project_id']
+        state = env.reset(project_id)
+        episode_reward, done = 0, False
+        calendar_day = 0
+        while not done and calendar_day < 1000:
+            possible_actions = env.get_possible_actions_for_state()
+            action_set = set()
+            for res_type in env.resource_types:
+                actions_for_res = [a for a in possible_actions if a[0] == res_type]
+                if actions_for_res:
+                    chosen_action = agent.choose_action(state, actions_for_res)
+                    if chosen_action: action_set.add(chosen_action)
+            reward, done = env.step(action_set)
+            next_state = env.get_state()
+            for action in action_set: agent.update_q_table(state, action, reward, next_state)
+            state = next_state
+            episode_reward += reward
+            calendar_day += 1
+            if env.day_count > 730: break
+        agent.decay_epsilon()
+        agent.episode_rewards.append(episode_reward)
+        agent.episode_durations.append(env.day_count)
+        agent.episode_costs.append(env.current_cost)
+        
+        progress = (episode + 1) / num_episodes
+        progress_bar.progress(progress)
+        remaining_time = (num_episodes - (episode + 1)) * time_per_episode
+        status_text.text(f"Episódio {episode + 1}/{num_episodes}... Tempo estimado restante: {remaining_time:.0f} segundos.")
+    
+    status_text.success("Treino e simulação concluídos!")
+    
+    # --- FUNÇÕES DE PLOT E TABULAÇÃO ---
+    fig, axes = plt.subplots(2, 2, figsize=(16, 10))
+    rewards, durations, costs, epsilon_history = agent.episode_rewards, agent.episode_durations, agent.episode_costs, agent.epsilon_history
+    axes[0, 0].plot(rewards, alpha=0.6); axes[0, 0].plot(pd.Series(rewards).rolling(50).mean(), lw=2, label='Média Móvel (50 ep)')
+    axes[0, 0].set_title('Recompensa por Episódio'); axes[0, 0].legend(); axes[0, 0].grid(True)
+    axes[0, 1].plot(durations, alpha=0.6); axes[0, 1].plot(pd.Series(durations).rolling(50).mean(), lw=2, label='Média Móvel (50 ep)')
+    axes[0, 1].set_title('Duração por Episódio'); axes[0, 1].legend(); axes[0, 1].grid(True)
+    axes[1, 0].plot(epsilon_history); axes[1, 0].set_title('Decaimento do Epsilon'); axes[1, 0].grid(True)
+    axes[1, 1].plot(costs, alpha=0.6); axes[1, 1].plot(pd.Series(costs).rolling(50).mean(), lw=2, label='Média Móvel (50 ep)')
+    axes[1, 1].set_title('Custo por Episódio'); axes[1, 1].legend(); axes[1, 1].grid(True)
+    fig.tight_layout()
+    plots['training_metrics'] = convert_fig_to_bytes(fig)
+
+    def evaluate_agent(agent, env, df_projects_to_evaluate):
+        agent.epsilon = 0
+        results = []
+        for _, prj_info in df_projects_to_evaluate.iterrows():
+            state = env.reset(prj_info['project_id'])
+            done = False; calendar_day = 0
+            while not done and calendar_day < 1000:
+                possible_actions = env.get_possible_actions_for_state()
+                action_set = set()
+                for res_type in env.resource_types:
+                    actions_for_res = [a for a in possible_actions if a[0] == res_type]
+                    if actions_for_res:
+                        chosen_action = agent.choose_action(state, actions_for_res)
+                        if chosen_action: action_set.add(chosen_action)
+                _, done = env.step(action_set)
+                state = env.get_state(); calendar_day += 1
+                if env.day_count > 730: break
+            results.append({'project_id': prj_info['project_id'], 'simulated_duration': env.day_count, 'simulated_cost': env.current_cost,
+                            'real_duration': prj_info['total_duration_days'], 'real_cost': prj_info['actual_historical_cost']})
+        return pd.DataFrame(results)
+
+    test_results_df = evaluate_agent(agent, env, df_projects_test)
+    df_plot_test = test_results_df.sort_values(by='real_duration').reset_index(drop=True)
+    fig, axes = plt.subplots(1, 2, figsize=(20, 8))
+    index_test = np.arange(len(df_plot_test)); bar_width = 0.35
+    axes[0].bar(index_test - bar_width/2, df_plot_test['real_duration'], bar_width, label='Real', color='orangered'); axes[0].bar(index_test + bar_width/2, df_plot_test['simulated_duration'], bar_width, label='Simulado (RL)', color='dodgerblue')
+    axes[0].set_title('Duração do Projeto (Teste)'); axes[0].set_xticks(index_test); axes[0].set_xticklabels(df_plot_test['project_id'], rotation=45, ha="right"); axes[0].legend()
+    axes[1].bar(index_test - bar_width/2, df_plot_test['real_cost'], bar_width, label='Real', color='orangered'); axes[1].bar(index_test + bar_width/2, df_plot_test['simulated_cost'], bar_width, label='Simulado (RL)', color='dodgerblue')
+    axes[1].set_title('Custo do Projeto (Teste)'); axes[1].set_xticks(index_test); axes[1].set_xticklabels(df_plot_test['project_id'], rotation=45, ha="right"); axes[1].legend()
+    plots['evaluation_comparison_test'] = convert_fig_to_bytes(fig)
+
+    all_results_df = evaluate_agent(agent, env, df_projects)
+    df_plot_all = all_results_df.sort_values(by='real_duration').reset_index(drop=True)
+    fig, axes = plt.subplots(1, 2, figsize=(20, 8))
+    index_all = np.arange(len(df_plot_all));
+    axes[0].bar(index_all - bar_width/2, df_plot_all['real_duration'], bar_width, label='Real', color='orangered'); axes[0].bar(index_all + bar_width/2, df_plot_all['simulated_duration'], bar_width, label='Simulado (RL)', color='dodgerblue')
+    axes[0].set_title('Duração do Projeto (Todos)'); axes[0].set_xticks(index_all); axes[0].set_xticklabels(df_plot_all['project_id'], rotation=90); axes[0].legend()
+    axes[1].bar(index_all - bar_width/2, df_plot_all['real_cost'], bar_width, label='Real', color='orangered'); axes[1].bar(index_all + bar_width/2, df_plot_all['simulated_cost'], bar_width, label='Simulado (RL)', color='dodgerblue')
+    axes[1].set_title('Custo do Projeto (Todos)'); axes[1].set_xticks(index_all); axes[1].set_xticklabels(df_plot_all['project_id'], rotation=90); axes[1].legend()
+    plots['evaluation_comparison_all'] = convert_fig_to_bytes(fig)
+
+    def get_global_performance_df(results_df):
+        real_duration = results_df['real_duration'].sum(); sim_duration = results_df['simulated_duration'].sum()
+        real_cost = results_df['real_cost'].sum(); sim_cost = results_df['simulated_cost'].sum()
+        dur_improv = real_duration - sim_duration; cost_improv = real_cost - sim_cost
+        perf_data = {'Métrica': ['Duração Total (dias úteis)', 'Custo Total (€)'],
+                     'Real (Histórico)': [f"{real_duration:.0f}", f"€{real_cost:,.2f}"],
+                     'Simulado (RL)': [f"{sim_duration:.0f}", f"€{sim_cost:,.2f}"],
+                     'Melhoria': [f"{dur_improv:.0f} ({dur_improv/real_duration:.1%})", f"€{cost_improv:,.2f} ({cost_improv/real_cost:.1%})"]}
+        return pd.DataFrame(perf_data)
+        
+    tables['global_performance_test'] = get_global_performance_df(test_results_df)
+    tables['global_performance_all'] = get_global_performance_df(all_results_df)
+
+    # Simulação detalhada
+    agent.epsilon = 0; state = env.reset(project_id_to_simulate)
+    done = False; calendar_day = 0
+    while not done and calendar_day < 1000:
+        possible_actions = env.get_possible_actions_for_state()
+        action_set = set()
+        for res_type in env.resource_types:
+            actions_for_res = [a for a in possible_actions if a[0] == res_type]
+            if actions_for_res:
+                action = agent.choose_action(state, actions_for_res)
+                if action: action_set.add(action)
+        _, done = env.step(action_set)
+        state = env.get_state(); calendar_day += 1
+        if env.day_count > 730: break
+    simulated_log = pd.DataFrame(env.episode_logs)
+    sim_duration, sim_cost = env.day_count, env.current_cost
+
+    project_info = df_projects.loc[df_projects['project_id'] == project_id_to_simulate].iloc[0]
+    real_duration, real_cost = project_info['total_duration_days'], project_info['actual_historical_cost']
+    
+    tables['project_summary'] = pd.DataFrame({
+        'Métrica': ['Duração (dias úteis)', 'Custo (€)'],
+        'Real (Histórico)': [f"{real_duration:.0f}", f"€{real_cost:,.2f}"],
+        'Simulado (RL)': [f"{sim_duration:.0f}", f"€{sim_cost:,.2f}"]
+    })
+    
+    # Gráfico de comparação detalhada
+    project_start_date = df_projects.loc[df_projects['project_id'] == project_id_to_simulate, 'start_date'].iloc[0]
+    real_allocations = df_resource_allocations[df_resource_allocations['project_id'] == project_id_to_simulate].copy()
+    real_allocations['day'] = real_allocations.apply(lambda row: np.busday_count(project_start_date.date(), row['allocation_date'].date()), axis=1)
+    
+    total_estimated_effort = env.total_estimated_effort
+    fig, axes = plt.subplots(1, 2, figsize=(20, 8))
+    max_day_sim = simulated_log['day'].max() if not simulated_log.empty else 0
+    max_day_plot = int(max(max_day_sim, real_duration)); day_range = pd.RangeIndex(start=0, stop=max_day_plot + 1, name='day')
+    sim_daily_cost = simulated_log.groupby('day')['daily_cost'].sum()
+    sim_cumulative_cost = sim_daily_cost.reindex(day_range, fill_value=0).cumsum()
+    real_log_merged = real_allocations.merge(df_resources[['resource_id', 'cost_per_hour']], on='resource_id', how='left')
+    real_log_merged['daily_cost'] = real_log_merged['hours_worked'] * real_log_merged['cost_per_hour']
+    real_daily_cost = real_log_merged.groupby('day')['daily_cost'].sum()
+    real_cumulative_cost = real_daily_cost.reindex(day_range, fill_value=0).cumsum()
+    axes[0].plot(sim_cumulative_cost.index, sim_cumulative_cost.values, label='Custo Simulado', marker='o', linestyle='--', color='b')
+    axes[0].plot(real_cumulative_cost.index, real_cumulative_cost.values, label='Custo Real', marker='x', linestyle='-', color='r')
+    axes[0].axvline(x=real_duration, color='k', linestyle=':', label=f'Fim Real ({real_duration} dias úteis)'); axes[0].set_title('Custo Acumulado'); axes[0].legend(); axes[0].grid(True)
+    sim_daily_progress = simulated_log.groupby('day')['hours_worked'].sum()
+    sim_cumulative_progress = sim_daily_progress.reindex(day_range, fill_value=0).cumsum()
+    real_daily_progress = real_log_merged.groupby('day')['hours_worked'].sum()
+    real_cumulative_progress = real_daily_progress.reindex(day_range, fill_value=0).cumsum()
+    axes[1].plot(sim_cumulative_progress.index, sim_cumulative_progress.values, label='Progresso Simulado', marker='o', linestyle='--', color='b')
+    axes[1].plot(real_cumulative_progress.index, real_cumulative_progress.values, label='Progresso Real', marker='x', linestyle='-', color='r')
+    axes[1].axhline(y=total_estimated_effort, color='g', linestyle='-.', label='Esforço Total Estimado'); axes[1].axvline(x=real_duration, color='k', linestyle=':', label=f'Fim Real ({real_duration} dias úteis)'); axes[1].set_title('Progresso Acumulado'); axes[1].legend(); axes[1].grid(True)
+    fig.tight_layout()
+    plots['project_detailed_comparison'] = convert_fig_to_bytes(fig)
+    
+    return plots, tables, logs
+
 # --- PÁGINA DE LOGIN ---
 def login_page():
     st.markdown("<h2>✨ Transformação Inteligente de Processos</h2>", unsafe_allow_html=True)
@@ -826,9 +1186,8 @@ def settings_page():
         
         st.subheader("Execução da Análise")
         st.markdown('<div class="iniciar-analise-button">', unsafe_allow_html=True)
-        if st.button("🚀 Iniciar Análise Completa", use_container_width=True):
+        if st.button("🚀 Iniciar Análise Inicial (PM & EDA)", use_container_width=True):
             with st.spinner("A executar a análise... Este processo pode demorar alguns minutos."):
-                # Análise de Process Mining
                 plots_pre, tables_pre, event_log, df_p, df_t, df_r, df_fc = run_pre_mining_analysis(st.session_state.dfs)
                 st.session_state.plots_pre_mining = plots_pre
                 st.session_state.tables_pre_mining = tables_pre
@@ -836,21 +1195,21 @@ def settings_page():
                 plots_post, metrics = run_post_mining_analysis(log_from_df, df_p, df_t, df_r, df_fc)
                 st.session_state.plots_post_mining = plots_post
                 st.session_state.metrics = metrics
-                # Análise Exploratória de Dados (EDA)
                 plots_eda, tables_eda = run_eda_analysis(st.session_state.dfs)
                 st.session_state.plots_eda = plots_eda
                 st.session_state.tables_eda = tables_eda
 
             st.session_state.analysis_run = True
-            st.success("✅ Análise concluída! Navegue para o 'Dashboard Geral'.")
+            st.success("✅ Análise concluída! Navegue para o 'Dashboard Geral' ou para a página de 'Reinforcement Learning'.")
             st.balloons()
         st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.warning("Aguardando o carregamento de todos os ficheiros CSV para poder iniciar a análise.")
 
 
-# --- PÁGINAS DO DASHBOARD (REESTRUTURADO) ---
+# --- PÁGINA DO DASHBOARD ---
 def dashboard_page():
+    # (O código desta função permanece exatamente o mesmo do ficheiro que forneceu)
     st.title("🏠 Dashboard Geral de Análise de Processos")
 
     if st.session_state.get('show_welcome_message', False):
@@ -861,7 +1220,6 @@ def dashboard_page():
         st.warning("A análise ainda não foi executada. Vá à página de 'Configurações' para carregar os dados e iniciar.")
         return
         
-    # --- Navegação das 5 secções ---
     sections = {
         "visao_geral": "1. Visão Geral e Custos",
         "performance": "2. Performance e Prazos",
@@ -887,7 +1245,6 @@ def dashboard_page():
     plots_eda = st.session_state.plots_eda
     tables_eda = st.session_state.tables_eda
 
-    # --- Renderização da secção ativa ---
     if st.session_state.current_section == "visao_geral":
         st.subheader("1. Visão Geral e Custos")
         kpi_data = tables_pre.get('kpi_data', {})
@@ -1021,20 +1378,101 @@ def dashboard_page():
         c3, c4 = st.columns(2)
         with c3:
             create_card("Duração Média das Variantes Mais Comuns", "⏳", chart_bytes=plots_post.get('variant_duration_plot'))
-            create_card("Score de Conformidade ao Longo do Tempo", "📉", chart_bytes=plots_post.get('conformance_over_time_plot'))
             create_card("Frequência das 10 Principais Variantes", "🎭", dataframe=tables_pre.get('variants_table'))
             create_card("Distribuição de Tarefas por Tipo", "📋", chart_bytes=plots_eda.get('plot_08'))
             create_card("Distribuição da Duração das Tarefas", "⏳", chart_bytes=plots_eda.get('plot_10'))
             create_card("Centralidade dos Tipos de Tarefa", "🎯", chart_bytes=plots_eda.get('plot_25'))
             create_card("Relação entre Dependências e Desvio de Custo", "💸", chart_bytes=plots_eda.get('plot_28'))
-            create_card("Top 10 Variantes de Processo por Frequência", "📊", chart_bytes=plots_pre.get('variants_frequency'))
         with c4:
+            create_card("Score de Conformidade ao Longo do Tempo", "📉", chart_bytes=plots_post.get('conformance_over_time_plot'))
             create_card("Principais Loops de Rework", "🔁", dataframe=tables_pre.get('rework_loops_table'))
             create_card("Distribuição de Tarefas por Prioridade", "🥇", chart_bytes=plots_eda.get('plot_09'))
             create_card("Top 10 Tarefas Específicas Mais Demoradas", "🕒", chart_bytes=plots_eda.get('plot_11'))
             create_card("Distribuição da Complexidade dos Projetos", "🕸️", chart_bytes=plots_eda.get('plot_24'))
             create_card("Relação entre Complexidade e Atraso", "🔗", chart_bytes=plots_eda.get('plot_27'))
+
+        c5, c6 = st.columns(2)
+        with c5:
+             create_card("Top 10 Variantes de Processo por Frequência", "📊", chart_bytes=plots_pre.get('variants_frequency'))
+        with c6:
             create_card("Grafo de Dependências: Projeto 25", "📈", chart_bytes=plots_eda.get('plot_26'))
+
+# --- NOVA PÁGINA (REINFORCEMENT LEARNING) ---
+def rl_page():
+    st.title("🤖 Simulação com Reinforcement Learning")
+
+    if not st.session_state.analysis_run:
+        st.warning("É necessário executar a análise inicial primeiro. Vá à página de 'Configurações' para carregar os dados.")
+        return
+
+    st.info("Esta secção permite treinar um agente de IA para otimizar a gestão de projetos, com base nos dados históricos. Pode ajustar os parâmetros para testar diferentes cenários.")
+
+    # --- Parâmetros de Entrada ---
+    with st.expander("⚙️ Parâmetros da Simulação", expanded=True):
+        project_ids = st.session_state.dfs['projects']['project_id'].unique()
+        
+        c1, c2 = st.columns(2)
+        with c1:
+            project_id_to_simulate = st.selectbox(
+                "Selecione o ID do Projeto para Simulação Detalhada",
+                options=project_ids,
+                index=list(project_ids).index("25") if "25" in project_ids else 0
+            )
+        with c2:
+            num_episodes = st.number_input("Número de Episódios de Treino", min_value=100, max_value=10000, value=1000, step=100)
+
+        st.markdown("<h6>Parâmetros de Recompensa e Penalização do Agente</h6>", unsafe_allow_html=True)
+        rc1, rc2, rc3 = st.columns(3)
+        with rc1:
+            reward_config = {
+                'cost_impact_factor': st.number_input("Fator de Impacto do Custo", value=1.0),
+                'daily_time_penalty': st.number_input("Penalização Diária por Tempo", value=20.0),
+                'idle_penalty': st.number_input("Penalização por Inatividade", value=10.0),
+            }
+        with rc2:
+            reward_config.update({
+                'per_day_early_bonus': st.number_input("Bónus por Dia de Adiantamento", value=500.0),
+                'completion_base': st.number_input("Recompensa Base por Conclusão", value=5000.0),
+                'per_day_late_penalty': st.number_input("Penalização por Dia de Atraso", value=1500.0),
+            })
+        with rc3:
+            reward_config.update({
+                'priority_task_bonus_factor': st.number_input("Bónus por Tarefa Prioritária", value=500),
+                'pending_task_penalty_factor': st.number_input("Penalização por Tarefa Pendente", value=20)
+            })
+
+    if st.button("▶️ Iniciar Treino e Simulação do Agente", use_container_width=True):
+        with st.spinner("A treinar o agente de RL... Por favor, aguarde."):
+            plots_rl, tables_rl, logs_rl = run_rl_analysis(st.session_state.dfs, project_id_to_simulate, num_episodes, reward_config)
+            st.session_state.plots_rl = plots_rl
+            st.session_state.tables_rl = tables_rl
+            st.session_state.logs_rl = logs_rl
+            st.session_state.rl_analysis_run = True
+    
+    if st.session_state.rl_analysis_run:
+        st.markdown("---")
+        st.subheader("Resultados da Simulação")
+        
+        plots_rl = st.session_state.plots_rl
+        tables_rl = st.session_state.tables_rl
+
+        st.markdown("<h4>Desempenho Global</h4>", unsafe_allow_html=True)
+        res1, res2 = st.columns(2)
+        with res1:
+            create_card("Performance Global (Conjunto de Teste)", "📊", dataframe=tables_rl.get('global_performance_test'))
+        with res2:
+            create_card("Performance Global (Todos os Projetos)", "📈", dataframe=tables_rl.get('global_performance_all'))
+
+        st.markdown("<h4>Métricas de Treinamento do Agente</h4>", unsafe_allow_html=True)
+        create_card("Evolução do Treino", "🤖", chart_bytes=plots_rl.get('training_metrics'))
+        
+        st.markdown("<h4>Comparação de Desempenho (Simulado vs. Real)</h4>", unsafe_allow_html=True)
+        create_card("Comparação do Desempenho (Conjunto de Teste)", "🎯", chart_bytes=plots_rl.get('evaluation_comparison_test'))
+        create_card("Comparação do Desempenho (Todos os Projetos)", "🌍", chart_bytes=plots_rl.get('evaluation_comparison_all'))
+        
+        st.markdown(f"<h4>Análise Detalhada da Simulação (Projeto {project_id_to_simulate})</h4>", unsafe_allow_html=True)
+        st.table(tables_rl.get('project_summary'))
+        create_card(f"Comparação Detalhada (Projeto {project_id_to_simulate})", "🔍", chart_bytes=plots_rl.get('project_detailed_comparison'))
 
 # --- CONTROLO PRINCIPAL DA APLICAÇÃO ---
 def main():
@@ -1054,6 +1492,9 @@ def main():
             if st.button("🏠 Dashboard Geral", use_container_width=True):
                 st.session_state.current_page = "Dashboard"
                 st.rerun()
+            if st.button("🤖 Reinforcement Learning", use_container_width=True):
+                st.session_state.current_page = "RL"
+                st.rerun()
             if st.button("⚙️ Configurações", use_container_width=True):
                 st.session_state.current_page = "Settings"
                 st.rerun()
@@ -1066,6 +1507,8 @@ def main():
                 
         if st.session_state.current_page == "Dashboard":
             dashboard_page()
+        elif st.session_state.current_page == "RL":
+            rl_page()
         elif st.session_state.current_page == "Settings":
             settings_page()
 
