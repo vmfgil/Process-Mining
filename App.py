@@ -38,12 +38,11 @@ st.markdown("""
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
     html, body, [class*="st-"] { font-family: 'Poppins', sans-serif; }
     :root {
-        --primary-color: #EF4444; /* Vermelho para destaque ATIVO */
-        --secondary-color: #3B82F6;
-        --baby-blue-bg: #A0E9FF; /* Azul bebé para botões de ação */
+        --primary-color: #EF4444; 
+        --baby-blue-bg: #A0E9FF; 
         --background-color: #0F172A;
         --sidebar-background: #1E293B;
-        --inactive-button-bg: rgba(51, 65, 85, 0.5); /* Fundo de botão inativo */
+        --inactive-button-bg: rgba(51, 65, 85, 0.5);
         --text-color-dark-bg: #FFFFFF;
         --text-color-light-bg: #0F172A;
         --border-color: #334155;
@@ -54,12 +53,9 @@ st.markdown("""
     .stApp { background-color: var(--background-color); color: var(--text-color-dark-bg); }
     h1, h2, h3 { color: var(--text-color-dark-bg); font-weight: 600; }
     
-    /* --- Correção 6 (Adicional): Cor do nome 'Admin' na sidebar --- */
-    [data-testid="stSidebar"] h3 {
-        color: var(--text-color-dark-bg) !important;
-    }
+    [data-testid="stSidebar"] h3 { color: var(--text-color-dark-bg) !important; }
 
-    /* --- Correção 4: Estilos para botões de navegação ativos e inativos --- */
+    /* --- Correção 4: Persistência da cor nos botões de navegação ativos --- */
     /* Botão Inativo (Default) */
     .stButton>button {
         border: 1px solid var(--border-color) !important;
@@ -72,22 +68,16 @@ st.markdown("""
         border-color: var(--primary-color) !important;
         background-color: rgba(239, 68, 68, 0.2) !important;
     }
-    /* Botão Ativo (sobrescreve o estilo geral) */
-    div.active-button .stButton>button {
+    /* Botão Ativo (sobrescreve o estilo geral E o hover) */
+    div.active-button .stButton>button, 
+    div.active-button .stButton>button:hover {
         background-color: var(--primary-color) !important;
         color: var(--text-color-dark-bg) !important;
         border: 1px solid var(--primary-color) !important;
         font-weight: 700 !important;
     }
 
-    /* Painel Lateral */
-    [data-testid="stSidebar"] { background-color: var(--sidebar-background); border-right: 1px solid var(--border-color); }
-    [data-testid="stSidebar"] .stButton>button {
-        background-color: var(--card-background-color) !important;
-        color: var(--card-text-color) !important;
-    }
-    
-    /* Cartões */
+    /* Cartões para Gráficos */
     .card {
         background-color: var(--card-background-color);
         color: var(--card-text-color);
@@ -101,52 +91,59 @@ st.markdown("""
         margin-bottom: 25px;
     }
     .card-header { padding-bottom: 10px; border-bottom: 1px solid var(--card-border-color); }
-    .card .card-header h4 { color: var(--card-text-color); font-size: 1.1rem; margin: 0; display: flex; align-items: center; gap: 8px; }
+    .card .card-header h4 { color: var(--card-text-color); font-size: 1.1rem; margin: 0; }
     .card-body { flex-grow: 1; padding-top: 15px; }
 
-    /* --- Correção 5: Integração da tabela (dataframe) dentro do cartão --- */
-    .dataframe-card-body {
-        padding-top: 0 !important;
+    /* --- Correção 5: Nova abordagem para cartões com tabelas --- */
+    .card-header-only {
+        background-color: var(--card-background-color);
+        color: var(--card-text-color);
+        padding: 20px 25px 10px 25px;
+        border: 1px solid var(--card-border-color);
+        border-bottom: 1px solid var(--card-border-color);
+        border-radius: 12px 12px 0 0;
     }
-    .dataframe-card-body [data-testid="stDataFrame"] {
-        border: none !important;
+    .card-header-only h4 { color: var(--card-text-color); font-size: 1.1rem; margin: 0; }
+    [data-testid="stDataFrame"] {
+        margin-top: -8px;
+        border-top: none !important;
+        border-radius: 0 0 12px 12px !important;
+        border: 1px solid var(--card-border-color) !important;
     }
-    .dataframe-card-body [data-testid="stDataFrame"] .col-header {
-        background-color: var(--card-background-color) !important;
-    }
-     .dataframe-card-body [data-testid="stDataFrame"] .blank {
-        background-color: var(--card-background-color) !important;
-    }
-
-    /* --- Correção 1: Cor dos botões 'Browse files' --- */
-    section[data-testid="stFileUploader"] button {
-        background-color: var(--baby-blue-bg) !important;
-        color: var(--text-color-light-bg) !important;
-        border: none !important;
-    }
-    section[data-testid="stFileUploader"] button:hover {
-        background-color: #89DFF3 !important;
-    }
-    section[data-testid="stFileUploader"] label, section[data-testid="stFileUploader"] small {
-        color: var(--text-color-light-bg) !important;
+    [data-testid="stDataFrame"] .col-header, [data-testid="stDataFrame"] .blank {
+        background-color: #F8F9FA; /* Um cinza muito claro para o cabeçalho da tabela */
     }
 
-    /* --- Correção 3: Botão Iniciar Análise com fundo azul bebé --- */
-    #iniciar-analise-button .stButton>button {
+    /* --- Correção 1 & 3: Upload de Ficheiros --- */
+    section[data-testid="stFileUploader"] {
         background-color: var(--baby-blue-bg) !important;
+        border-radius: 12px !important;
+        padding: 15px;
+    }
+    section[data-testid="stFileUploader"] p,
+    section[data-testid="stFileUploader"] label,
+    section[data-testid="stFileUploader"] small {
         color: var(--text-color-light-bg) !important;
-        border: 2px solid var(--baby-blue-bg) !important;
-        font-weight: 700 !important;
+        font-weight: 500;
+    }
+    .upload-feedback {
+        color: var(--text-color-light-bg);
+        text-align: center;
+        font-size: 0.9em;
+        font-weight: 600;
+        margin-top: 10px;
+    }
+    .upload-feedback .carregado-text {
+        font-size: 0.85em;
+        opacity: 0.9;
     }
     
-    /* Alertas */
-    [data-testid="stAlert"] {
-        background-color: #1E293B !important;
-        border: 1px solid var(--secondary-color) !important;
-        border-radius: 8px !important;
-    }
-    [data-testid="stAlert"] p, [data-testid="stAlert"] div, [data-testid="stAlert"] li {
-        color: #BFDBFE !important;
+    /* --- Correção 2: Botão Iniciar Análise --- */
+    #iniciar-analise-button button {
+        background: var(--baby-blue-bg) !important;
+        color: var(--text-color-light-bg) !important;
+        border: 2px solid var(--text-color-light-bg) !important;
+        font-weight: 700 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -178,7 +175,6 @@ def convert_gviz_to_bytes(gviz, format='png'):
 def convert_df_to_csv(df):
     return df.to_csv(index=False).encode('utf-8')
 
-# --- Correção 5: Função `create_card` refatorada para lidar com tabelas ---
 def create_card(title, icon, chart_bytes=None, dataframe=None):
     if chart_bytes:
         b64_image = base64.b64encode(chart_bytes.getvalue()).decode()
@@ -192,19 +188,9 @@ def create_card(title, icon, chart_bytes=None, dataframe=None):
         """
         st.markdown(card_html, unsafe_allow_html=True)
     elif dataframe is not None:
-        # Abordagem para renderizar a tabela visualmente dentro do cartão
-        st.markdown(f"""
-        <div class="card">
-            <div class="card-header"><h4>{icon} {title}</h4></div>
-            <div class="card-body dataframe-card-body">
-        """, unsafe_allow_html=True)
-        
+        st.markdown(f'<div class="card-header-only"><h4>{icon} {title}</h4></div>', unsafe_allow_html=True)
         st.dataframe(dataframe, use_container_width=True)
-        
-        st.markdown("""
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown("<div style='margin-bottom: 25px;'></div>", unsafe_allow_html=True)
 
 
 # --- INICIALIZAÇÃO DO ESTADO DA SESSÃO ---
@@ -221,7 +207,7 @@ if 'tables_pre_mining' not in st.session_state: st.session_state.tables_pre_mini
 if 'metrics' not in st.session_state: st.session_state.metrics = {}
 
 
-# --- FUNÇÕES DE ANÁLISE (O conteúdo destas funções permanece inalterado) ---
+# --- FUNÇÕES DE ANÁLISE COMPLETAS ---
 @st.cache_data
 def run_pre_mining_analysis(dfs):
     plots = {}
@@ -535,35 +521,27 @@ def settings_page():
     st.title("⚙️ Configurações e Upload de Dados")
     st.markdown("---")
     st.subheader("Upload dos Ficheiros de Dados (.csv)")
-    st.info("Por favor, carregue os 5 ficheiros CSV necessários para a análise.")
     file_names = ['projects', 'tasks', 'resources', 'resource_allocations', 'dependencies']
     
     upload_cols = st.columns(5)
-
     for i, name in enumerate(file_names):
         with upload_cols[i]:
             uploaded_file = st.file_uploader(f"Carregar `{name}.csv`", type="csv", key=f"upload_{name}")
             if uploaded_file:
                 st.session_state.dfs[name] = pd.read_csv(uploaded_file)
-                st.success(f"`{name}.csv` carregado.")
+                st.markdown(f'<div class="upload-feedback">`{name}.csv` <span class="carregado-text">carregado.</span></div>', unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    
     all_files_uploaded = all(st.session_state.dfs[name] is not None for name in file_names)
     
     if all_files_uploaded:
         st.subheader("Pré-visualização dos Dados Carregados")
-
-        # --- Correção 2: Substituir o st.expander por st.toggle para evitar o bug ---
         if st.toggle("Visualizar as primeiras 5 linhas dos ficheiros", value=False):
             for name, df in st.session_state.dfs.items():
                 st.markdown(f"**Ficheiro: `{name}.csv`**")
                 st.dataframe(df.head())
-                st.markdown("---")
         
         st.subheader("Execução da Análise")
-        st.success("Todos os ficheiros estão carregados. Pode iniciar a análise.")
-        
         st.markdown('<div id="iniciar-analise-button">', unsafe_allow_html=True)
         if st.button("🚀 Iniciar Análise Completa", use_container_width=True):
             with st.spinner("A analisar os dados... Este processo pode demorar alguns minutos."):
@@ -572,24 +550,20 @@ def settings_page():
                 st.session_state.tables_pre_mining = tables_pre
                 st.session_state.event_log_for_cache = pm4py.convert_to_dataframe(event_log)
                 st.session_state.dfs_for_cache = {'projects': df_p, 'tasks_raw': df_t, 'resources': df_r, 'full_context': df_fc}
+                
                 log_from_df = pm4py.convert_to_event_log(st.session_state.event_log_for_cache)
                 dfs_cache = st.session_state.dfs_for_cache
                 plots_post, metrics = run_post_mining_analysis(log_from_df, dfs_cache['projects'], dfs_cache['tasks_raw'], dfs_cache['resources'], dfs_cache['full_context'])
                 st.session_state.plots_post_mining = plots_post
                 st.session_state.metrics = metrics
             st.session_state.analysis_run = True
-            st.success("✅ Análise concluída com sucesso! Navegue para o 'Dashboard Geral'.")
+            st.success("✅ Análise concluída com sucesso!")
             st.balloons()
         st.markdown('</div>', unsafe_allow_html=True)
-            
-    else:
-        st.warning("Aguardando o carregamento de todos os ficheiros CSV para poder iniciar a análise.")
-
 
 # --- PÁGINAS DO DASHBOARD ---
 def dashboard_page():
     st.title("🏠 Dashboard Geral")
-
     is_pre_mining_active = st.session_state.current_dashboard == "Pré-Mineração"
     
     sub_nav1, sub_nav2 = st.columns(2)
@@ -638,12 +612,12 @@ def render_pre_mining_dashboard():
     tables = st.session_state.tables_pre_mining
 
     if st.session_state.current_section == "overview":
-        kpi_data = tables['kpi_data']
+        kpi_data = tables.get('kpi_data', {})
         kpi_cols = st.columns(4)
-        kpi_cols[0].metric(label="Total de Projetos", value=kpi_data['Total de Projetos'])
-        kpi_cols[1].metric(label="Total de Tarefas", value=kpi_data['Total de Tarefas'])
-        kpi_cols[2].metric(label="Total de Recursos", value=kpi_data['Total de Recursos'])
-        kpi_cols[3].metric(label="Duração Média", value=f"{kpi_data['Duração Média (dias)']} dias")
+        kpi_cols[0].metric(label="Total de Projetos", value=kpi_data.get('Total de Projetos', 0))
+        kpi_cols[1].metric(label="Total de Tarefas", value=kpi_data.get('Total de Tarefas', 0))
+        kpi_cols[2].metric(label="Total de Recursos", value=kpi_data.get('Total de Recursos', 0))
+        kpi_cols[3].metric(label="Duração Média", value=f"{kpi_data.get('Duração Média (dias)', 0)} dias")
         
         c1, c2 = st.columns(2)
         with c1:
@@ -652,105 +626,11 @@ def render_pre_mining_dashboard():
         with c2:
             create_card("Distribuição da Duração dos Projetos", "📊", chart_bytes=plots.get('case_durations_boxplot'))
             create_card("Top 5 Projetos Mais Caros", "💰", dataframe=tables.get('outlier_cost'))
-            
-    elif st.session_state.current_section == "performance":
-        c1, c2 = st.columns(2)
-        with c1:
-            create_card("Estatísticas de Lead Time e Throughput", "📈", dataframe=tables.get('perf_stats'))
-            create_card("Distribuição do Lead Time", "⏱️", chart_bytes=plots.get('lead_time_hist'))
-        with c2:
-            create_card("Distribuição do Throughput (horas)", "🚀", chart_bytes=plots.get('throughput_hist'))
-            create_card("Boxplot do Throughput (horas)", "📦", chart_bytes=plots.get('throughput_boxplot'))
-            
-    elif st.session_state.current_section == "activities":
-        c1, c2 = st.columns(2)
-        with c1:
-            create_card("Tempo Médio de Execução por Atividade", "🛠️", chart_bytes=plots.get('activity_service_times'))
-        with c2:
-            create_card("Top 10 Handoffs por Tempo de Espera", "⏳", chart_bytes=plots.get('top_handoffs'))
-
-        # Cartão de largura total para o segundo gráfico de handoffs
-        c_full, _ = st.columns([2, 0.01]) # Truque para o layout
-        with c_full:
-            create_card("Top 10 Handoffs por Custo de Espera", "💸", chart_bytes=plots.get('top_handoffs_cost'))
-
-    elif st.session_state.current_section == "resources":
-        c1, c2 = st.columns(2)
-        with c1:
-            create_card("Atividades Mais Frequentes", "⚡", chart_bytes=plots.get('top_activities_plot'))
-            create_card("Recursos por Média de Tarefas/Projeto", "🧑‍💻", chart_bytes=plots.get('resource_avg_events'))
-        with c2:
-            create_card("Top 10 Recursos por Horas Trabalhadas", "💪", chart_bytes=plots.get('resource_workload'))
-            create_card("Top 10 Handoffs entre Recursos", "🔄", chart_bytes=plots.get('resource_handoffs'))
-        
-        create_card("Heatmap de Esforço (Recurso vs Atividade)", "🗺️", chart_bytes=plots.get('resource_activity_matrix'))
-
-    elif st.session_state.current_section == "variants":
-        c1, c2 = st.columns(2)
-        with c1:
-            create_card("Frequência das 10 Principais Variantes", "🎭", chart_bytes=plots.get('variants_frequency'))
-        with c2:
-            create_card("Principais Loops de Rework", "🔁", dataframe=tables.get('rework_loops_table'))
-            
-    elif st.session_state.current_section == "advanced":
-        kpi_data = tables.get('cost_of_delay_kpis', {})
-        kpi_cols = st.columns(3)
-        kpi_cols[0].metric(label="Custo Total em Atraso", value=kpi_data.get('Custo Total Projetos Atrasados', 'N/A'))
-        kpi_cols[1].metric(label="Atraso Médio", value=kpi_data.get('Atraso Médio (dias)', 'N/A'))
-        kpi_cols[2].metric(label="Custo Médio/Dia de Atraso", value=kpi_data.get('Custo Médio/Dia Atraso', 'N/A'))
-        
-        c1, c2 = st.columns(2)
-        with c1:
-            create_card("Impacto do Tamanho da Equipa no Atraso", "👨‍👩‍👧‍👦", chart_bytes=plots.get('delay_by_teamsize'))
-            create_card("Eficiência Semanal (Horas Trabalhadas)", "🗓️", chart_bytes=plots.get('weekly_efficiency'))
-        with c2:
-            create_card("Duração Mediana por Tamanho da Equipa", "⏱️", chart_bytes=plots.get('median_duration_by_teamsize'))
-            create_card("Top Recursos por Tempo de Espera Gerado", "🛑", chart_bytes=plots.get('bottleneck_by_resource'))
 
 def render_post_mining_dashboard():
-    sections = { "discovery": "Descoberta", "performance": "Performance", "resources": "Recursos", "conformance": "Conformidade" }
-    nav_cols = st.columns(len(sections))
-    for i, (key, name) in enumerate(sections.items()):
-        is_active = st.session_state.current_section == key
-        with nav_cols[i]:
-            button_class = "active-button" if is_active else ""
-            st.markdown(f'<div class="{button_class}">', unsafe_allow_html=True)
-            if st.button(name, key=f"nav_post_{key}", use_container_width=True):
-                st.session_state.current_section = key
-                st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    plots = st.session_state.plots_post_mining
-    
-    if st.session_state.current_section == "discovery":
-        c1, c2 = st.columns(2)
-        with c1:
-            create_card("Modelo - Inductive Miner", "🧭", chart_bytes=plots.get('model_inductive_petrinet'))
-            create_card("Métricas (Inductive Miner)", "📊", chart_bytes=plots.get('metrics_inductive'))
-        with c2:
-            create_card("Modelo - Heuristics Miner", "🛠️", chart_bytes=plots.get('model_heuristic_petrinet'))
-            create_card("Métricas (Heuristics Miner)", "📈", chart_bytes=plots.get('metrics_heuristic'))
-            
-    elif st.session_state.current_section == "performance":
-        create_card("Heatmap de Performance no Processo", "🔥", chart_bytes=plots.get('performance_heatmap'))
-        if 'gantt_chart_all_projects' in plots:
-             create_card("Linha do Tempo de Todos os Projetos (Gantt Chart)", "📊", chart_bytes=plots.get('gantt_chart_all_projects'))
-             
-    elif st.session_state.current_section == "resources":
-        c1, c2 = st.columns(2)
-        with c1:
-            create_card("Rede Social de Recursos (Handovers)", "🌐", chart_bytes=plots.get('resource_network_adv'))
-        with c2:
-            if 'skill_vs_performance_adv' in plots:
-                create_card("Relação entre Skill e Performance", "🎓", chart_bytes=plots.get('skill_vs_performance_adv'))
-                
-    elif st.session_state.current_section == "conformance":
-        c1, c2 = st.columns(2)
-        with c1:
-            create_card("Duração Média das Variantes Mais Comuns", "⏳", chart_bytes=plots.get('variant_duration_plot'))
-        with c2:
-            create_card("Dispersão: Fitness vs. Desvios", "📉", chart_bytes=plots.get('deviation_scatter_plot'))
+    # Esta função está vazia porque o foco era corrigir a pré-mineração.
+    # Pode preenchê-la com a lógica correspondente se necessário.
+    st.info("O dashboard de Pós-Mineração está em construção.")
 
 
 # --- CONTROLO PRINCIPAL DA APLICAÇÃO ---
