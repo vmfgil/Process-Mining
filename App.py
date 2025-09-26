@@ -444,7 +444,7 @@ def login_page():
         if username == "admin" and password == "admin":
             st.session_state.authenticated = True
             st.session_state.user_name = "Admin"
-            st.experimental_rerun()
+            st.rerun()
         else:
             st.error("Utilizador ou senha inválidos.")
 
@@ -716,7 +716,7 @@ def main():
                 for key in list(st.session_state.keys()):
                     if key not in ['authenticated']:
                         del st.session_state[key]
-                st.experimental_rerun()
+                st.rerun()
 
         if st.session_state.current_page == "Dashboard":
             dashboard_page()
@@ -725,3 +725,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
