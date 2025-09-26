@@ -25,6 +25,9 @@ from pm4py.algo.evaluation.simplicity import algorithm as simplicity_evaluator
 from pm4py.algo.filtering.log.variants import variants_filter
 from pm4py.algo.conformance.alignments.petri_net import algorithm as alignments_miner
 
+# Imports para Análise Exploratória (EDA)
+import missingno as msno
+
 # --- 1. CONFIGURAÇÃO DA PÁGINA E ESTILO ---
 st.set_page_config(
     page_title="Transformação Inteligente de Processos",
@@ -110,12 +113,14 @@ st.markdown("""
         padding: 0; /* Remover padding padrão para evitar barra de scroll dupla */
     }
     
-    /* --- BOTÕES DE UPLOAD (CSS INICIAL) --- */
+    /* --- BOTÕES DE UPLOAD (AGORA COM ESTILO AZUL) --- */
     section[data-testid="stFileUploader"] button,
     div[data-baseweb="file-uploader"] button {
-        /* Este estilo pode não ser aplicado devido à especificidade do Streamlit */
-        background-color: var(--primary-color) !important;
+        background-color: var(--primary-color) !important; /* Azul */
         color: var(--text-color-dark-bg) !important;
+        border: none !important;
+        font-weight: 600 !important;
+        border-radius: 8px !important;
     }
     
     /* --- BOTÃO DE ANÁLISE --- */
@@ -209,8 +214,6 @@ def convert_fig_to_bytes(fig, format='png'):
     return buf
 
 def convert_gviz_to_bytes(gviz, format='png'):
-    # Os gráficos Graphviz (Petri Nets, DFG) são mais difíceis de estilizar diretamente,
-    # mas o PM4PY tenta renderizá-los com cores default.
     return io.BytesIO(gviz.pipe(format=format))
 
 def create_card(title, icon, chart_bytes=None, dataframe=None):
@@ -235,34 +238,9 @@ def create_card(title, icon, chart_bytes=None, dataframe=None):
         </div>
         """, unsafe_allow_html=True)
 
-def force_button_style():
-    # As cores vêm das variáveis CSS que já definiu
-    primary_color = "#2563EB"
-    text_color = "#E5E7EB"
-
-    # Pequeno código JS que encontra os botões e força o estilo
-    st.components.v1.html(f"""
-    <script>
-        // Espera um instante para garantir que o Streamlit já desenhou os botões
-        setTimeout(() => {{
-            // Acede aos elementos da página principal a partir do iframe do componente
-            const buttons = window.parent.document.querySelectorAll('section[data-testid="stFileUploader"] button');
-            
-            buttons.forEach(button => {{
-                button.style.backgroundColor = '{primary_color}';
-                button.style.color = '{text_color}';
-                button.style.fontWeight = '600';
-                button.style.border = 'none';
-                button.style.borderRadius = '8px';
-            }});
-        }}, 200);
-    </script>
-    """, height=0)
-
 # --- INICIALIZAÇÃO DO ESTADO DA SESSÃO ---
 if 'authenticated' not in st.session_state: st.session_state.authenticated = False
 if 'current_page' not in st.session_state: st.session_state.current_page = "Dashboard"
-if 'current_dashboard' not in st.session_state: st.session_state.current_dashboard = "Pré-Mineração"
 if 'current_section' not in st.session_state: st.session_state.current_section = "visao_geral"
 if 'dfs' not in st.session_state:
     st.session_state.dfs = {'projects': None, 'tasks': None, 'resources': None, 'resource_allocations': None, 'dependencies': None}
@@ -271,9 +249,12 @@ if 'plots_pre_mining' not in st.session_state: st.session_state.plots_pre_mining
 if 'plots_post_mining' not in st.session_state: st.session_state.plots_post_mining = {}
 if 'tables_pre_mining' not in st.session_state: st.session_state.tables_pre_mining = {}
 if 'metrics' not in st.session_state: st.session_state.metrics = {}
+# Novas variáveis de estado para a análise EDA
+if 'plots_eda' not in st.session_state: st.session_state.plots_eda = {}
+if 'tables_eda' not in st.session_state: st.session_state.tables_eda = {}
 
 
-# --- FUNÇÕES DE ANÁLISE (DO SCRIPT ORIGINAL) ---
+# --- FUNÇÕES DE ANÁLISE (PROCESS MINING) ---
 @st.cache_data
 def run_pre_mining_analysis(dfs):
     plots = {}
@@ -324,10 +305,10 @@ def run_pre_mining_analysis(dfs):
     tables['outlier_duration'] = df_projects.sort_values('actual_duration_days', ascending=False).head(5)
     tables['outlier_cost'] = df_projects.sort_values('total_actual_cost', ascending=False).head(5)
     
-    fig, ax = plt.subplots(figsize=(8, 5)); sns.scatterplot(data=df_projects, x='days_diff', y='cost_diff', hue='project_type', s=80, alpha=0.7, ax=ax, palette='viridis'); ax.axhline(0, color='#FBBF24', ls='--'); ax.axvline(0, color='#FBBF24', ls='--'); ax.set_title("Matriz de Performance")
+    fig, ax = plt.subplots(figsize=(8, 5)); sns.scatterplot(data=df_projects, x='days_diff', y='cost_diff', hue='project_type', s=80, alpha=0.7, ax=ax, palette='viridis'); ax.axhline(0, color='#FBBF24', ls='--'); ax.axvline(0, color='#FBBF24', ls='--'); ax.set_title("Matriz de Performance (PM)")
     plots['performance_matrix'] = convert_fig_to_bytes(fig)
     
-    fig, ax = plt.subplots(figsize=(8, 4)); sns.boxplot(x=df_projects['actual_duration_days'], ax=ax, color="#2563EB"); sns.stripplot(x=df_projects['actual_duration_days'], color="#FBBF24", size=4, jitter=True, alpha=0.7, ax=ax); ax.set_title("Distribuição da Duração dos Projetos")
+    fig, ax = plt.subplots(figsize=(8, 4)); sns.boxplot(x=df_projects['actual_duration_days'], ax=ax, color="#2563EB"); sns.stripplot(x=df_projects['actual_duration_days'], color="#FBBF24", size=4, jitter=True, alpha=0.7, ax=ax); ax.set_title("Distribuição da Duração dos Projetos (PM)")
     plots['case_durations_boxplot'] = convert_fig_to_bytes(fig)
     
     lead_times = log_df_final.groupby("case:concept:name")["time:timestamp"].agg(["min", "max"]).reset_index()
@@ -380,7 +361,7 @@ def run_pre_mining_analysis(dfs):
     
     resource_workload = df_full_context.groupby('resource_name')['hours_worked'].sum().sort_values(ascending=False).reset_index()
     
-    fig, ax = plt.subplots(figsize=(8, 5)); sns.barplot(x='hours_worked', y='resource_name', data=resource_workload.head(10), ax=ax, hue='resource_name', legend=False, palette='plasma'); ax.set_title("Top 10 Recursos por Horas Trabalhadas")
+    fig, ax = plt.subplots(figsize=(8, 5)); sns.barplot(x='hours_worked', y='resource_name', data=resource_workload.head(10), ax=ax, hue='resource_name', legend=False, palette='plasma'); ax.set_title("Top 10 Recursos por Horas Trabalhadas (PM)")
     plots['resource_workload'] = convert_fig_to_bytes(fig)
     
     resource_metrics = df_full_context.groupby("resource_name").agg(unique_cases=('project_id', 'nunique'), event_count=('task_id', 'count')).reset_index()
@@ -428,7 +409,7 @@ def run_pre_mining_analysis(dfs):
     bins = np.linspace(min_res, max_res, 5, dtype=int) if max_res > min_res else [min_res, max_res]
     df_projects['team_size_bin_dynamic'] = pd.cut(df_projects['num_resources'], bins=bins, include_lowest=True, duplicates='drop').astype(str)
     
-    fig, ax = plt.subplots(figsize=(8, 5)); sns.boxplot(data=df_projects.dropna(subset=['team_size_bin_dynamic']), x='team_size_bin_dynamic', y='days_diff', ax=ax, hue='team_size_bin_dynamic', legend=False, palette='flare'); ax.set_title("Impacto do Tamanho da Equipa no Atraso")
+    fig, ax = plt.subplots(figsize=(8, 5)); sns.boxplot(data=df_projects.dropna(subset=['team_size_bin_dynamic']), x='team_size_bin_dynamic', y='days_diff', ax=ax, hue='team_size_bin_dynamic', legend=False, palette='flare'); ax.set_title("Impacto do Tamanho da Equipa no Atraso (PM)")
     plots['delay_by_teamsize'] = convert_fig_to_bytes(fig)
     
     median_duration_by_team_size = df_projects.groupby('team_size_bin_dynamic')['actual_duration_days'].median().reset_index()
@@ -439,7 +420,7 @@ def run_pre_mining_analysis(dfs):
     df_alloc_costs['day_of_week'] = df_alloc_costs['allocation_date'].dt.day_name()
     weekday_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
     
-    fig, ax = plt.subplots(figsize=(8, 5)); sns.barplot(data=df_alloc_costs.groupby('day_of_week')['hours_worked'].sum().reindex(weekday_order).reset_index(), x='day_of_week', y='hours_worked', ax=ax, hue='day_of_week', legend=False, palette='viridis'); ax.set_title("Eficiência Semanal (Horas Trabalhadas)"); plt.xticks(rotation=45)
+    fig, ax = plt.subplots(figsize=(8, 5)); sns.barplot(data=df_alloc_costs.groupby('day_of_week')['hours_worked'].sum().reindex(weekday_order).reset_index(), x='day_of_week', y='hours_worked', ax=ax, hue='day_of_week', legend=False, palette='viridis'); ax.set_title("Eficiência Semanal (Horas Trabalhadas)")
     plots['weekly_efficiency'] = convert_fig_to_bytes(fig)
     
     df_tasks_analysis = df_tasks.copy(); df_tasks_analysis['service_time_days'] = (df_tasks['end_date'] - df_tasks['start_date']).dt.total_seconds() / (24*60*60)
@@ -527,27 +508,31 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
     metrics['heuristics_miner'] = metrics_hm
     
     kpi_temporal = _df_projects.groupby('completion_month').agg(avg_lead_time=('actual_duration_days', 'mean'), throughput=('project_id', 'count')).reset_index()
-    fig, ax1 = plt.subplots(figsize=(12, 6)); ax1.plot(kpi_temporal['completion_month'], kpi_temporal['avg_lead_time'], marker='o', color='#2563EB', label='Lead Time'); ax2 = ax1.twinx(); ax2.bar(kpi_temporal['completion_month'], kpi_temporal['throughput'], color='#06B6D4', alpha=0.6, label='Throughput'); fig.suptitle('Séries Temporais de KPIs de Performance'); fig.legend(loc='upper left', bbox_to_anchor=(0.15, 0.9)); ax1.tick_params(axis='x', rotation=45)
+    fig, ax1 = plt.subplots(figsize=(12, 6)); ax1.plot(kpi_temporal['completion_month'], kpi_temporal['avg_lead_time'], marker='o', color='#2563EB', label='Lead Time'); ax2 = ax1.twinx(); ax2.bar(kpi_temporal['completion_month'], kpi_temporal['throughput'], color='#06B6D4', alpha=0.6, label='Throughput'); fig.suptitle('Séries Temporais de KPIs de Performance')
+    fig.legend(loc='upper left', bbox_to_anchor=(0.15, 0.9)); ax1.tick_params(axis='x', rotation=45)
     ax1.yaxis.label.set_color('#2563EB'); ax2.yaxis.label.set_color('#06B6D4'); ax1.tick_params(axis='y', colors='#2563EB'); ax2.tick_params(axis='y', colors='#06B6D4')
     plots['kpi_time_series'] = convert_fig_to_bytes(fig)
     
     fig_gantt, ax_gantt = plt.subplots(figsize=(20, max(10, len(_df_projects) * 0.4))); all_projects = _df_projects.sort_values('start_date')['project_id'].tolist(); gantt_data = _df_tasks_raw[_df_tasks_raw['project_id'].isin(all_projects)].sort_values(['project_id', 'start_date']); project_y_map = {proj_id: i for i, proj_id in enumerate(all_projects)}; color_map = {task_name: plt.get_cmap('tab10', gantt_data['task_name'].nunique())(i) for i, task_name in enumerate(gantt_data['task_name'].unique())};
     for _, task in gantt_data.iterrows(): ax_gantt.barh(project_y_map[task['project_id']], (task['end_date'] - task['start_date']).days + 1, left=task['start_date'], height=0.6, color=color_map[task['task_name']], edgecolor='#E5E7EB')
-    ax_gantt.set_yticks(list(project_y_map.values())); ax_gantt.set_yticklabels([f"Projeto {pid}" for pid in project_y_map.keys()]); ax_gantt.invert_yaxis(); ax_gantt.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d')); plt.xticks(rotation=45); handles = [plt.Rectangle((0,0),1,1, color=color_map[label]) for label in color_map]; ax_gantt.legend(handles, color_map.keys(), title='Tipo de Tarefa', bbox_to_anchor=(1.05, 1), loc='upper left'); ax_gantt.set_title('Linha do Tempo de Todos os Projetos (Gantt Chart)'); fig_gantt.tight_layout()
+    ax_gantt.set_yticks(list(project_y_map.values())); ax_gantt.set_yticklabels([f"Projeto {pid}" for pid in project_y_map.keys()]); ax_gantt.invert_yaxis(); ax_gantt.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d')); plt.xticks(rotation=45)
+    handles = [plt.Rectangle((0,0),1,1, color=color_map[label]) for label in color_map]; ax_gantt.legend(handles, color_map.keys(), title='Tipo de Tarefa', bbox_to_anchor=(1.05, 1), loc='upper left'); ax_gantt.set_title('Linha do Tempo de Todos os Projetos (Gantt Chart)'); fig_gantt.tight_layout()
     plots['gantt_chart_all_projects'] = convert_fig_to_bytes(fig_gantt)
 
     dfg_perf, _, _ = pm4py.discover_performance_dfg(log_full_pm4py)
     gviz_dfg = dfg_visualizer.apply(dfg_perf, log=log_full_pm4py, variant=dfg_visualizer.Variants.PERFORMANCE)
     plots['performance_heatmap'] = convert_gviz_to_bytes(gviz_dfg)
     
-    fig, ax = plt.subplots(figsize=(8, 4)); log_df_full_lifecycle['weekday'] = log_df_full_lifecycle['time:timestamp'].dt.day_name(); weekday_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]; heatmap_data = log_df_full_lifecycle.groupby('weekday')['case:concept:name'].count().reindex(weekday_order).fillna(0); sns.barplot(x=heatmap_data.index, y=heatmap_data.values, ax=ax, hue=heatmap_data.index, legend=False, palette='coolwarm'); ax.set_title('Ocorrências de Atividades por Dia da Semana'); plt.xticks(rotation=45)
+    fig, ax = plt.subplots(figsize=(8, 4)); log_df_full_lifecycle['weekday'] = log_df_full_lifecycle['time:timestamp'].dt.day_name(); weekday_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    heatmap_data = log_df_full_lifecycle.groupby('weekday')['case:concept:name'].count().reindex(weekday_order).fillna(0); sns.barplot(x=heatmap_data.index, y=heatmap_data.values, ax=ax, hue=heatmap_data.index, legend=False, palette='coolwarm'); ax.set_title('Ocorrências de Atividades por Dia da Semana'); plt.xticks(rotation=45)
     plots['temporal_heatmap_fixed'] = convert_fig_to_bytes(fig)
     
     log_df_complete = pm4py.convert_to_dataframe(_event_log_pm4py)
     handovers = Counter((log_df_complete.iloc[i]['org:resource'], log_df_complete.iloc[i+1]['org:resource']) for i in range(len(log_df_complete)-1) if log_df_complete.iloc[i]['case:concept:name'] == log_df_complete.iloc[i+1]['case:concept:name'] and log_df_complete.iloc[i]['org:resource'] != log_df_complete.iloc[i+1]['org:resource'])
     fig_net, ax_net = plt.subplots(figsize=(10, 10)); G = nx.DiGraph();
     for (source, target), weight in handovers.items(): G.add_edge(str(source), str(target), weight=weight)
-    pos = nx.spring_layout(G, k=0.9, iterations=50, seed=42); weights = [G[u][v]['weight'] for u,v in G.edges()]; nx.draw(G, pos, with_labels=True, node_color='#2563EB', edge_color='#E5E7EB', width=[w*0.5 for w in weights], ax=ax_net, font_size=10, connectionstyle='arc3,rad=0.1', labels={node: node for node in G.nodes()}); nx.draw_networkx_edge_labels(G, pos, edge_labels=nx.get_edge_attributes(G, 'weight'), ax=ax_net, font_color='#FBBF24'); ax_net.set_title('Rede Social de Recursos (Handover Network)')
+    pos = nx.spring_layout(G, k=0.9, iterations=50, seed=42); weights = [G[u][v]['weight'] for u,v in G.edges()]; nx.draw(G, pos, with_labels=True, node_color='#2563EB', edge_color='#E5E7EB', width=[w*0.5 for w in weights], ax=ax_net, font_size=10, connectionstyle='arc3,rad=0.1', labels={node: node for node in G.nodes()})
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=nx.get_edge_attributes(G, 'weight'), ax=ax_net, font_color='#FBBF24'); ax_net.set_title('Rede Social de Recursos (Handover Network)')
     plots['resource_network_adv'] = convert_fig_to_bytes(fig_net)
     
     if 'skill_level' in _df_resources.columns:
@@ -560,7 +545,8 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
         resource_role_counts = _df_full_context.groupby(['resource_name', 'skill_level']).size().reset_index(name='count')
         G_bipartite = nx.Graph(); resources_nodes = resource_role_counts['resource_name'].unique(); roles_nodes = resource_role_counts['skill_level'].unique(); G_bipartite.add_nodes_from(resources_nodes, bipartite=0); G_bipartite.add_nodes_from(roles_nodes, bipartite=1)
         for _, row in resource_role_counts.iterrows(): G_bipartite.add_edge(row['resource_name'], row['skill_level'], weight=row['count'])
-        fig, ax = plt.subplots(figsize=(12, 10)); pos = nx.bipartite_layout(G_bipartite, resources_nodes); nx.draw(G_bipartite, pos, with_labels=True, node_color=['#2563EB' if node in resources_nodes else '#FBBF24' for node in G_bipartite.nodes()], node_size=2000, ax=ax, font_size=8, edge_color='#374151', labels={node: node for node in G_bipartite.nodes()}); edge_labels = nx.get_edge_attributes(G_bipartite, 'weight'); nx.draw_networkx_edge_labels(G_bipartite, pos, edge_labels=edge_labels, ax=ax, font_color='#06B6D4'); ax.set_title('Rede de Recursos por Função')
+        fig, ax = plt.subplots(figsize=(12, 10)); pos = nx.bipartite_layout(G_bipartite, resources_nodes); nx.draw(G_bipartite, pos, with_labels=True, node_color=['#2563EB' if node in resources_nodes else '#FBBF24' for node in G_bipartite.nodes()], node_size=2000, ax=ax, font_size=8, edge_color='#374151', labels={node: node for node in G_bipartite.nodes()})
+        edge_labels = nx.get_edge_attributes(G_bipartite, 'weight'); nx.draw_networkx_edge_labels(G_bipartite, pos, edge_labels=edge_labels, ax=ax, font_color='#06B6D4'); ax.set_title('Rede de Recursos por Função')
         plots['resource_network_bipartite'] = convert_fig_to_bytes(fig)
 
     variants_df = log_df_full_lifecycle.groupby('case:concept:name').agg(variant=('concept:name', lambda x: tuple(x)), start_timestamp=('time:timestamp', 'min'), end_timestamp=('time:timestamp', 'max')).reset_index()
@@ -664,7 +650,6 @@ def login_page():
 
 # --- PÁGINA DE CONFIGURAÇÕES / UPLOAD ---
 def settings_page():
-    force_button_style() # Força o estilo azul nos botões de upload
     st.title("⚙️ Configurações e Upload de Dados")
     st.markdown("---")
     st.subheader("Upload dos Ficheiros de Dados (.csv)")
@@ -722,12 +707,13 @@ def dashboard_page():
         st.warning("A análise ainda não foi executada. Vá à página de 'Configurações' para carregar os dados e iniciar.")
         return
         
+    # --- Navegação das 5 secções ---
     sections = {
         "visao_geral": "1. Visão Geral e Custos",
-        "performance": "2. Performance",
+        "performance": "2. Performance e Prazos",
         "recursos": "3. Recursos e Equipa",
-        "gargalos": "4. Gargalos e Espera",
-        "fluxo": "5. Fluxo e Conformidade"
+        "gargalos": "4. Gargalos e Análise Causal",
+        "fluxo": "5. Fluxo e Complexidade"
     }
     
     nav_cols = st.columns(len(sections))
@@ -744,7 +730,10 @@ def dashboard_page():
     plots_pre = st.session_state.plots_pre_mining
     tables_pre = st.session_state.tables_pre_mining
     plots_post = st.session_state.plots_post_mining
+    plots_eda = st.session_state.plots_eda
+    tables_eda = st.session_state.tables_eda
 
+    # --- Renderização da secção ativa ---
     if st.session_state.current_section == "visao_geral":
         st.subheader("1. Visão Geral e Custos")
         kpi_data = tables_pre.get('kpi_data', {})
@@ -763,48 +752,44 @@ def dashboard_page():
         st.markdown("<br>", unsafe_allow_html=True)
         c1, c2 = st.columns(2)
         with c1:
-            create_card("Matriz de Performance (Custo vs Prazo)", "🎯", chart_bytes=plots_pre.get('performance_matrix'))
+            create_card("Matriz de Performance (Custo vs Prazo) (PM)", "🎯", chart_bytes=plots_pre.get('performance_matrix'))
+            create_card("Top 5 Projetos Mais Caros", "💰", dataframe=tables_pre.get('outlier_cost'))
+            create_card("Séries Temporais de KPIs de Performance", "📈", chart_bytes=plots_post.get('kpi_time_series'))
+            create_card("Distribuição do Status dos Projetos", "📊", chart_bytes=plots_eda.get('plot_01'))
+            create_card("Custo Médio dos Projetos por Trimestre", "💶", chart_bytes=plots_eda.get('plot_06'))
+            create_card("Alocação de Custos por Orçamento e Recurso", "💰", chart_bytes=plots_eda.get('plot_17'))
         with c2:
             create_card("Custo por Tipo de Recurso", "💶", chart_bytes=plots_pre.get('cost_by_resource_type'))
-        
-        c3, c4 = st.columns(2)
-        with c3:
-            create_card("Top 5 Projetos Mais Caros", "💰", dataframe=tables_pre.get('outlier_cost'))
-        with c4:
             create_card("Top 5 Projetos Mais Longos", "⏳", dataframe=tables_pre.get('outlier_duration'))
-
-        c5, c6 = st.columns(2)
-        with c5:
-            create_card("Séries Temporais de KPIs de Performance", "📈", chart_bytes=plots_post.get('kpi_time_series'))
-        with c6:
             create_card("Custo Médio por Dia ao Longo do Tempo", "💸", chart_bytes=plots_post.get('cost_per_day_time_series'))
+            create_card("Custo Real vs. Orçamento por Projeto", "💳", chart_bytes=plots_eda.get('plot_04'))
+            create_card("Distribuição do Custo por Dia (Eficiência)", "💡", chart_bytes=plots_eda.get('plot_16'))
+            create_card("Evolução do Volume e Tamanho dos Projetos", "📈", chart_bytes=plots_eda.get('plot_31'))
 
     elif st.session_state.current_section == "performance":
-        st.subheader("2. Performance")
+        st.subheader("2. Performance e Prazos")
         c1, c2 = st.columns(2)
         with c1:
             create_card("Estatísticas de Performance", "📈", dataframe=tables_pre.get('perf_stats'))
-        with c2:
             create_card("Duração Média por Fase do Processo", "🗂️", chart_bytes=plots_pre.get('cycle_time_breakdown'))
-        
-        create_card("Relação Lead Time vs Throughput", "🔗", chart_bytes=plots_pre.get('lead_time_vs_throughput'))
-        
+            create_card("Diferença entre Data Real e Planeada", "🗓️", chart_bytes=plots_eda.get('plot_03'))
+        with c2:
+            create_card("Relação Lead Time vs Throughput", "🔗", chart_bytes=plots_pre.get('lead_time_vs_throughput'))
+            create_card("Performance de Prazos por Trimestre", "📉", chart_bytes=plots_eda.get('plot_05'))
+            create_card("Evolução da Performance (Prazo e Custo)", "📈", chart_bytes=plots_eda.get('plot_30'))
+
         c3, c4 = st.columns(2)
         with c3:
             create_card("Distribuição do Lead Time", "⏱️", chart_bytes=plots_pre.get('lead_time_hist'))
+            create_card("Distribuição da Duração dos Projetos (PM)", "📊", chart_bytes=plots_pre.get('case_durations_boxplot'))
         with c4:
             create_card("Distribuição do Throughput (horas)", "🚀", chart_bytes=plots_pre.get('throughput_hist'))
-        
-        c5, c6 = st.columns(2)
-        with c5:
-            create_card("Distribuição da Duração dos Projetos", "📊", chart_bytes=plots_pre.get('case_durations_boxplot'))
-        with c6:
             create_card("Boxplot do Throughput (horas)", "📦", chart_bytes=plots_pre.get('throughput_boxplot'))
             
-        c7, c8 = st.columns(2)
-        with c7:
+        c5, c6 = st.columns(2)
+        with c5:
             create_card("Gráfico Acumulado de Throughput", "📈", chart_bytes=plots_post.get('cumulative_throughput_plot'))
-        with c8:
+        with c6:
             create_card("Atividades por Dia da Semana", "🗓️", chart_bytes=plots_post.get('temporal_heatmap_fixed'))
 
         create_card("Linha do Tempo de Todos os Projetos (Gantt Chart)", "📊", chart_bytes=plots_post.get('gantt_chart_all_projects'))
@@ -813,27 +798,19 @@ def dashboard_page():
         st.subheader("3. Recursos e Equipa")
         c1, c2 = st.columns(2)
         with c1:
-            create_card("Top 10 Recursos por Horas Trabalhadas", "💪", chart_bytes=plots_pre.get('resource_workload'))
+            create_card("Top 10 Recursos por Horas Trabalhadas (PM)", "💪", chart_bytes=plots_pre.get('resource_workload'))
+            create_card("Impacto do Tamanho da Equipa no Atraso (PM)", "👨‍👩‍👧‍👦", chart_bytes=plots_pre.get('delay_by_teamsize'))
+            create_card("Eficiência Semanal (Horas Trabalhadas)", "🗓️", chart_bytes=plots_pre.get('weekly_efficiency'))
+            create_card("Métricas de Eficiência Individual por Recurso", "🎯", chart_bytes=plots_post.get('resource_efficiency_plot'))
+            create_card("Nº Médio de Recursos por Projeto a Cada Trimestre", "👥", chart_bytes=plots_eda.get('plot_07'))
+            create_card("Atraso Médio por Recurso", "⏳", chart_bytes=plots_eda.get('plot_14'))
         with c2:
             create_card("Recursos por Média de Tarefas/Projeto", "🧑‍💻", chart_bytes=plots_pre.get('resource_avg_events'))
-        
-        c3, c4 = st.columns(2)
-        with c3:
-            create_card("Impacto do Tamanho da Equipa no Atraso", "👨‍👩‍👧‍👦", chart_bytes=plots_pre.get('delay_by_teamsize'))
-        with c4:
             create_card("Duração Mediana por Tamanho da Equipa", "⏱️", chart_bytes=plots_pre.get('median_duration_by_teamsize'))
-
-        c5, c6 = st.columns(2)
-        with c5:
-            create_card("Eficiência Semanal (Horas Trabalhadas)", "🗓️", chart_bytes=plots_pre.get('weekly_efficiency'))
-        with c6:
             create_card("Benchmark de Throughput por Equipa", "🏆", chart_bytes=plots_pre.get('throughput_benchmark_by_teamsize'))
-
-        c7, c8 = st.columns(2)
-        with c7:
-            create_card("Métricas de Eficiência Individual por Recurso", "🎯", chart_bytes=plots_post.get('resource_efficiency_plot'))
-        with c8:
             create_card("Top 10 Handoffs entre Recursos", "🔄", chart_bytes=plots_pre.get('resource_handoffs'))
+            create_card("Distribuição de Recursos por Tipo", "🔧", chart_bytes=plots_eda.get('plot_12'))
+            create_card("Atraso por Nível de Competência", "🎓", chart_bytes=plots_eda.get('plot_23'))
         
         col_skill, col_bipartite = st.columns(2)
         with col_skill:
@@ -848,71 +825,73 @@ def dashboard_page():
         create_card("Heatmap de Esforço (Recurso vs Atividade)", "🗺️", chart_bytes=plots_pre.get('resource_activity_matrix'))
 
     elif st.session_state.current_section == "gargalos":
-        st.subheader("4. Gargalos e Espera")
+        st.subheader("4. Gargalos e Análise Causal")
         create_card("Heatmap de Performance no Processo (Gargalos)", "🔥", chart_bytes=plots_post.get('performance_heatmap'))
         
         c1, c2 = st.columns(2)
         with c1:
             create_card("Atividades Mais Frequentes", "⚡", chart_bytes=plots_pre.get('top_activities_plot'))
+            create_card("Gargalos: Tempo de Serviço vs. Espera", "🚦", chart_bytes=plots_pre.get('service_vs_wait_stacked'))
+            create_card("Top 10 Handoffs por Custo de Espera", "💸", chart_bytes=plots_pre.get('top_handoffs_cost'))
+            create_card("Top Recursos por Tempo de Espera Gerado", "🛑", chart_bytes=plots_pre.get('bottleneck_by_resource'))
+            create_card("Custo Real vs. Atraso", "💰", chart_bytes=plots_eda.get('plot_18'))
+            create_card("Nº de Recursos vs. Custo Total", "👥", chart_bytes=plots_eda.get('plot_20'))
+            create_card("Matriz de Correlação", "🔗", chart_bytes=plots_eda.get('plot_29'))
         with c2:
             create_card("Tempo Médio de Execução por Atividade", "🛠️", chart_bytes=plots_pre.get('activity_service_times'))
-        
+            create_card("Espera vs. Execução (Dispersão)", "🔍", chart_bytes=plots_pre.get('wait_vs_service_scatter'))
+            create_card("Evolução do Tempo Médio de Espera", "📈", chart_bytes=plots_pre.get('wait_time_evolution'))
+            create_card("Top 10 Handoffs por Tempo de Espera", "⏳", chart_bytes=plots_pre.get('top_handoffs'))
+            create_card("Rate Horário Médio vs. Atraso", "⏰", chart_bytes=plots_eda.get('plot_19'))
+            create_card("Atraso por Faixa de Orçamento", "📊", chart_bytes=plots_eda.get('plot_22'))
+
         c3, c4 = st.columns(2)
         with c3:
-            create_card("Gargalos: Tempo de Serviço vs. Espera", "🚦", chart_bytes=plots_pre.get('service_vs_wait_stacked'))
-        with c4:
-            create_card("Tempo Médio de Espera por Atividade", "⏱️", chart_bytes=plots_post.get('avg_waiting_time_by_activity_plot'))
-        
-        c5, c6 = st.columns(2)
-        with c5:
-            create_card("Top 10 Handoffs por Custo de Espera", "💸", chart_bytes=plots_pre.get('top_handoffs_cost'))
-        with c6:
-            create_card("Top 10 Handoffs por Tempo de Espera", "⏳", chart_bytes=plots_pre.get('top_handoffs'))
-        
-        c7, c8 = st.columns(2)
-        with c7:
-            create_card("Top Recursos por Tempo de Espera Gerado", "🛑", chart_bytes=plots_pre.get('bottleneck_by_resource'))
-        with c8:
-            create_card("Espera vs. Execução (Dispersão)", "🔍", chart_bytes=plots_pre.get('wait_vs_service_scatter'))
-
-        c9, c10 = st.columns(2)
-        with c9:
-             create_card("Evolução do Tempo Médio de Espera", "📈", chart_bytes=plots_pre.get('wait_time_evolution'))
-        with c10:
             if 'milestone_time_analysis_plot' in plots_post:
                 create_card("Análise de Tempo entre Marcos do Processo", "🚩", chart_bytes=plots_post.get('milestone_time_analysis_plot'))
-
+        with c4:
+             create_card("Tempo Médio de Espera por Atividade", "⏱️", chart_bytes=plots_post.get('avg_waiting_time_by_activity_plot'))
+        
         create_card("Matriz de Tempo de Espera entre Atividades (horas)", "⏳", chart_bytes=plots_post.get('waiting_time_matrix_plot'))
 
     elif st.session_state.current_section == "fluxo":
-        st.subheader("5. Fluxo e Conformidade")
-
-        create_card("Modelo - Inductive Miner", "🧭", chart_bytes=plots_post.get('model_inductive_petrinet'))
-        create_card("Modelo - Heuristics Miner", "🛠️", chart_bytes=plots_post.get('model_heuristic_petrinet'))
+        st.subheader("5. Fluxo e Complexidade")
 
         c1, c2 = st.columns(2)
         with c1:
-            create_card("Métricas (Inductive Miner)", "📊", chart_bytes=plots_post.get('metrics_inductive'))
+            create_card("Modelo - Inductive Miner", "🧭", chart_bytes=plots_post.get('model_inductive_petrinet'))
         with c2:
-            create_card("Métricas (Heuristics Miner)", "📈", chart_bytes=plots_post.get('metrics_heuristic'))
-        
-        create_card("Sequência de Atividades das 10 Variantes Mais Comuns", "🎶", chart_bytes=plots_post.get('custom_variants_sequence_plot'))
-        
+            create_card("Modelo - Heuristics Miner", "🛠️", chart_bytes=plots_post.get('model_heuristic_petrinet'))
+
         c3, c4 = st.columns(2)
         with c3:
-            create_card("Duração Média das Variantes Mais Comuns", "⏳", chart_bytes=plots_post.get('variant_duration_plot'))
+            create_card("Métricas (Inductive Miner)", "📊", chart_bytes=plots_post.get('metrics_inductive'))
         with c4:
-            create_card("Score de Conformidade ao Longo do Tempo", "📉", chart_bytes=plots_post.get('conformance_over_time_plot'))
-        
-        create_card("Frequência das 10 Principais Variantes", "🎭", dataframe=tables_pre.get('variants_table'))
+            create_card("Métricas (Heuristics Miner)", "📈", chart_bytes=plots_post.get('metrics_heuristic'))
         
         c5, c6 = st.columns(2)
         with c5:
-            create_card("Principais Loops de Rework", "🔁", dataframe=tables_pre.get('rework_loops_table'))
-        with c6:
+            create_card("Frequência das 10 Principais Variantes", "🎭", dataframe=tables_pre.get('variants_table'))
             create_card("Dispersão: Fitness vs. Desvios", "🎯", chart_bytes=plots_post.get('deviation_scatter_plot'))
-        
-        create_card("Top 10 Variantes de Processo por Frequência", "📊", chart_bytes=plots_pre.get('variants_frequency'))
+            create_card("Top 10 Variantes de Processo por Frequência", "📊", chart_bytes=plots_pre.get('variants_frequency'))
+            create_card("Distribuição de Tarefas por Tipo", "📋", chart_bytes=plots_eda.get('plot_08'))
+            create_card("Distribuição da Duração das Tarefas", "⏳", chart_bytes=plots_eda.get('plot_10'))
+            create_card("Distribuição da Complexidade dos Projetos", "🕸️", chart_bytes=plots_eda.get('plot_24'))
+            create_card("Relação entre Complexidade e Atraso", "🔗", chart_bytes=plots_eda.get('plot_27'))
+        with c6:
+            create_card("Principais Loops de Rework", "🔁", dataframe=tables_pre.get('rework_loops_table'))
+            create_card("Score de Conformidade ao Longo do Tempo", "📉", chart_bytes=plots_post.get('conformance_over_time_plot'))
+            create_card("Duração Média das Variantes Mais Comuns", "⏳", chart_bytes=plots_post.get('variant_duration_plot'))
+            create_card("Distribuição de Tarefas por Prioridade", "🥇", chart_bytes=plots_eda.get('plot_09'))
+            create_card("Top 10 Tarefas Específicas Mais Demoradas", "🕒", chart_bytes=plots_eda.get('plot_11'))
+            create_card("Centralidade dos Tipos de Tarefa", "🎯", chart_bytes=plots_eda.get('plot_25'))
+            create_card("Relação entre Dependências e Desvio de Custo", "💸", chart_bytes=plots_eda.get('plot_28'))
+
+        c7, c8 = st.columns(2)
+        with c7:
+            create_card("Sequência de Atividades das 10 Variantes Mais Comuns", "🎶", chart_bytes=plots_post.get('custom_variants_sequence_plot'))
+        with c8:
+            create_card("Grafo de Dependências: Projeto 25", "📈", chart_bytes=plots_eda.get('plot_26'))
 
 # --- CONTROLO PRINCIPAL DA APLICAÇÃO ---
 def main():
