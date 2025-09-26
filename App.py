@@ -32,7 +32,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- ESTILO CSS (VERSÃO FINAL E DEFINITIVA) ---
+# --- ESTILO CSS (VERSÃO FINAL COM MÁXIMA ESPECIFICIDADE) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
@@ -56,19 +56,20 @@ st.markdown("""
     [data-testid="stSidebar"] h3 { color: var(--text-color-dark-bg) !important; }
 
     /* --- ESTILOS PARA BOTÕES DE NAVEGAÇÃO --- */
-    div[data-testid="stHorizontalBlock"] .stButton>button {
+    /* SOLUÇÃO 1: Cor permanente nos botões ativos com especificidade máxima */
+    div[data-testid="stHorizontalBlock"] div[data-testid="stButton"] > button {
         border: 1px solid var(--border-color) !important;
         background-color: var(--inactive-button-bg) !important;
         color: var(--text-color-dark-bg) !important;
         font-weight: 600;
         transition: all 0.2s ease-in-out;
     }
-    div[data-testid="stHorizontalBlock"] .stButton>button:hover {
+    div[data-testid="stHorizontalBlock"] div[data-testid="stButton"] > button:hover {
         border-color: var(--primary-color) !important;
         background-color: rgba(239, 68, 68, 0.2) !important;
     }
-    /* SOLUÇÃO 1: Cor permanente nos botões ativos com alta especificidade */
-    div.active-button > div[data-testid="stButton"] > button {
+    div.active-button > div[data-testid="stButton"] > button,
+    div.active-button > div[data-testid="stButton"] > button:hover {
         background-color: var(--primary-color) !important;
         color: var(--text-color-dark-bg) !important;
         border: 1px solid var(--primary-color) !important;
@@ -84,8 +85,8 @@ st.markdown("""
     
     /* --- CARTÕES --- */
     /* SOLUÇÃO 3: Altura uniforme dos cartões */
-    [data-testid="stHorizontalBlock"] {
-        align-items: stretch;
+    div[data-testid="stHorizontalBlock"] > div[data-testid="stVerticalBlock"] {
+        height: 100%;
     }
     .card {
         background-color: var(--card-background-color);
@@ -93,7 +94,7 @@ st.markdown("""
         border-radius: 12px;
         padding: 20px 25px;
         border: 1px solid var(--card-border-color);
-        height: 100%; /* Força o cartão a preencher o espaço da coluna */
+        height: 100%;
         display: flex;
         flex-direction: column;
         margin-bottom: 25px;
@@ -101,58 +102,44 @@ st.markdown("""
     .card-header { padding-bottom: 10px; border-bottom: 1px solid var(--card-border-color); }
     .card .card-header h4 { color: var(--card-text-color); font-size: 1.1rem; margin: 0; display: flex; align-items: center; gap: 8px; }
     .card-body { flex-grow: 1; padding-top: 15px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-
-    .card .card-body img {
-        width: 100%;
-        height: 350px;
-        object-fit: contain; /* Mantém o aspect ratio sem distorcer */
-    }
-    .petri-net-card .card-body img {
-        height: auto;
-        object-fit: initial;
-    }
+    .card .card-body img { width: 100%; height: 350px; object-fit: contain; }
+    .petri-net-card .card-body img { height: auto; object-fit: initial; }
     
     /* SOLUÇÃO 2: Estilo para tabelas DENTRO dos cartões */
-    .card .dataframe-container { overflow-x: auto; width: 100%; }
-    .card .dataframe-container table { width: 100%; color: var(--card-text-color); border-collapse: collapse; font-size: 0.9rem;}
-    .card .dataframe-container th { background-color: #F8FAFC; font-weight: 600; text-align: left; padding: 8px; }
-    .card .dataframe-container td { padding: 8px; border-top: 1px solid var(--card-border-color); }
+    .dataframe-container { overflow-x: auto; width: 100%; }
+    .dataframe-container table { width: 100%; color: var(--card-text-color); border-collapse: collapse; font-size: 0.9rem; }
+    .dataframe-container th { background-color: #F8FAFC; font-weight: 600; text-align: left; padding: 8px; border: 1px solid var(--card-border-color); }
+    .dataframe-container td { padding: 8px; border: 1px solid var(--card-border-color); }
 
     /* SOLUÇÃO 4: Cor do texto na página de Configurações */
-    section[data-testid="stFileUploader"] label[data-testid="stWidgetLabel"] p,
-    section[data-testid="stFileUploader"] .st-emotion-cache-1g8w3tj p {
+    section[data-testid="stFileUploader"] label[data-testid="stWidgetLabel"] div,
+    section[data-testid="stFileUploader"] .st-emotion-cache-1g8w3tj div {
         color: white !important;
         font-weight: bold !important;
     }
-    label[for^="st-toggle-"] p {
+    label[data-testid="stWidgetLabel"] > div p {
         color: white !important;
         font-weight: bold !important;
     }
 
     /* SOLUÇÃO 5: Cor do botão de Login */
-    .login-container .stButton>button {
+    .stApp .login-container .stButton > button {
         background-color: var(--primary-color) !important;
         color: white !important;
         font-weight: bold !important;
     }
 
     /* SOLUÇÃO 6: Cor do botão de Análise */
-    .iniciar-analise-button .stButton>button {
+    .stApp .iniciar-analise-button .stButton > button {
         background-color: var(--baby-blue-bg) !important;
         color: var(--text-color-light-bg) !important;
         font-weight: 700 !important;
     }
-    
-    /* Outros estilos */
-    [data-testid="stMetric"] { background-color: var(--card-background-color); border: 1px solid var(--card-border-color); border-radius: 12px; padding: 20px; }
-    [data-testid="stMetric"] label, [data-testid="stMetric"] [data-testid="stMetricValue"] { color: var(--card-text-color) !important; }
-    [data-testid="stAlert"] { background-color: #1E293B !important; border: 1px solid var(--secondary-color) !important; border-radius: 8px !important; }
-    [data-testid="stAlert"] * { color: #BFDBFE !important; }
 </style>
 """, unsafe_allow_html=True)
 
 
-# --- FUNÇÕES AUXILIARES (CORRIGIDA) ---
+# --- FUNÇÕES AUXILIARES (RECONSTRUÍDA) ---
 def convert_fig_to_bytes(fig, format='png'):
     buf = io.BytesIO()
     fig.patch.set_facecolor('#FFFFFF')
@@ -171,23 +158,27 @@ def convert_fig_to_bytes(fig, format='png'):
 def convert_gviz_to_bytes(gviz, format='png'):
     return io.BytesIO(gviz.pipe(format=format))
 
+# FUNÇÃO RECONSTRUÍDA para criar um bloco único de HTML (Soluções 2 e 3)
 def create_card(title, icon, chart_bytes=None, dataframe=None, card_class=""):
-    # Usar st.container() para garantir isolamento de cada cartão
-    with st.container():
-        st.markdown(f'<div class="card {card_class}">', unsafe_allow_html=True)
-        st.markdown(f'  <div class="card-header"><h4>{icon} {title}</h4></div>', unsafe_allow_html=True)
+    body_content = ""
+    if chart_bytes:
+        b64_image = base64.b64encode(chart_bytes.getvalue()).decode()
+        body_content = f'<img src="data:image/png;base64,{b64_image}">'
+    elif dataframe is not None:
+        table_html = dataframe.to_html(index=False, classes=None, border=0)
+        body_content = f'<div class="dataframe-container">{table_html}</div>'
 
-        st.markdown('<div class="card-body">', unsafe_allow_html=True)
-        if chart_bytes:
-            b64_image = base64.b64encode(chart_bytes.getvalue()).decode()
-            st.markdown(f'<img src="data:image/png;base64,{b64_image}">', unsafe_allow_html=True)
-        
-        elif dataframe is not None:
-            table_html = dataframe.to_html(index=False, classes=None, border=0)
-            st.markdown(f'<div class="dataframe-container">{table_html}</div>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-            
-        st.markdown("</div>", unsafe_allow_html=True)
+    card_html = f"""
+    <div class="card {card_class}">
+        <div class="card-header">
+            <h4>{icon} {title}</h4>
+        </div>
+        <div class="card-body">
+            {body_content}
+        </div>
+    </div>
+    """
+    st.markdown(card_html, unsafe_allow_html=True)
 
 
 # --- INICIALIZAÇÃO DO ESTADO DA SESSÃO ---
@@ -760,11 +751,14 @@ def render_post_mining_dashboard():
         c1, c2 = st.columns(2)
         with c1:
             create_card("Rede Social de Recursos (Handovers)", "🌐", chart_bytes=plots.get('resource_network_adv'), card_class="petri-net-card")
-            if 'skill_vs_performance_adv' in plots:
-                create_card("Relação entre Skill e Performance", "🎓", chart_bytes=plots.get('skill_vs_performance_adv'))
         with c2:
             if 'resource_network_bipartite' in plots:
                 create_card("Rede de Recursos por Função", "🔗", chart_bytes=plots.get('resource_network_bipartite'), card_class="petri-net-card")
+        c3, c4 = st.columns(2)
+        with c3:
+            if 'skill_vs_performance_adv' in plots:
+                create_card("Relação entre Skill e Performance", "🎓", chart_bytes=plots.get('skill_vs_performance_adv'))
+        with c4:
             create_card("Eficiência Individual por Recurso", "🎯", chart_bytes=plots.get('resource_efficiency_plot'))
                 
     elif st.session_state.current_section == "conformance":
