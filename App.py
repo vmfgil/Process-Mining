@@ -41,7 +41,7 @@ st.markdown("""
     :root {
         --primary-color: #EF4444; 
         --secondary-color: #3B82F6;
-        --baby-blue-bg: #A0E9FF; /* A cor azul bebé que pretendemos */
+        --baby-blue-bg: #A0E9FF;
         --background-color: #0F172A;
         --sidebar-background: #1E293B;
         --inactive-button-bg: rgba(51, 65, 85, 0.5);
@@ -54,12 +54,12 @@ st.markdown("""
     }
     .stApp { background-color: var(--background-color); color: var(--text-color-dark-bg); }
     h1, h2, h3 { color: var(--text-color-dark-bg); font-weight: 600; }
-    
+
     [data-testid="stSidebar"] h3 {
         color: var(--text-color-dark-bg) !important;
     }
 
-    /* --- ESTILOS PARA BOTÕES DE NAVEGAÇÃO --- */
+    /* --- BOTÕES DE NAVEGAÇÃO (fix permanente) --- */
     div[data-testid="stHorizontalBlock"] .stButton>button {
         border: 1px solid var(--border-color) !important;
         background-color: var(--inactive-button-bg) !important;
@@ -76,10 +76,6 @@ st.markdown("""
         color: var(--text-color-dark-bg) !important;
         border: 1px solid var(--primary-color) !important;
         font-weight: 700 !important;
-    }
-    div.active-button .stButton>button:hover {
-        background-color: var(--primary-color) !important;
-        border-color: var(--primary-color) !important;
     }
 
     /* Painel Lateral */
@@ -103,59 +99,53 @@ st.markdown("""
     }
     .card-header { padding-bottom: 10px; border-bottom: 1px solid var(--card-border-color); }
     .card .card-header h4 { color: var(--card-text-color); font-size: 1.1rem; margin: 0; display: flex; align-items: center; gap: 8px; }
-    .card-body { flex-grow: 1; padding-top: 15px; }
+    .card-body { flex-grow: 1; padding-top: 15px; display:flex; flex-direction:column; }
 
-    /* --- INTEGRAÇÃO DE TABELA DENTRO DO CARTÃO --- */
+    /* --- TABELAS DENTRO DO CARTÃO (fix) --- */
     .dataframe-card-body {
-        padding-top: 0 !important;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
     }
-    .dataframe-card-body [data-testid="stDataFrame"] { border: none !important; }
-    .dataframe-card-body [data-testid="stDataFrame"] .col-header, 
-    .dataframe-card-body [data-testid="stDataFrame"] .blank {
-        background-color: var(--card-background-color) !important;
+    .dataframe-card-body [data-testid="stDataFrame"] {
+        border: none !important;
+        flex-grow: 1;
     }
 
-    /* --- CSS PARA OS BOTÕES DE UPLOAD (MANTIDO) --- */
-    section[data-testid="stFileUploader"] button,
-    div[data-testid="stFileUploader"] button,
-    div[data-baseweb="file-uploader"] button {
+    /* --- ALINHAMENTO E TAMANHO IGUAL DOS CARTÕES --- */
+    .stColumns > div > div {
+        display: flex;
+        flex-direction: column;
+    }
+    .stColumns > div > div > .card {
+        flex: 1;
+    }
+
+    /* --- TEXTO EM CONFIGURAÇÕES (fix cor branca) --- */
+    .stMarkdown, .stText, .stSubheader, .stInfo, .stWarning, .stSuccess, .stFileUploader label, .stToggle {
+        color: white !important;
+    }
+
+    /* --- BOTÃO LOGIN (fix contraste) --- */
+    .stButton>button {
         background-color: var(--baby-blue-bg) !important;
         color: var(--text-color-light-bg) !important;
-        border: none !important;
-        font-weight: 600 !important;
+        font-weight: 700 !important;
     }
-    
-    /* --- CORREÇÃO FINAL E DEFINITIVA PARA O BOTÃO DE ANÁLISE --- */
+
+    /* --- BOTÃO FINAL CONFIGURAÇÕES (fix cor texto) --- */
     .iniciar-analise-button .stButton>button {
         background-color: var(--baby-blue-bg) !important;
         color: var(--text-color-light-bg) !important;
         border: 2px solid var(--baby-blue-bg) !important;
         font-weight: 700 !important;
     }
-    
-    /* --- ESTILO DOS CARTÕES DE MÉTRICAS (KPIs) PARA FUNDO BRANCO --- */
-    [data-testid="stMetric"] {
-        background-color: var(--card-background-color);
-        color: var(--card-text-color);
-        border: 1px solid var(--card-border-color);
-        border-radius: 12px;
-        padding: 20px;
-    }
-    [data-testid="stMetric"] label { color: var(--card-text-color); }
-    [data-testid="stMetric"] [data-testid="stMetricValue"] { color: var(--card-text-color); }
-    
-    /* Alertas */
-    [data-testid="stAlert"] {
-        background-color: #1E293B !important;
-        border: 1px solid var(--secondary-color) !important;
-        border-radius: 8px !important;
-    }
-    [data-testid="stAlert"] p, [data-testid="stAlert"] div, [data-testid="stAlert"] li {
-        color: #BFDBFE !important;
+    .iniciar-analise-button .stButton>button:last-child {
+        color: black !important;
+        font-weight: 700 !important;
     }
 </style>
 """, unsafe_allow_html=True)
-
 
 # --- FUNÇÕES AUXILIARES ---
 def convert_fig_to_bytes(fig, format='png'):
@@ -796,3 +786,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
