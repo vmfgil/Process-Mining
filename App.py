@@ -192,6 +192,11 @@ st.markdown("""
         color: var(--text-color-dark-bg) !important;
         border: 1px solid var(--border-color) !important;
     }
+    /* Estilos para os subtítulos dos parâmetros de RL */
+    .stExpander div[data-testid="stMarkdownContainer"] p {
+        font-weight: 600 !important;
+        color: var(--text-color-dark-bg) !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -249,6 +254,7 @@ if 'dfs' not in st.session_state:
 if 'analysis_run' not in st.session_state: st.session_state.analysis_run = False
 if 'rl_analysis_run' not in st.session_state: st.session_state.rl_analysis_run = False
 if 'rl_params_expanded' not in st.session_state: st.session_state.rl_params_expanded = True
+if 'project_id_simulated' not in st.session_state: st.session_state.project_id_simulated = "25"
 if 'plots_pre_mining' not in st.session_state: st.session_state.plots_pre_mining = {}
 if 'plots_post_mining' not in st.session_state: st.session_state.plots_post_mining = {}
 if 'tables_pre_mining' not in st.session_state: st.session_state.tables_pre_mining = {}
@@ -1415,7 +1421,7 @@ def rl_page():
 
     # --- Parâmetros de Entrada ---
     with st.expander("⚙️ Parâmetros da Simulação", expanded=st.session_state.rl_params_expanded):
-        st.subheader("Parâmetros Gerais")
+        st.markdown("<p><strong>Parâmetros Gerais</strong></p>", unsafe_allow_html=True)
         project_ids = st.session_state.dfs['projects']['project_id'].unique()
         
         c1, c2 = st.columns(2)
@@ -1428,7 +1434,7 @@ def rl_page():
         with c2:
             num_episodes = st.number_input("Número de Episódios de Treino", min_value=100, max_value=10000, value=1000, step=100)
 
-        st.markdown("<h6>Parâmetros de Recompensa e Penalização do Agente</h6>", unsafe_allow_html=True)
+        st.markdown("<p><strong>Parâmetros de Recompensa e Penalização do Agente</strong></p>", unsafe_allow_html=True)
         rc1, rc2, rc3 = st.columns(3)
         with rc1:
             cost_impact_factor = st.number_input("Fator de Impacto do Custo", value=1.0)
@@ -1452,9 +1458,12 @@ def rl_page():
 
     if st.button("▶️ Iniciar Treino e Simulação do Agente", use_container_width=True):
         st.session_state.rl_params_expanded = False
+        st.session_state.project_id_simulated = project_id_to_simulate
         
-        progress_bar = st.progress(0)
-        status_text = status_container.info("A iniciar o treino do agente de RL...")
+        with status_container.container():
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            status_text.info("A iniciar o treino do agente de RL...")
 
         plots_rl, tables_rl, logs_rl = run_rl_analysis(
             st.session_state.dfs, 
@@ -1478,21 +1487,6 @@ def rl_page():
         plots_rl = st.session_state.plots_rl
         tables_rl = st.session_state.tables_rl
         
-        st.markdown(f"<h4>Análise Detalhada da Simulação (Projeto {st.session_state.get('project_id_simulated')})</h4>", unsafe_allow_html=True)
-        
-        summary_df = tables_rl.get('project_summary')
-        if summary_df is not None:
-            real_duration = summary_df.loc[summary_df['Métrica'] == 'Duração (dias úteis)', 'Real (Histórico)'].iloc[0]
-            sim_duration = summary_df.loc[summary_df['Métrica'] == 'Duração (dias úteis)', 'Simulado (RL)'].iloc[0]
-            real_cost = summary_df.loc[summary_df['Métrica'] == 'Custo (€)', 'Real (Histórico)'].iloc[0]
-            sim_cost = summary_df.loc[summary_df['Métrica'] == 'Custo (€)', 'Simulado (RL)'].iloc[0]
-            
-            metric_cols = st.columns(2)
-            with metric_cols[0]:
-                st.metric(label="Duração (dias úteis)", value=f"{sim_duration:.0f}", delta=f"{sim_duration - real_duration:.0f} vs Real")
-            with metric_cols[1]:
-                st.metric(label="Custo (€)", value=f"{sim_cost:,.2f}", delta=f"{sim_cost - real_cost:,.2f} vs Real")
-
         st.markdown("<h4>Desempenho Global</h4>", unsafe_allow_html=True)
         res1, res2 = st.columns(2)
         with res1:
@@ -1507,7 +1501,20 @@ def rl_page():
         create_card("Comparação do Desempenho (Conjunto de Teste)", "🎯", chart_bytes=plots_rl.get('evaluation_comparison_test'))
         create_card("Comparação do Desempenho (Todos os Projetos)", "🌍", chart_bytes=plots_rl.get('evaluation_comparison_all'))
         
-        create_card(f"Comparação Detalhada (Projeto {st.session_state.get('project_id_simulated')})", "🔍", chart_bytes=plots_rl.get('project_detailed_comparison'))
+        st.markdown(f"<h4>Análise Detalhada da Simulação (Projeto {st.session_state.project_id_simulated})</h4>", unsafe_allow_html=True)
+        summary_df = tables_rl.get('project_summary')
+        if summary_df is not None:
+            metric_cols = st.columns(2)
+            with metric_cols[0]:
+                real_duration = summary_df.loc[summary_df['Métrica'] == 'Duração (dias úteis)', 'Real (Histórico)'].iloc[0]
+                sim_duration = summary_df.loc[summary_df['Métrica'] == 'Duração (dias úteis)', 'Simulado (RL)'].iloc[0]
+                st.metric(label="Duração (dias úteis)", value=f"{sim_duration:.0f}", delta=f"{sim_duration - real_duration:.0f} vs Real")
+            with metric_cols[1]:
+                real_cost = summary_df.loc[summary_df['Métrica'] == 'Custo (€)', 'Real (Histórico)'].iloc[0]
+                sim_cost = summary_df.loc[summary_df['Métrica'] == 'Custo (€)', 'Simulado (RL)'].iloc[0]
+                st.metric(label="Custo (€)", value=f"€{sim_cost:,.2f}", delta=f"€{sim_cost - real_cost:,.2f} vs Real")
+
+        create_card(f"Comparação Detalhada (Projeto {st.session_state.project_id_simulated})", "🔍", chart_bytes=plots_rl.get('project_detailed_comparison'))
 
 # --- CONTROLO PRINCIPAL DA APLICAÇÃO ---
 def main():
