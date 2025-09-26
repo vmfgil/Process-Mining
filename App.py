@@ -32,7 +32,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- ESTILO CSS (REVISTO E CORRIGIDO) ---
+# --- ESTILO CSS (VERSÃO FINAL E DEFINITIVA) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
@@ -67,9 +67,8 @@ st.markdown("""
         border-color: var(--primary-color) !important;
         background-color: rgba(239, 68, 68, 0.2) !important;
     }
-    /* SOLUÇÃO 1: Cor permanente nos botões ativos */
-    div.active-button .stButton>button,
-    div.active-button .stButton>button:hover {
+    /* SOLUÇÃO 1: Cor permanente nos botões ativos com alta especificidade */
+    div.active-button > div[data-testid="stButton"] > button {
         background-color: var(--primary-color) !important;
         color: var(--text-color-dark-bg) !important;
         border: 1px solid var(--primary-color) !important;
@@ -85,6 +84,9 @@ st.markdown("""
     
     /* --- CARTÕES --- */
     /* SOLUÇÃO 3: Altura uniforme dos cartões */
+    [data-testid="stHorizontalBlock"] {
+        align-items: stretch;
+    }
     .card {
         background-color: var(--card-background-color);
         color: var(--card-text-color);
@@ -117,9 +119,12 @@ st.markdown("""
     .card .dataframe-container td { padding: 8px; border-top: 1px solid var(--card-border-color); }
 
     /* SOLUÇÃO 4: Cor do texto na página de Configurações */
-    section[data-testid="stFileUploader"] > div > div > p,
-    section[data-testid="stFileUploader"] section div[data-testid="stText"],
-    label[data-testid="stWidgetLabel"] > div > p {
+    section[data-testid="stFileUploader"] label[data-testid="stWidgetLabel"] p,
+    section[data-testid="stFileUploader"] .st-emotion-cache-1g8w3tj p {
+        color: white !important;
+        font-weight: bold !important;
+    }
+    label[for^="st-toggle-"] p {
         color: white !important;
         font-weight: bold !important;
     }
@@ -166,20 +171,23 @@ def convert_fig_to_bytes(fig, format='png'):
 def convert_gviz_to_bytes(gviz, format='png'):
     return io.BytesIO(gviz.pipe(format=format))
 
-# FUNÇÃO MODIFICADA para resolver problemas 2 e 3
 def create_card(title, icon, chart_bytes=None, dataframe=None, card_class=""):
-    st.markdown(f'<div class="card {card_class}">', unsafe_allow_html=True)
-    st.markdown(f'  <div class="card-header"><h4>{icon} {title}</h4></div>', unsafe_allow_html=True)
+    # Usar st.container() para garantir isolamento de cada cartão
+    with st.container():
+        st.markdown(f'<div class="card {card_class}">', unsafe_allow_html=True)
+        st.markdown(f'  <div class="card-header"><h4>{icon} {title}</h4></div>', unsafe_allow_html=True)
 
-    if chart_bytes:
-        b64_image = base64.b64encode(chart_bytes.getvalue()).decode()
-        st.markdown(f'  <div class="card-body"><img src="data:image/png;base64,{b64_image}"></div>', unsafe_allow_html=True)
-    
-    elif dataframe is not None:
-        table_html = dataframe.to_html(index=False, classes=None, border=0)
-        st.markdown(f'  <div class="card-body dataframe-container">{table_html}</div>', unsafe_allow_html=True)
+        st.markdown('<div class="card-body">', unsafe_allow_html=True)
+        if chart_bytes:
+            b64_image = base64.b64encode(chart_bytes.getvalue()).decode()
+            st.markdown(f'<img src="data:image/png;base64,{b64_image}">', unsafe_allow_html=True)
         
-    st.markdown("</div>", unsafe_allow_html=True)
+        elif dataframe is not None:
+            table_html = dataframe.to_html(index=False, classes=None, border=0)
+            st.markdown(f'<div class="dataframe-container">{table_html}</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+            
+        st.markdown("</div>", unsafe_allow_html=True)
 
 
 # --- INICIALIZAÇÃO DO ESTADO DA SESSÃO ---
@@ -652,7 +660,7 @@ def render_pre_mining_dashboard():
             create_card("Top 5 Projetos Mais Caros", "💰", dataframe=tables.get('outlier_cost'))
             
     elif st.session_state.current_section == "performance":
-        c1, c2 = st.columns([1, 2])
+        c1, c2 = st.columns(2)
         with c1:
             create_card("Estatísticas de Lead Time e Throughput", "📈", dataframe=tables.get('perf_stats'))
         with c2:
@@ -682,12 +690,12 @@ def render_pre_mining_dashboard():
         with c2:
             create_card("Recursos por Média de Tarefas/Projeto", "🧑‍💻", chart_bytes=plots.get('resource_avg_events'))
             create_card("Custo por Tipo de Recurso", "💶", chart_bytes=plots.get('cost_by_resource_type'))
-        create_card("Heatmap de Esforço (Recurso vs Atividade)", "🗺️", chart_bytes=plots.get('resource_activity_matrix'))
+        create_card("Heatmap de Esforço (Recurso vs Atividade)", "🗺️", chart_bytes=plots.get('resource_activity_matrix'), card_class="petri-net-card")
 
     elif st.session_state.current_section == "variants":
         c1, c2 = st.columns(2)
         with c1:
-            create_card("Frequência das 10 Principais Variantes", "🎭", chart_bytes=plots.get('variants_frequency'))
+            create_card("Frequência das 10 Principais Variantes", "🎭", chart_bytes=plots.get('variants_frequency'), card_class="petri-net-card")
         with c2:
             create_card("Principais Loops de Rework", "🔁", dataframe=tables.get('rework_loops_table'))
             
@@ -704,12 +712,13 @@ def render_pre_mining_dashboard():
             create_card("Eficiência Semanal (Horas Trabalhadas)", "🗓️", chart_bytes=plots.get('weekly_efficiency'))
             create_card("Gargalos: Tempo de Serviço vs. Espera", "🚦", chart_bytes=plots.get('service_vs_wait_stacked'))
             create_card("Evolução do Tempo Médio de Espera", "📈", chart_bytes=plots.get('wait_time_evolution'))
-            create_card("Duração Média por Fase do Processo", "🗂️", chart_bytes=plots.get('cycle_time_breakdown'))
         with c2:
             create_card("Duração Mediana por Tamanho da Equipa", "⏱️", chart_bytes=plots.get('median_duration_by_teamsize'))
             create_card("Top Recursos por Tempo de Espera Gerado", "🛑", chart_bytes=plots.get('bottleneck_by_resource'))
             create_card("Espera vs. Execução (Dispersão)", "🔍", chart_bytes=plots.get('wait_vs_service_scatter'))
             create_card("Benchmark de Throughput por Equipa", "🏆", chart_bytes=plots.get('throughput_benchmark_by_teamsize'))
+        create_card("Duração Média por Fase do Processo", "🗂️", chart_bytes=plots.get('cycle_time_breakdown'))
+
 
 def render_post_mining_dashboard():
     sections = { "discovery": "Descoberta", "performance": "Performance", "resources": "Recursos", "conformance": "Conformidade" }
@@ -733,14 +742,14 @@ def render_post_mining_dashboard():
         with c2:
             create_card("Modelo - Heuristics Miner", "🛠️", chart_bytes=plots.get('model_heuristic_petrinet'), card_class="petri-net-card")
             create_card("Métricas (Heuristics Miner)", "📈", chart_bytes=plots.get('metrics_heuristic'))
-        create_card("Sequência de Atividades das Variantes", "🎶", chart_bytes=plots.get('custom_variants_sequence_plot'))
+        create_card("Sequência de Atividades das Variantes", "🎶", chart_bytes=plots.get('custom_variants_sequence_plot'), card_class="petri-net-card")
             
     elif st.session_state.current_section == "performance":
-        create_card("Heatmap de Performance no Processo", "🔥", chart_bytes=plots.get('performance_heatmap'), card_class="petri-net-card") # Exception for this larger chart
+        create_card("Heatmap de Performance no Processo", "🔥", chart_bytes=plots.get('performance_heatmap'), card_class="petri-net-card")
         c1, c2 = st.columns(2)
         with c1:
             create_card("Séries Temporais de KPIs", "📈", chart_bytes=plots.get('kpi_time_series'))
-            create_card("Matriz de Tempo de Espera (horas)", "⏳", chart_bytes=plots.get('waiting_time_matrix_plot'))
+            create_card("Matriz de Tempo de Espera (horas)", "⏳", chart_bytes=plots.get('waiting_time_matrix_plot'), card_class="petri-net-card")
         with c2:
             create_card("Atividades por Dia da Semana", "🗓️", chart_bytes=plots.get('temporal_heatmap_fixed'))
             create_card("Tempo de Espera Médio por Atividade", "⏱️", chart_bytes=plots.get('avg_waiting_time_by_activity_plot'))
@@ -750,12 +759,12 @@ def render_post_mining_dashboard():
     elif st.session_state.current_section == "resources":
         c1, c2 = st.columns(2)
         with c1:
-            create_card("Rede Social de Recursos (Handovers)", "🌐", chart_bytes=plots.get('resource_network_adv'))
+            create_card("Rede Social de Recursos (Handovers)", "🌐", chart_bytes=plots.get('resource_network_adv'), card_class="petri-net-card")
             if 'skill_vs_performance_adv' in plots:
                 create_card("Relação entre Skill e Performance", "🎓", chart_bytes=plots.get('skill_vs_performance_adv'))
         with c2:
             if 'resource_network_bipartite' in plots:
-                create_card("Rede de Recursos por Função", "🔗", chart_bytes=plots.get('resource_network_bipartite'))
+                create_card("Rede de Recursos por Função", "🔗", chart_bytes=plots.get('resource_network_bipartite'), card_class="petri-net-card")
             create_card("Eficiência Individual por Recurso", "🎯", chart_bytes=plots.get('resource_efficiency_plot'))
                 
     elif st.session_state.current_section == "conformance":
@@ -763,10 +772,14 @@ def render_post_mining_dashboard():
         with c1:
             create_card("Duração Média das Variantes Mais Comuns", "⏳", chart_bytes=plots.get('variant_duration_plot'))
             create_card("Score de Conformidade ao Longo do Tempo", "📉", chart_bytes=plots.get('conformance_over_time_plot'))
-            create_card("Throughput Acumulado ao Longo do Tempo", "🚀", chart_bytes=plots.get('cumulative_throughput_plot'))
         with c2:
             create_card("Dispersão: Fitness vs. Desvios", "🎯", chart_bytes=plots.get('deviation_scatter_plot'))
             create_card("Custo por Dia ao Longo do Tempo", "💸", chart_bytes=plots.get('cost_per_day_time_series'))
+        
+        c3, c4 = st.columns(2)
+        with c3:
+            create_card("Throughput Acumulado ao Longo do Tempo", "🚀", chart_bytes=plots.get('cumulative_throughput_plot'))
+        with c4:
             if 'milestone_time_analysis_plot' in plots:
                 create_card("Análise de Tempo entre Marcos do Processo", "🚩", chart_bytes=plots.get('milestone_time_analysis_plot'))
 
