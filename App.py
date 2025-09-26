@@ -39,8 +39,8 @@ st.markdown("""
     html, body, [class*="st-"] { font-family: 'Poppins', sans-serif; }
     :root {
         --primary-color: #EF4444; /* Vermelho para destaque */
-        --secondary-color: #3B82F6; /* Azul para botões principais */
-        --baby-blue-bg: #ADD8E6; /* Azul bebé para o botão de análise */
+        --secondary-color: #3B82F6; /* Azul para botões */
+        --baby-blue-bg: #A0E9FF; /* Azul bebé para o botão de análise */
         --background-color: #0F172A;
         --sidebar-background: #1E293B;
         --text-color-dark-bg: #FFFFFF;
@@ -52,21 +52,19 @@ st.markdown("""
     }
     .stApp { background-color: var(--background-color); color: var(--text-color-dark-bg); }
     h1, h2, h3 { color: var(--text-color-dark-bg); font-weight: 600; }
-    h1 { margin-bottom: 0.5rem; }
-    h3 { margin-top: 1rem; margin-bottom: 0.5rem; }
 
     /* --- Correção 6: Estilos para botões de navegação ativos e inativos --- */
-    /* Botão Inativo */
+    /* Botão Inativo (Default) */
     .stButton>button {
         border: 1px solid var(--border-color) !important;
         background-color: transparent !important;
         color: var(--text-color-dark-bg) !important;
         font-weight: 600;
+        transition: all 0.2s ease-in-out;
     }
     .stButton>button:hover {
         border-color: var(--primary-color) !important;
         background-color: rgba(239, 68, 68, 0.1) !important;
-        opacity: 0.9;
     }
     /* Botão Ativo (sobrescreve o estilo geral) */
     .active-button .stButton>button {
@@ -77,52 +75,74 @@ st.markdown("""
 
     /* Painel Lateral */
     [data-testid="stSidebar"] { background-color: var(--sidebar-background); border-right: 1px solid var(--border-color); }
-    [data-testid="stSidebar"] h3 { color: var(--text-color-dark-bg); }
-    /* --- Correção 5: Fundo branco para botões do painel lateral --- */
     [data-testid="stSidebar"] .stButton>button {
-        background-color: var(--card-background-color) !important; /* Fundo branco */
-        color: var(--card-text-color) !important; /* Texto escuro */
+        background-color: var(--card-background-color) !important;
+        color: var(--card-text-color) !important;
         border: 1px solid var(--border-color) !important;
     }
-    [data-testid="stSidebar"] .stButton>button:hover, [data-testid="stSidebar"] .stButton>button:focus {
+    [data-testid="stSidebar"] .stButton>button:hover {
         background-color: var(--primary-color) !important;
         color: var(--text-color-dark-bg) !important;
     }
-
-    /* Cartões */
-    .card { background-color: var(--card-background-color); color: var(--card-text-color); border-radius: 12px; padding: 20px 25px; border: 1px solid var(--card-border-color); height: 100%; display: flex; flex-direction: column; }
+    
+    /* --- Correção 7: Cartões com tamanho e espaçamento uniformes --- */
+    .card {
+        background-color: var(--card-background-color);
+        color: var(--card-text-color);
+        border-radius: 12px;
+        padding: 20px 25px;
+        border: 1px solid var(--card-border-color);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        min-height: 450px; /* Garante uma altura mínima uniforme */
+        margin-bottom: 25px; /* Espaçamento vertical entre cartões */
+    }
     .card-header { padding-bottom: 10px; border-bottom: 1px solid var(--card-border-color); }
     .card .card-header h4 { color: var(--card-text-color); font-size: 1.1rem; margin: 0; display: flex; align-items: center; gap: 8px; }
     .card-body { flex-grow: 1; padding-top: 15px; }
 
     /* Métricas (KPIs) */
     [data-testid="stMetric"] { background-color: var(--card-background-color); border: 1px solid var(--card-border-color); border-radius: 12px; padding: 15px 20px; }
-    [data-testid="stMetric"] label { color: #64748B; }
-    [data-testid="stMetric"] [data-testid="stMetricValue"] { color: var(--card-text-color); }
 
-    /* --- Correção 1: Melhorar legibilidade do texto de Upload --- */
-    section[data-testid="stFileUploader"] { background-color: var(--sidebar-background); border-radius: 8px; padding: 15px; border: 1px dashed var(--border-color); }
-    section[data-testid="stFileUploader"] [data-testid="stMarkdownContainer"] p,
+    /* --- Correção 1 & 2: Estilo e compactação do Upload --- */
+    section[data-testid="stFileUploader"] {
+        background-color: #F0F2F6; /* Fundo claro */
+        border-radius: 8px;
+        padding: 10px;
+        border: 1px dashed #A0AEC0;
+    }
+    section[data-testid="stFileUploader"] p,
     [data-testid="stFileUploader"] label,
     [data-testid="stFileUploader"] span,
     [data-testid="stFileUploader"] small {
-        color: var(--text-color-dark-bg) !important; /* Texto branco */
-        font-size: 0.9rem;
+        color: var(--text-color-light-bg) !important; /* Texto escuro */
     }
-    [data-testid="stFileUploader"] button { background-color: var(--secondary-color); color: white; border: none; border-radius: 6px; }
-    [data-testid="stFileUploader"] button:hover { background-color: #2563EB; color: white; }
     
     /* --- Correção 4: Botão Iniciar Análise com fundo azul bebé --- */
     #iniciar-analise-button .stButton>button {
         background-color: var(--baby-blue-bg) !important;
-        color: var(--text-color-light-bg) !important; /* Texto escuro para contraste */
-        border: 1px solid var(--baby-blue-bg) !important;
+        color: var(--text-color-light-bg) !important;
+        border: 2px solid #1E293B !important;
         font-weight: 700 !important;
     }
     
-    /* --- Correção 3: Estilo do Expander para pré-visualização --- */
-    .st-expander, .st-expander header { border-radius: 8px !important; border-color: var(--border-color) !important; }
-    .st-expander header { background-color: var(--sidebar-background) !important; color: var(--text-color-dark-bg) !important; font-weight: 600; }
+    /* --- Correção 3: Estilo do Expander sem sobreposição --- */
+    /* Removido CSS customizado que causava o bug. Deixando o default do Streamlit. */
+    .st-expander header {
+        font-weight: 600 !important;
+        color: var(--text-color-dark-bg) !important;
+    }
+
+    /* --- Correção 8: Cor das caixas de alerta/info --- */
+    [data-testid="stAlert"] {
+        background-color: #1E293B !important; /* Fundo azul escuro */
+        border: 1px solid var(--secondary-color) !important;
+        border-radius: 8px !important;
+    }
+    [data-testid="stAlert"] p, [data-testid="stAlert"] div, [data-testid="stAlert"] li {
+        color: #BFDBFE !important; /* Texto azul claro */
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -130,7 +150,6 @@ st.markdown("""
 # --- FUNÇÕES AUXILIARES ---
 def convert_fig_to_bytes(fig, format='png'):
     buf = io.BytesIO()
-    # Assegura que o fundo é branco para consistência dentro do cartão
     fig.patch.set_facecolor('#FFFFFF')
     fig.patch.set_alpha(1.0)
     for ax in fig.get_axes():
@@ -154,15 +173,7 @@ def convert_gviz_to_bytes(gviz, format='png'):
 def convert_df_to_csv(df):
     return df.to_csv(index=False).encode('utf-8')
 
-# --- Correção 7: Função `create_card` robusta para imagens e tabelas ---
 def create_card(title, icon, chart_bytes=None, dataframe=None, key_suffix=""):
-    """
-    Cria um cartão para exibir um gráfico ou um dataframe.
-    - Para gráficos (chart_bytes), o HTML completo é gerado de uma só vez para garantir
-      que a imagem fique DENTRO do cartão.
-    - Para dataframes, Streamlit não permite embutir, então usamos a abordagem
-      de renderizar o cabeçalho, o dataframe e o rodapé em sequência.
-    """
     if chart_bytes:
         b64_image = base64.b64encode(chart_bytes.getvalue()).decode()
         card_html = f"""
@@ -517,31 +528,30 @@ def settings_page():
     st.info("Por favor, carregue os 5 ficheiros CSV necessários para a análise.")
     file_names = ['projects', 'tasks', 'resources', 'resource_allocations', 'dependencies']
     
-    # --- Correção 2: Layout compacto com colunas para os uploaders ---
-    cols1 = st.columns(3)
-    cols2 = st.columns(3)
-    
-    upload_cols = [cols1[0], cols1[1], cols1[2], cols2[0], cols2[1]]
+    # --- Correção 2: Layout compacto com 5 colunas para os uploaders ---
+    upload_cols = st.columns(5)
 
     for i, name in enumerate(file_names):
         with upload_cols[i]:
-            uploaded_file = st.file_uploader(f"Carregar `{name}.csv`", type="csv", key=f"upload_{name}")
+            uploaded_file = st.file_uploader(f"`{name}.csv`", type="csv", key=f"upload_{name}", label_visibility="collapsed")
             if uploaded_file:
                 st.session_state.dfs[name] = pd.read_csv(uploaded_file)
-                st.success(f"`{name}.csv` carregado.")
+                # Usar st.markdown para um feedback mais discreto e consistente
+                st.markdown(f"<p style='color: #4A5568; text-align: center;'>✅ `{name}.csv`</p>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"<p style='color: #A0AEC0; text-align: center;'>Carregar `{name}.csv`</p>", unsafe_allow_html=True)
 
-    st.markdown("<br>", unsafe_allow_html=True) # Espaçamento
+
+    st.markdown("<br>", unsafe_allow_html=True)
     
     all_files_uploaded = all(st.session_state.dfs[name] is not None for name in file_names)
     
     if all_files_uploaded:
         st.subheader("Pré-visualização dos Dados Carregados")
-        # --- Correção 3: Títulos claros para cada preview ---
         with st.expander("Visualizar as primeiras 5 linhas dos ficheiros", expanded=False):
             for name, df in st.session_state.dfs.items():
                 st.markdown(f"**Ficheiro: `{name}.csv`**")
                 st.dataframe(df.head())
-                st.markdown("---") # Separador
         
         st.subheader("Execução da Análise")
         st.success("Todos os ficheiros estão carregados. Pode iniciar a análise.")
@@ -572,13 +582,13 @@ def settings_page():
 def dashboard_page():
     st.title("🏠 Dashboard Geral")
 
-    # --- Correção 6: Lógica para destacar botões de navegação ativos ---
     is_pre_mining_active = st.session_state.current_dashboard == "Pré-Mineração"
-    is_post_mining_active = st.session_state.current_dashboard == "Pós-Mineração"
-
+    
     sub_nav1, sub_nav2 = st.columns(2)
     with sub_nav1:
-        st.markdown(f'<div class="{"active-button" if is_pre_mining_active else ""}">', unsafe_allow_html=True)
+        # --- Correção 6: Uso de 'active-button' para destacar o botão ativo ---
+        button_class = "active-button" if is_pre_mining_active else ""
+        st.markdown(f'<div class="{button_class}">', unsafe_allow_html=True)
         if st.button("📊 Análise Pré-Mineração", use_container_width=True):
             st.session_state.current_dashboard = "Pré-Mineração"
             st.session_state.current_section = "overview"
@@ -586,7 +596,8 @@ def dashboard_page():
         st.markdown('</div>', unsafe_allow_html=True)
         
     with sub_nav2:
-        st.markdown(f'<div class="{"active-button" if is_post_mining_active else ""}">', unsafe_allow_html=True)
+        button_class = "active-button" if not is_pre_mining_active else ""
+        st.markdown(f'<div class="{button_class}">', unsafe_allow_html=True)
         if st.button("⛏️ Análise Pós-Mineração", use_container_width=True):
             st.session_state.current_dashboard = "Pós-Mineração"
             st.session_state.current_section = "discovery"
@@ -608,14 +619,17 @@ def render_pre_mining_dashboard():
     for i, (key, name) in enumerate(sections.items()):
         is_active = st.session_state.current_section == key
         with nav_cols[i]:
-            st.markdown(f'<div class="{"active-button" if is_active else ""}">', unsafe_allow_html=True)
+            button_class = "active-button" if is_active else ""
+            st.markdown(f'<div class="{button_class}">', unsafe_allow_html=True)
             if st.button(name, key=f"nav_{key}", use_container_width=True):
                 st.session_state.current_section = key
                 st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
     
+    st.markdown("<br>", unsafe_allow_html=True)
     plots = st.session_state.plots_pre_mining
     tables = st.session_state.tables_pre_mining
+
     if st.session_state.current_section == "overview":
         kpi_data = tables['kpi_data']
         kpi_cols = st.columns(4)
@@ -623,58 +637,66 @@ def render_pre_mining_dashboard():
         kpi_cols[1].metric(label="Total de Tarefas", value=kpi_data['Total de Tarefas'])
         kpi_cols[2].metric(label="Total de Recursos", value=kpi_data['Total de Recursos'])
         kpi_cols[3].metric(label="Duração Média", value=f"{kpi_data['Duração Média (dias)']} dias")
-        st.markdown("<br>", unsafe_allow_html=True)
+        
         c1, c2 = st.columns(2)
         with c1:
-            create_card("Matriz de Performance (Custo vs Prazo)", "🎯", chart_bytes=plots.get('performance_matrix'), key_suffix="pm")
-            create_card("Top 5 Projetos Mais Longos", "⏳", dataframe=tables.get('outlier_duration'), key_suffix="od")
+            create_card("Matriz de Performance (Custo vs Prazo)", "🎯", chart_bytes=plots.get('performance_matrix'))
+            create_card("Top 5 Projetos Mais Longos", "⏳", dataframe=tables.get('outlier_duration'))
         with c2:
-            create_card("Distribuição da Duração dos Projetos", "📊", chart_bytes=plots.get('case_durations_boxplot'), key_suffix="cdb")
-            create_card("Top 5 Projetos Mais Caros", "💰", dataframe=tables.get('outlier_cost'), key_suffix="oc")
+            create_card("Distribuição da Duração dos Projetos", "📊", chart_bytes=plots.get('case_durations_boxplot'))
+            create_card("Top 5 Projetos Mais Caros", "💰", dataframe=tables.get('outlier_cost'))
+            
     elif st.session_state.current_section == "performance":
         c1, c2 = st.columns(2)
         with c1:
-            create_card("Estatísticas de Lead Time e Throughput", "📈", dataframe=tables.get('perf_stats'), key_suffix="ps")
-            create_card("Distribuição do Lead Time", "⏱️", chart_bytes=plots.get('lead_time_hist'), key_suffix="lth")
+            create_card("Estatísticas de Lead Time e Throughput", "📈", dataframe=tables.get('perf_stats'))
+            create_card("Distribuição do Lead Time", "⏱️", chart_bytes=plots.get('lead_time_hist'))
         with c2:
-            create_card("Distribuição do Throughput (horas)", "🚀", chart_bytes=plots.get('throughput_hist'), key_suffix="th")
-            create_card("Boxplot do Throughput (horas)", "📦", chart_bytes=plots.get('throughput_boxplot'), key_suffix="tb")
+            create_card("Distribuição do Throughput (horas)", "🚀", chart_bytes=plots.get('throughput_hist'))
+            create_card("Boxplot do Throughput (horas)", "📦", chart_bytes=plots.get('throughput_boxplot'))
+            
     elif st.session_state.current_section == "activities":
         c1, c2 = st.columns(2)
         with c1:
-            create_card("Tempo Médio de Execução por Atividade", "🛠️", chart_bytes=plots.get('activity_service_times'), key_suffix="ast")
+            create_card("Tempo Médio de Execução por Atividade", "🛠️", chart_bytes=plots.get('activity_service_times'))
+            create_card("Top 10 Handoffs por Custo de Espera", "💸", chart_bytes=plots.get('top_handoffs_cost'))
         with c2:
-            create_card("Top 10 Handoffs por Tempo de Espera", "⏳", chart_bytes=plots.get('top_handoffs'), key_suffix="tht")
-        create_card("Top 10 Handoffs por Custo de Espera", "💸", chart_bytes=plots.get('top_handoffs_cost'), key_suffix="thc")
+            create_card("Top 10 Handoffs por Tempo de Espera", "⏳", chart_bytes=plots.get('top_handoffs'))
+    
     elif st.session_state.current_section == "resources":
         c1, c2 = st.columns(2)
         with c1:
-            create_card("Atividades Mais Frequentes", "⚡", chart_bytes=plots.get('top_activities_plot'), key_suffix="tap")
-            create_card("Recursos por Média de Tarefas/Projeto", "🧑‍💻", chart_bytes=plots.get('resource_avg_events'), key_suffix="rae")
+            create_card("Atividades Mais Frequentes", "⚡", chart_bytes=plots.get('top_activities_plot'))
+            create_card("Recursos por Média de Tarefas/Projeto", "🧑‍💻", chart_bytes=plots.get('resource_avg_events'))
         with c2:
-            create_card("Top 10 Recursos por Horas Trabalhadas", "💪", chart_bytes=plots.get('resource_workload'), key_suffix="rw")
-            create_card("Top 10 Handoffs entre Recursos", "🔄", chart_bytes=plots.get('resource_handoffs'), key_suffix="rh")
-        create_card("Heatmap de Esforço (Recurso vs Atividade)", "🗺️", chart_bytes=plots.get('resource_activity_matrix'), key_suffix="ram")
+            create_card("Top 10 Recursos por Horas Trabalhadas", "💪", chart_bytes=plots.get('resource_workload'))
+            create_card("Top 10 Handoffs entre Recursos", "🔄", chart_bytes=plots.get('resource_handoffs'))
+        # Cartão de largura total
+        c_full, _ = st.columns(2)
+        with c_full:
+            create_card("Heatmap de Esforço (Recurso vs Atividade)", "🗺️", chart_bytes=plots.get('resource_activity_matrix'))
+
     elif st.session_state.current_section == "variants":
-        c1, c2 = st.columns([1.5, 1])
+        c1, c2 = st.columns(2)
         with c1:
-            create_card("Frequência das 10 Principais Variantes", "🎭", chart_bytes=plots.get('variants_frequency'), key_suffix="vf")
+            create_card("Frequência das 10 Principais Variantes", "🎭", chart_bytes=plots.get('variants_frequency'))
         with c2:
-            create_card("Principais Loops de Rework", "🔁", dataframe=tables.get('rework_loops_table'), key_suffix="rlt")
+            create_card("Principais Loops de Rework", "🔁", dataframe=tables.get('rework_loops_table'))
+            
     elif st.session_state.current_section == "advanced":
         kpi_data = tables.get('cost_of_delay_kpis', {})
         kpi_cols = st.columns(3)
         kpi_cols[0].metric(label="Custo Total em Atraso", value=kpi_data.get('Custo Total Projetos Atrasados'))
         kpi_cols[1].metric(label="Atraso Médio", value=kpi_data.get('Atraso Médio (dias)'))
         kpi_cols[2].metric(label="Custo Médio/Dia de Atraso", value=kpi_data.get('Custo Médio/Dia Atraso'))
-        st.markdown("<br>", unsafe_allow_html=True)
+        
         c1, c2 = st.columns(2)
         with c1:
-            create_card("Impacto do Tamanho da Equipa no Atraso", "👨‍👩‍👧‍👦", chart_bytes=plots.get('delay_by_teamsize'), key_suffix="dbt")
-            create_card("Eficiência Semanal (Horas Trabalhadas)", "🗓️", chart_bytes=plots.get('weekly_efficiency'), key_suffix="we")
+            create_card("Impacto do Tamanho da Equipa no Atraso", "👨‍👩‍👧‍👦", chart_bytes=plots.get('delay_by_teamsize'))
+            create_card("Eficiência Semanal (Horas Trabalhadas)", "🗓️", chart_bytes=plots.get('weekly_efficiency'))
         with c2:
-            create_card("Duração Mediana por Tamanho da Equipa", "⏱️", chart_bytes=plots.get('median_duration_by_teamsize'), key_suffix="mdbt")
-            create_card("Top Recursos por Tempo de Espera Gerado", "🛑", chart_bytes=plots.get('bottleneck_by_resource'), key_suffix="bbr")
+            create_card("Duração Mediana por Tamanho da Equipa", "⏱️", chart_bytes=plots.get('median_duration_by_teamsize'))
+            create_card("Top Recursos por Tempo de Espera Gerado", "🛑", chart_bytes=plots.get('bottleneck_by_resource'))
 
 def render_post_mining_dashboard():
     sections = { "discovery": "Descoberta", "performance": "Performance", "resources": "Recursos", "conformance": "Conformidade" }
@@ -682,38 +704,47 @@ def render_post_mining_dashboard():
     for i, (key, name) in enumerate(sections.items()):
         is_active = st.session_state.current_section == key
         with nav_cols[i]:
-            st.markdown(f'<div class="{"active-button" if is_active else ""}">', unsafe_allow_html=True)
+            button_class = "active-button" if is_active else ""
+            st.markdown(f'<div class="{button_class}">', unsafe_allow_html=True)
             if st.button(name, key=f"nav_post_{key}", use_container_width=True):
                 st.session_state.current_section = key
                 st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
+    st.markdown("<br>", unsafe_allow_html=True)
     plots = st.session_state.plots_post_mining
+    
     if st.session_state.current_section == "discovery":
         c1, c2 = st.columns(2)
         with c1:
-            create_card("Modelo - Inductive Miner", "🧭", chart_bytes=plots.get('model_inductive_petrinet'), key_suffix="mip")
-            create_card("Métricas (Inductive Miner)", "📊", chart_bytes=plots.get('metrics_inductive'), key_suffix="mi")
+            create_card("Modelo - Inductive Miner", "🧭", chart_bytes=plots.get('model_inductive_petrinet'))
+            create_card("Métricas (Inductive Miner)", "📊", chart_bytes=plots.get('metrics_inductive'))
         with c2:
-            create_card("Modelo - Heuristics Miner", "🛠️", chart_bytes=plots.get('model_heuristic_petrinet'), key_suffix="mhp")
-            create_card("Métricas (Heuristics Miner)", "📈", chart_bytes=plots.get('metrics_heuristic'), key_suffix="mh")
+            create_card("Modelo - Heuristics Miner", "🛠️", chart_bytes=plots.get('model_heuristic_petrinet'))
+            create_card("Métricas (Heuristics Miner)", "📈", chart_bytes=plots.get('metrics_heuristic'))
+            
     elif st.session_state.current_section == "performance":
-        create_card("Heatmap de Performance no Processo", "🔥", chart_bytes=plots.get('performance_heatmap'), key_suffix="ph")
+        c1, c2 = st.columns(2)
+        with c1:
+            create_card("Heatmap de Performance no Processo", "🔥", chart_bytes=plots.get('performance_heatmap'))
         if 'gantt_chart_all_projects' in plots:
-             create_card("Linha do Tempo de Todos os Projetos (Gantt Chart)", "📊", chart_bytes=plots.get('gantt_chart_all_projects'), key_suffix="gantt")
+             # Este gráfico é muito largo, por isso fica sozinho
+             create_card("Linha do Tempo de Todos os Projetos (Gantt Chart)", "📊", chart_bytes=plots.get('gantt_chart_all_projects'))
+             
     elif st.session_state.current_section == "resources":
         c1, c2 = st.columns(2)
         with c1:
-            create_card("Rede Social de Recursos (Handovers)", "🌐", chart_bytes=plots.get('resource_network_adv'), key_suffix="rna")
+            create_card("Rede Social de Recursos (Handovers)", "🌐", chart_bytes=plots.get('resource_network_adv'))
         with c2:
             if 'skill_vs_performance_adv' in plots:
-                create_card("Relação entre Skill e Performance", "🎓", chart_bytes=plots.get('skill_vs_performance_adv'), key_suffix="svpa")
+                create_card("Relação entre Skill e Performance", "🎓", chart_bytes=plots.get('skill_vs_performance_adv'))
+                
     elif st.session_state.current_section == "conformance":
         c1, c2 = st.columns(2)
         with c1:
-            create_card("Duração Média das Variantes Mais Comuns", "⏳", chart_bytes=plots.get('variant_duration_plot'), key_suffix="vdp")
+            create_card("Duração Média das Variantes Mais Comuns", "⏳", chart_bytes=plots.get('variant_duration_plot'))
         with c2:
-            create_card("Dispersão: Fitness vs. Desvios", "📉", chart_bytes=plots.get('deviation_scatter_plot'), key_suffix="dsp")
+            create_card("Dispersão: Fitness vs. Desvios", "📉", chart_bytes=plots.get('deviation_scatter_plot'))
 
 
 # --- CONTROLO PRINCIPAL DA APLICAÇÃO ---
@@ -722,10 +753,7 @@ def main():
         st.markdown("""
             <style>
                 [data-testid="stAppViewContainer"] > .main {
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: center;
-                    align-items: center;
+                    display: flex; flex-direction: column; justify-content: center; align-items: center;
                 }
             </style>
             """, unsafe_allow_html=True)
