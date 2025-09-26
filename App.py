@@ -45,100 +45,26 @@ st.set_page_config(page_title="Painel de Análise de Processos de IT", page_icon
 
 # CSS
 st.markdown("""
+
 <style>
-  :root{
-    --bg:#0B1220; --panel:#111827; --text:#FFFFFF; --accent:#3B82F6; --accent-2:#60A5FA;
-    --border:#1f2a37; --card:#FFFFFF; --card-text:#0F172A; --muted:#93A4BF;
-  }
-  html, body, .stApp{ background-color:var(--bg)!important; color:var(--text)!important;
-    font-family:'Inter', -apple-system, BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,'Helvetica Neue',Arial,sans-serif; }
-  .main .block-container{ padding:2rem 2.5rem; }
-  h1,h2,h3,h4,h5,h6{ color:var(--text); font-weight:800; }
-  h2{ border-bottom:2px solid var(--accent); padding-bottom:8px; margin-bottom:16px; }
-
-  /* Sidebar */
-  [data-testid="stSidebar"]{ background:linear-gradient(180deg,#0F172A 0%,#0B1220 100%)!important; border-right:1px solid var(--border); }
-  [data-testid="stSidebar"] *{ color:#FFFFFF!important; font-weight:800; }
-  .sidebar-header{ font-size:1.2rem; letter-spacing:0.2px; margin-bottom:8px; }
-  .sidebar-note{ color:#FFFFFF!important; opacity:1; font-size:0.95rem; font-weight:800; }
-
-  /* Inputs / Uploaders */
-  .stTextInput>div>div>input, .stSelectbox, .stTextArea textarea{
-    color:#FFFFFF!important; background-color:var(--panel)!important; border:1px solid var(--border)!important; font-weight:800;
-  }
-  .stFileUploader{
-    background-color:var(--panel)!important; border:1px solid var(--border)!important; border-radius:10px; padding:10px;
-  }
-  .stFileUploader label{ color:#FFFFFF!important; font-weight:800; }
-  section[data-testid="stFileUploadDropzone"] div[data-testid="stMarkdownContainer"] p{ color:#FFFFFF!important; font-weight:800; }
-
-  /* Mensagens: evitar warnings visuais no dashboard */
-  [data-testid="stWarning"]{ display:none!important; }
-  [data-testid="stSuccess"]{ background-color:rgba(22,163,74,0.18)!important; border:1px solid rgba(22,163,74,0.5)!important; }
-  [data-testid="stInfo"]{ background-color:rgba(59,130,246,0.18)!important; border:1px solid rgba(59,130,246,0.5)!important; }
-
-  /* Card branco com texto escuro para legibilidade */
-  .card{
-    background-color:var(--card)!important; color:var(--card-text)!important;
-    border:1px solid #e5e7eb; border-radius:14px; padding:18px 18px; box-shadow:0 6px 18px rgba(0,0,0,0.2); margin-bottom:16px;
-  }
-  .card-header{ display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #e5e7eb;
-    padding-bottom:10px; margin-bottom:14px; }
-  .card-title{ display:inline-flex; align-items:center; gap:10px; font-weight:900; font-size:1.05rem; color:var(--card-text)!important; }
-  .card-actions{ display:inline-flex; align-items:center; gap:8px; }
-
-  /* Dentro do card, forçar textos escuros */
-  .card *{ color:var(--card-text)!important; }
-  .card .stMetric{ color:var(--card-text)!important; }
-  .card .metric-label, .card .metric-value{ color:var(--card-text)!important; }
-
-  /* Botões gerais e de exportação (sempre visíveis) */
-  .stButton>button{
-    background-color:var(--accent)!important; color:#FFFFFF!important; font-weight:900!important;
-    border-radius:10px; border:1px solid rgba(59,130,246,0.5)!important; padding:10px 14px;
-  }
-  [data-testid="stDownloadButton"] button{
-    background-color:var(--accent)!important; color:#FFFFFF!important; font-weight:900!important;
-    border-radius:10px; border:1px solid rgba(59,130,246,0.5)!important; padding:8px 12px;
-  }
-
-  /* Alinhamento e tamanhos consistentes para cartões no dashboard */
-  .dashboard-grid .card{ min-height:380px; }
-  .dashboard-grid .card.kpi{ min-height:150px; }
-  .dashboard-grid .card.tall{ min-height:520px; }
-  .dashboard-grid .card.wide{ min-height:460px; }
-
-  /* Remover “caixas vazias” visuais */
-  .element-container:has(.card) { margin-bottom:0!important; }
-
-/* Overrides injected by Julius */
-
-
-  /* Stronger contrast on dark backgrounds */
-  .stApp, body { color: #FFFFFF !important; }
-  h1, h2, h3, h4, h5, h6 { color: #FFFFFF !important; }
-
-  /* Card base and equal height layout */
-  .card { background: #FFFFFF; color: #0F172A; border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; }
+  /* Layout grid and equal heights */
+  .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; align-items: stretch; }
+  .card { background: #FFFFFF; color: #0F172A; border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; height: 100%; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
   .card .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
   .card .card-title { font-weight: 700; color: #0F172A; }
   .card .card-body { flex: 1; }
+  .card.kpi, .stMetric { background: #FFFFFF !important; color: #0F172A !important; border-radius: 12px; border: 1px solid #e5e7eb; padding: 10px; }
 
-  /* KPI cards should be white too */
-  .card.kpi { background: #FFFFFF; color: #0F172A; }
+  /* Buttons in headers */
+  .card .stDownloadButton, .card [data-testid="stDownloadButton"] { margin-left: 8px; }
 
-  /* Dashboard grid for uniform sizing and alignment */
-  .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; align-items: stretch; }
-
-  /* Make Streamlit file uploader readable */
-  [data-testid="stFileUploader"] * { color: #0F172A !important; }
+  /* Improve contrast on dark sections without forcing all text white */
+  .stApp [data-theme="dark"] &, body.dark, .dark .stApp { color: #E5E7EB; }
+  .stApp input, .stApp textarea, .stApp select { color: #0F172A; background: #FFFFFF; }
   [data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"] { background: #FFFFFF !important; border: 1px dashed #cbd5e1 !important; }
   [data-testid="stFileUploader"] button { background: #111827 !important; color: #FFFFFF !important; border-color: #111827 !important; }
-
-  /* Buttons inside headers */
-  .card .stDownloadButton { margin-left: 8px; }
-
 </style>
+
 """, unsafe_allow_html=True)
 
 # Helpers
