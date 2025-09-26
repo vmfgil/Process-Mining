@@ -670,58 +670,12 @@ def card_header(title: str, icon: str = "📊", png_bytes: io.BytesIO = None, cs
     with c_exp[1]:
       st.download_button("📥 CSV", data=to_csv_bytes(csv_df), file_name=csv_filename, mime="text/csv", key=f"dl_csv_{card_key or title}_{uuid.uuid4()}")
 
-def card(
-    title: str,
-    icon: str = "📊",
-    body_fn=None,
-    png_bytes: io.BytesIO = None,
-    csv_df: pd.DataFrame = None,
-    png_filename: str = "grafico.png",
-    csv_filename: str = "tabela.csv",
-    card_key: str = None,
-    extra_class: str = ""
-):
-    # Se não houver nada para mostrar, não renderiza o card
-    if body_fn is None and png_bytes is None and csv_df is None:
-        return
-
-    st.markdown(f'<div class="card {extra_class}">', unsafe_allow_html=True)
-
-    # Header do cartão (título + botões de exportação)
-    st.markdown(f"""
-    <div class="card-header">
-      <div class="card-title">{icon} {title}</div>
-      <div class="card-actions"></div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Botões de exportação (se existirem)
-    cols = st.columns(2)
-    if png_bytes is not None:
-        with cols[0]:
-            st.download_button(
-                "📥 PNG",
-                data=png_bytes,
-                file_name=png_filename,
-                mime="image/png",
-                key=f"dl_png_{card_key or title}_{uuid.uuid4()}"
-            )
-    if csv_df is not None:
-        with cols[1]:
-            st.download_button(
-                "📥 CSV",
-                data=to_csv_bytes(csv_df),
-                file_name=csv_filename,
-                mime="text/csv",
-                key=f"dl_csv_{card_key or title}_{uuid.uuid4()}"
-            )
-
-    # Corpo do cartão
-    if body_fn is not None:
-        body_fn()
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
+def card(title: str, icon: str = "📊", body_fn=None, png_bytes: io.BytesIO = None, csv_df: pd.DataFrame = None, png_filename: str = "grafico.png", csv_filename: str = "tabela.csv", card_key: str = None, extra_class: str = ""):
+  st.markdown(f'<div class="card {extra_class}">', unsafe_allow_html=True)
+  card_header(title, icon, png_bytes, csv_df, png_filename, csv_filename, card_key=card_key or str(uuid.uuid4()))
+  if body_fn is not None:
+    body_fn()
+  st.markdown('</div>', unsafe_allow_html=True)
 
 # Login
 def render_login():
