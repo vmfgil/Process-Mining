@@ -662,13 +662,16 @@ def card_header(title: str, icon: str = "📊", png_bytes: io.BytesIO = None, cs
     <div class="card-actions"></div>
   </div>
   """, unsafe_allow_html=True)
-  c_exp = st.columns([1, 1])
-  if png_bytes is not None:
-    with c_exp[0]:
-      st.download_button("📥 PNG", data=png_bytes, file_name=png_filename, mime="image/png", key=f"dl_png_{card_key or title}_{uuid.uuid4()}")
-  if csv_df is not None:
-    with c_exp[1]:
-      st.download_button("📥 CSV", data=to_csv_bytes(csv_df), file_name=csv_filename, mime="text/csv", key=f"dl_csv_{card_key or title}_{uuid.uuid4()}")
+
+  # SÓ CRIAR COLUNAS SE HOUVER ALGO PARA DESCARREGAR
+  if png_bytes is not None or csv_df is not None:
+    c_exp = st.columns([1, 1]) 
+    if png_bytes is not None:
+      with c_exp[0]:
+        st.download_button("📥 PNG", data=png_bytes, file_name=png_filename, mime="image/png", key=f"dl_png_{card_key or title}_{uuid.uuid4()}")
+    if csv_df is not None:
+      with c_exp[1]:
+        st.download_button("📥 CSV", data=to_csv_bytes(csv_df), file_name=csv_filename, mime="text/csv", key=f"dl_csv_{card_key or title}_{uuid.uuid4()}")
 
 def card(title: str, icon: str = "📊", body_fn=None, png_bytes: io.BytesIO = None, csv_df: pd.DataFrame = None, png_filename: str = "grafico.png", csv_filename: str = "tabela.csv", card_key: str = None, extra_class: str = ""):
   st.markdown(f'<div class="card {extra_class}">', unsafe_allow_html=True)
