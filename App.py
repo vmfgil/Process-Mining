@@ -7,6 +7,7 @@ import seaborn as sns
 import networkx as nx
 from collections import Counter
 import io
+import uuid
 
 # Imports específicos de Process Mining (PM4PY)
 import pm4py
@@ -34,7 +35,6 @@ st.set_page_config(
 # --- DARK MODE & BRAND CSS ---
 st.markdown("""
 <style>
-    /* Dark mode base */
     :root {
       --bg: #0B1220;
       --panel: #111827;
@@ -48,49 +48,27 @@ st.markdown("""
       --success: #16a34a;
       --warning: #f59e0b;
     }
-
     html, body, .stApp {
       background-color: var(--bg) !important;
       color: var(--text) !important;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, 'Helvetica Neue', Arial, sans-serif;
     }
-
-    /* Sidebar */
     [data-testid="stSidebar"] {
       background: linear-gradient(180deg, #0F172A 0%, #0B1220 100%) !important;
       border-right: 1px solid var(--border);
     }
-    [data-testid="stSidebar"] * {
-      color: var(--text) !important;
-    }
-    .sidebar-header {
-      font-weight: 700; font-size: 1.2rem; letter-spacing: 0.3px; margin-bottom: 8px;
-    }
-    .sidebar-note {
-      color: #cbd5e1; font-size: 0.9rem; margin-top: -4px;
-    }
+    [data-testid="stSidebar"] * { color: var(--text) !important; }
+    .sidebar-header { font-weight: 700; font-size: 1.2rem; letter-spacing: 0.3px; margin-bottom: 8px; }
+    .sidebar-note { color: #cbd5e1; font-size: 0.9rem; margin-top: -4px; }
     .sidebar-menu a, .sidebar-menu button {
-      width: 100%;
-      text-align: left;
-      padding: 10px 12px;
-      border-radius: 10px;
-      color: var(--text);
-      border: 1px solid transparent;
-      background-color: transparent;
-      transition: all .2s ease;
-      font-weight: 600;
-      font-size: 0.98rem;
+      width: 100%; text-align: left; padding: 10px 12px; border-radius: 10px; color: var(--text);
+      border: 1px solid transparent; background-color: transparent; transition: all .2s ease; font-weight: 600; font-size: 0.98rem;
     }
     .sidebar-menu a:hover, .sidebar-menu button:hover {
-      background-color: rgba(59,130,246,0.12);
-      border-color: rgba(59,130,246,0.25);
-      color: var(--accent-2);
-      cursor: pointer;
+      background-color: rgba(59,130,246,0.12); border-color: rgba(59,130,246,0.25); color: var(--accent-2); cursor: pointer;
     }
     .sidebar-menu .active {
-      background-color: rgba(59,130,246,0.18);
-      border-color: rgba(59,130,246,0.35);
-      color: var(--accent);
+      background-color: rgba(59,130,246,0.18); border-color: rgba(59,130,246,0.35); color: var(--accent);
     }
     .user-pill {
       display: inline-flex; align-items: center; gap: 8px;
@@ -98,15 +76,9 @@ st.markdown("""
       border: 1px solid rgba(59,130,246,0.3);
       padding: 8px 12px; border-radius: 999px; font-weight: 600;
     }
-
-    /* Main container padding */
     .main .block-container { padding: 2rem 2.5rem; }
-
-    /* Headers */
     h1, h2, h3, h4, h5, h6 { color: var(--text); }
     h2 { border-bottom: 2px solid var(--accent); padding-bottom: 8px; margin-bottom: 16px; }
-
-    /* Card component */
     .card {
       background-color: var(--card);
       border: 1px solid var(--border);
@@ -114,6 +86,7 @@ st.markdown("""
       padding: 18px 18px;
       box-shadow: 0 8px 22px rgba(0,0,0,0.25);
       transition: transform .15s ease, background .2s ease;
+      margin-bottom: 16px;
     }
     .card:hover { background-color: var(--card-hover); transform: translateY(-1px); }
     .card-header {
@@ -124,31 +97,17 @@ st.markdown("""
       display: inline-flex; align-items: center; gap: 10px;
       font-weight: 700; font-size: 1.05rem; letter-spacing: 0.2px; color: var(--text);
     }
-    .card-actions {
-      display: inline-flex; align-items: center; gap: 8px;
-    }
-    .card-actions .dots {
-      border: 1px solid var(--border); background-color: transparent;
-      color: var(--muted); border-radius: 8px; padding: 6px 10px; font-weight: 700;
-    }
-    .card-actions .dots:hover { border-color: var(--accent); color: var(--accent); }
-
-    /* Buttons */
+    .card-actions { display: inline-flex; align-items: center; gap: 8px; }
     .stButton>button {
       background-color: var(--accent) !important; color: var(--text) !important;
       border-radius: 10px; border: 1px solid rgba(59,130,246,0.3);
       padding: 10px 14px; font-weight: 700; box-shadow: 0 4px 10px rgba(59,130,246,0.25);
     }
-
-    /* Inputs */
     .stTextInput>div>div>input, .stFileUploader, .stSelectbox, .stTextArea textarea {
-      color: var(--text) !important; background-color: var(--panel) !important;
-      border: 1px solid var(--border) !important;
+      color: var(--text) !important; background-color: var(--panel) !important; border: 1px solid var(--border) !important;
     }
     .stFileUploader label { color: var(--text) !important; }
     section[data-testid="stFileUploadDropzone"] div[data-testid="stMarkdownContainer"] p { color: var(--text) !important; }
-
-    /* Messages */
     [data-testid="stSuccess"] { background-color: rgba(22, 163, 74, 0.12); border: 1px solid rgba(22, 163, 74, 0.4); }
     [data-testid="stWarning"] { background-color: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.4); }
     [data-testid="stInfo"]    { background-color: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.4); }
@@ -183,9 +142,9 @@ if 'metrics' not in st.session_state: st.session_state.metrics = {}
 # Auth & navigation
 if 'is_auth' not in st.session_state: st.session_state.is_auth = False
 if 'user_name' not in st.session_state: st.session_state.user_name = ""
-if 'view' not in st.session_state: st.session_state.view = "dashboard_pre"
+if 'view' not in st.session_state: st.session_state.view = "config"
 
-# --- FUNÇÕES DE ANÁLISE (mantidas) ---
+# --- FUNÇÕES DE ANÁLISE (VERSÃO COMPLETA E VALIDADA) ---
 @st.cache_data
 def run_pre_mining_analysis(dfs):
     plots = {}
@@ -247,7 +206,7 @@ def run_pre_mining_analysis(dfs):
         return deltas.mean().total_seconds() if not deltas.empty else 0
     throughput_per_case = log_df_final.groupby("case:concept:name").apply(compute_avg_throughput).reset_index(name="avg_throughput_seconds")
     throughput_per_case["avg_throughput_hours"] = throughput_per_case["avg_throughput_seconds"] / 3600
-    perf_df = pd.merge(lead_times, throughput_per_case, on="case:concept:name")
+    perf_df = pd.merge(lead_times, throughput_per_case, on("case:concept:name"))
     tables['perf_stats'] = perf_df[["lead_time_days", "avg_throughput_hours"]].describe()
     fig, ax = plt.subplots(figsize=(8, 4)); sns.histplot(perf_df["lead_time_days"], bins=20, kde=True, ax=ax, color="#60A5FA"); ax.set_title("Distribuição do Lead Time (dias)", color='white')
     plots['lead_time_hist'] = convert_fig_to_bytes(fig)
@@ -515,48 +474,24 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
     return plots, metrics
 
 # --- 2. COMPONENTE DE CARTÃO: HEADER + EXPORTAÇÕES ---
-def card_header(title: str, icon: str = "📊", png_bytes: io.BytesIO = None,
-                csv_df: pd.DataFrame = None, png_filename: str = "grafico.png",
-                csv_filename: str = "tabela.csv"):
+def card_header(title: str, icon: str = "📊", png_bytes: io.BytesIO = None, csv_df: pd.DataFrame = None, png_filename: str = "grafico.png", csv_filename: str = "tabela.csv", card_key: str = None):
     st.markdown(f"""
     <div class="card-header">
       <div class="card-title">{icon} {title}</div>
       <div class="card-actions"></div>
     </div>
     """, unsafe_allow_html=True)
-
-    c_exp = st.columns([1, 1, 0.2])
+    c_exp = st.columns([1, 1])
     if png_bytes is not None:
         with c_exp[0]:
-            st.download_button("⬇️ Exportar PNG", data=png_bytes,
-                               file_name=png_filename, mime="image/png")
+            st.download_button("⬇️ Exportar PNG", data=png_bytes, file_name=png_filename, mime="image/png", key=f"dl_png_{card_key or title}_{uuid.uuid4()}")
     if csv_df is not None:
         with c_exp[1]:
-            st.download_button("⬇️ Exportar CSV", data=to_csv_bytes(csv_df),
-                               file_name=csv_filename, mime="text/csv")
-    with c_exp[2]:
-        st.button("⋯", help="Mais opções", key=f"more_options_{title}")
+            st.download_button("⬇️ Exportar CSV", data=to_csv_bytes(csv_df), file_name=csv_filename, mime="text/csv", key=f"dl_csv_{card_key or title}_{uuid.uuid4()}")
 
-    # Actions row
-    c_exp = st.columns([1, 1, 0.2])
-    if png_bytes is not None:
-        with c_exp[0]:
-            st.download_button("⬇️ Exportar PNG", data=png_bytes, file_name=png_filename, mime="image/png", help="Descarregar o gráfico como imagem")
-    if csv_df is not None:
-        with c_exp[1]:
-            st.download_button("⬇️ Exportar CSV", data=to_csv_bytes(csv_df), file_name=csv_filename, mime="text/csv", help="Descarregar a tabela como CSV")
-    with c_exp[2]:
-        st.button("⋯", help="Mais opções")
-
-def card(title: str, icon: str = "📊", body_fn=None, png_bytes: io.BytesIO = None, csv_df: pd.DataFrame = None, png_filename: str = "grafico.png", csv_filename: str = "tabela.csv"):
-    """
-    Generic card wrapper:
-    - Draws card container
-    - Adds header (title + icon + exports)
-    - Renders body via body_fn()
-    """
+def card(title: str, icon: str = "📊", body_fn=None, png_bytes: io.BytesIO = None, csv_df: pd.DataFrame = None, png_filename: str = "grafico.png", csv_filename: str = "tabela.csv", card_key: str = None):
     st.markdown('<div class="card">', unsafe_allow_html=True)
-    card_header(title, icon, png_bytes, csv_df, png_filename, csv_filename)
+    card_header(title, icon, png_bytes, csv_df, png_filename, csv_filename, card_key=card_key or str(uuid.uuid4()))
     if body_fn is not None:
         body_fn()
     st.markdown('</div>', unsafe_allow_html=True)
@@ -564,16 +499,14 @@ def card(title: str, icon: str = "📊", body_fn=None, png_bytes: io.BytesIO = N
 # --- 3. LOGIN SCREEN ---
 def render_login():
     st.markdown("<h2>🔐 Iniciar Sessão</h2>", unsafe_allow_html=True)
-    # Central login box
     col_center = st.columns([1, 2, 1])[1]
     with col_center:
         st.markdown('<div class="card">', unsafe_allow_html=True)
         st.markdown('<div class="card-header"><div class="card-title">👋 Bem-vindo</div></div>', unsafe_allow_html=True)
-        username = st.text_input("Utilizador", placeholder="ex: vasco")
-        password = st.text_input("Palavra-passe", type="password", placeholder="••••••••")
-        login_btn = st.button("Entrar")
+        username = st.text_input("Utilizador", placeholder="ex: vasco", key="login_user")
+        password = st.text_input("Palavra-passe", type="password", placeholder="••••••••", key="login_pwd")
+        login_btn = st.button("Entrar", key="login_enter")
         if login_btn:
-            # Simple fixed auth
             if username.strip() == "vasco" and password == "1234":
                 st.session_state.is_auth = True
                 st.session_state.user_name = username.strip().title()
@@ -588,38 +521,28 @@ def render_sidebar():
     st.sidebar.markdown('<div class="sidebar-header">Painel de Análise de Processos</div>', unsafe_allow_html=True)
     st.sidebar.markdown('<p class="sidebar-note">Navegue pelas vistas do dashboard.</p>', unsafe_allow_html=True)
 
-    # User pill
     if st.session_state.is_auth:
         st.sidebar.markdown(f'<span class="user-pill">👤 {st.session_state.user_name}</span>', unsafe_allow_html=True)
 
     st.sidebar.markdown('<div class="sidebar-menu">', unsafe_allow_html=True)
 
-    # Dashboard Geral with submenu
-    dash_pre_active = "active" if st.session_state.view == "dashboard_pre" else ""
-    dash_post_active = "active" if st.session_state.view == "dashboard_post" else ""
-    cfg_active = "active" if st.session_state.view == "config" else ""
-
-    # Pre-mineração
-    if st.sidebar.button(f"🏠 Dashboard Geral — Pré-mineração", key="nav_dashboard_pre"):
+    if st.sidebar.button("🏠 Dashboard Geral — Pré-mineração", key="nav_dashboard_pre"):
         st.session_state.view = "dashboard_pre"; st.rerun()
-    st.sidebar.markdown(f'<small class="{dash_pre_active}" style="color:#cbd5e1;">• KPIs e visões antes da mineração</small>', unsafe_allow_html=True)
+    st.sidebar.markdown(f'<small style="color:#cbd5e1;">• KPIs e visões antes da mineração</small>', unsafe_allow_html=True)
 
-    # Pós-mineração
-    if st.sidebar.button(f"🏠 Dashboard Geral — Pós-mineração", key="nav_dashboard_post"):
+    if st.sidebar.button("🏠 Dashboard Geral — Pós-mineração", key="nav_dashboard_post"):
         st.session_state.view = "dashboard_post"; st.rerun()
-    st.sidebar.markdown(f'<small class="{dash_post_active}" style="color:#cbd5e1;">• Modelos, conformidade e variantes</small>', unsafe_allow_html=True)
+    st.sidebar.markdown(f'<small style="color:#cbd5e1;">• Modelos, conformidade e variantes</small>', unsafe_allow_html=True)
 
-    # Configurações / Upload
-    if st.sidebar.button(f"⚙️ Configurações — Upload de dados", key="nav_config"):
+    if st.sidebar.button("⚙️ Configurações — Upload de dados", key="nav_config"):
         st.session_state.view = "config"; st.rerun()
 
-    # Logout
     st.sidebar.markdown("</div>", unsafe_allow_html=True)
     st.sidebar.divider()
-    if st.sidebar.button("🚪 Sair"):
+    if st.sidebar.button("🚪 Sair", key="nav_logout"):
         st.session_state.is_auth = False
         st.session_state.user_name = ""
-        st.session_state.view = "dashboard_pre"
+        st.session_state.view = "config"
         st.session_state.analysis_run = False
         st.session_state.plots_pre_mining = {}
         st.session_state.plots_post_mining = {}
@@ -637,12 +560,12 @@ def render_config():
     cols = st.columns(2)
     with cols[0]:
         for name in file_names[:3]:
-            def body():
+            def body(name=name):
                 uploaded_file = st.file_uploader(f"Carregar `{name}.csv`", type="csv", key=f"upload_{name}")
                 if uploaded_file:
                     st.session_state.dfs[name] = pd.read_csv(uploaded_file)
-                    st.success(f"`{name}.csv` carregado.")
-            card(f"📁 Upload — {name}.csv", "📁", body_fn=body)
+                    st.success(f"`{name}.csv` carregado.", icon="✅")
+            card(f"📁 Upload — {name}.csv", "📁", body_fn=body, card_key=f"upload_card_{name}")
 
     with cols[1]:
         for name in file_names[3:]:
@@ -650,10 +573,9 @@ def render_config():
                 uploaded_file = st.file_uploader(f"Carregar `{name}.csv`", type="csv", key=f"upload_{name}")
                 if uploaded_file:
                     st.session_state.dfs[name] = pd.read_csv(uploaded_file)
-                    st.success(f"`{name}.csv` carregado.")
-            card(f"📁 Upload — {name}.csv", "📁", body_fn=body)
+                    st.success(f"`{name}.csv` carregado.", icon="✅")
+            card(f"📁 Upload — {name}.csv", "📁", body_fn=body, card_key=f"upload_card_{name}")
 
-    # Preview card row
     if all(st.session_state.dfs[name] is not None for name in file_names):
         def body_preview():
             cols_prev = st.columns(2)
@@ -663,17 +585,16 @@ def render_config():
                 with cols_prev[0]:
                     st.markdown(f"**{name}.csv — primeiras 5 linhas**")
                     st.dataframe(df.head())
-                    st.download_button("⬇️ Exportar CSV", data=to_csv_bytes(df), file_name=f"{name}_preview.csv", mime="text/csv")
+                    st.download_button("⬇️ Exportar CSV", data=to_csv_bytes(df), file_name=f"{name}_preview.csv", mime="text/csv", key=f"dl_prev_left_{name}")
             for i, (name, df) in enumerate(items[half:]):
                 with cols_prev[1]:
                     st.markdown(f"**{name}.csv — primeiras 5 linhas**")
                     st.dataframe(df.head())
-                    st.download_button("⬇️ Exportar CSV", data=to_csv_bytes(df), file_name=f"{name}_preview.csv", mime="text/csv")
-        card("🗂️ Pré-visualização dos dados carregados", "🗂️", body_fn=body_preview)
+                    st.download_button("⬇️ Exportar CSV", data=to_csv_bytes(df), file_name=f"{name}_preview.csv", mime="text/csv", key=f"dl_prev_right_{name}")
+        card("🗂️ Pré-visualização dos dados carregados", "🗂️", body_fn=body_preview, card_key="preview_card")
 
-        # Run analysis card
         def body_run():
-            if st.button("🚀 Iniciar Análise Completa"):
+            if st.button("🚀 Iniciar Análise Completa", key="run_analysis_btn"):
                 with st.spinner("A analisar dados..."):
                     plots_pre, tables_pre, event_log, df_p, df_t, df_r, df_fc = run_pre_mining_analysis(st.session_state.dfs)
                     st.session_state.plots_pre_mining = plots_pre
@@ -687,7 +608,7 @@ def render_config():
                     st.session_state.metrics = metrics
                 st.session_state.analysis_run = True
                 st.success("✅ Análise concluída.")
-        card("🚀 Executar análise", "🚀", body_fn=body_run)
+        card("🚀 Executar análise", "🚀", body_fn=body_run, card_key="run_card")
 
 def render_dashboard_pre():
     st.markdown("<h2>🏠 Dashboard Geral — Pré-mineração</h2>", unsafe_allow_html=True)
@@ -696,175 +617,165 @@ def render_dashboard_pre():
         return
 
     kpis = st.session_state.tables_pre_mining['kpi_data']
-    # KPIs row (3-4 cards)
     c = st.columns(4)
-    def kpi_card(label, value, help=None, icon="📈"):
+    def kpi_card(label, value, help=None, icon="📈", key_suffix=""):
         def body():
             st.metric(label=label, value=value, help=help)
-        card(f"{label}", icon, body_fn=body)
-    with c[0]: kpi_card("Total de Projetos", kpis['Total de Projetos'])
-    with c[1]: kpi_card("Total de Tarefas", kpis['Total de Tarefas'])
-    with c[2]: kpi_card("Total de Recursos", kpis['Total de Recursos'])
-    with c[3]: kpi_card("Duração Média (dias)", kpis['Duração Média (dias)'], help="em dias")
+        card(f"{label}", icon, body_fn=body, card_key=f"kpi_{key_suffix}")
+    with c[0]: kpi_card("Total de Projetos", kpis['Total de Projetos'], key_suffix="total_projects")
+    with c[1]: kpi_card("Total de Tarefas", kpis['Total de Tarefas'], key_suffix="total_tasks")
+    with c[2]: kpi_card("Total de Recursos", kpis['Total de Recursos'], key_suffix="total_resources")
+    with c[3]: kpi_card("Duração Média (dias)", kpis['Duração Média (dias)'], help="em dias", key_suffix="avg_duration")
 
-    # Two big charts
     row = st.columns(2)
     with row[0]:
         img = st.session_state.plots_pre_mining['performance_matrix']
         def body(): st.image(img, use_column_width=True)
-        card("Performance de Custo vs. Prazo", "💹", body_fn=body, png_bytes=img, png_filename="performance_matrix.png")
+        card("Performance de Custo vs. Prazo", "💹", body_fn=body, png_bytes=img, png_filename="performance_matrix.png", card_key="perf_cost_time")
     with row[1]:
         img = st.session_state.plots_pre_mining['case_durations_boxplot']
         def body(): st.image(img, use_column_width=True)
-        card("Distribuição da Duração dos Projetos", "⏱️", body_fn=body, png_bytes=img, png_filename="case_durations_boxplot.png")
+        card("Distribuição da Duração dos Projetos", "⏱️", body_fn=body, png_bytes=img, png_filename="case_durations_boxplot.png", card_key="duration_dist")
 
-    # Tables wide
     row2 = st.columns(2)
     with row2[0]:
         df = st.session_state.tables_pre_mining['outlier_duration']
         def body(): st.dataframe(df, use_container_width=True)
-        card("Top 5 Projetos Mais Longos", "🧭", body_fn=body, csv_df=df, csv_filename="outlier_duration.csv")
+        card("Top 5 Projetos Mais Longos", "🧭", body_fn=body, csv_df=df, csv_filename="outlier_duration.csv", card_key="outlier_long")
     with row2[1]:
         df = st.session_state.tables_pre_mining['outlier_cost']
         def body(): st.dataframe(df, use_container_width=True)
-        card("Top 5 Projetos Mais Caros", "💰", body_fn=body, csv_df=df, csv_filename="outlier_cost.csv")
+        card("Top 5 Projetos Mais Caros", "💰", body_fn=body, csv_df=df, csv_filename="outlier_cost.csv", card_key="outlier_cost")
 
-    # Performance details row
     row3 = st.columns(2)
     with row3[0]:
         img = st.session_state.plots_pre_mining['lead_time_hist']
         def body(): st.image(img, use_column_width=True)
-        card("Distribuição do Lead Time", "📐", body_fn=body, png_bytes=img, png_filename="lead_time_hist.png")
+        card("Distribuição do Lead Time", "📐", body_fn=body, png_bytes=img, png_filename="lead_time_hist.png", card_key="lead_time_hist")
     with row3[1]:
         img = st.session_state.plots_pre_mining['throughput_hist']
         def body(): st.image(img, use_column_width=True)
-        card("Distribuição do Throughput", "📊", body_fn=body, png_bytes=img, png_filename="throughput_hist.png")
+        card("Distribuição do Throughput", "📊", body_fn=body, png_bytes=img, png_filename="throughput_hist.png", card_key="throughput_hist")
 
     row4 = st.columns(2)
     with row4[0]:
         img = st.session_state.plots_pre_mining['throughput_boxplot']
         def body(): st.image(img, use_column_width=True)
-        card("Boxplot do Throughput", "🗂️", body_fn=body, png_bytes=img, png_filename="throughput_boxplot.png")
+        card("Boxplot do Throughput", "🗂️", body_fn=body, png_bytes=img, png_filename="throughput_boxplot.png", card_key="throughput_boxplot")
     with row4[1]:
         img = st.session_state.plots_pre_mining['lead_time_vs_throughput']
         def body(): st.image(img, use_column_width=True)
-        card("Lead Time vs Throughput", "🔗", body_fn=body, png_bytes=img, png_filename="lead_time_vs_throughput.png")
+        card("Lead Time vs Throughput", "🔗", body_fn=body, png_bytes=img, png_filename="lead_time_vs_throughput.png", card_key="lead_vs_throughput")
 
-    # Activities & handoffs
     row5 = st.columns(2)
     with row5[0]:
         img = st.session_state.plots_pre_mining['activity_service_times']
         def body(): st.image(img, use_column_width=True)
-        card("Tempo Médio de Execução por Atividade", "🛠️", body_fn=body, png_bytes=img, png_filename="activity_service_times.png")
+        card("Tempo Médio de Execução por Atividade", "🛠️", body_fn=body, png_bytes=img, png_filename="activity_service_times.png", card_key="service_time_activity")
     with row5[1]:
         img = st.session_state.plots_pre_mining['top_handoffs']
         def body(): st.image(img, use_column_width=True)
-        card("Top Handoffs por Tempo de Espera", "🔁", body_fn=body, png_bytes=img, png_filename="top_handoffs.png")
+        card("Top Handoffs por Tempo de Espera", "🔁", body_fn=body, png_bytes=img, png_filename="top_handoffs.png", card_key="handoffs_time")
 
     row6 = st.columns(2)
     with row6[0]:
         img = st.session_state.plots_pre_mining['top_handoffs_cost']
         def body(): st.image(img, use_column_width=True)
-        card("Top Handoffs por Custo de Espera", "💸", body_fn=body, png_bytes=img, png_filename="top_handoffs_cost.png")
+        card("Top Handoffs por Custo de Espera", "💸", body_fn=body, png_bytes=img, png_filename="top_handoffs_cost.png", card_key="handoffs_cost")
     with row6[1]:
         img = st.session_state.plots_pre_mining['top_activities_plot']
         def body(): st.image(img, use_column_width=True)
-        card("Atividades Mais Frequentes", "📚", body_fn=body, png_bytes=img, png_filename="top_activities_plot.png")
+        card("Atividades Mais Frequentes", "📚", body_fn=body, png_bytes=img, png_filename="top_activities_plot.png", card_key="top_activities")
 
-    # Organizational
     row7 = st.columns(2)
     with row7[0]:
         img = st.session_state.plots_pre_mining['resource_workload']
         def body(): st.image(img, use_column_width=True)
-        card("Top Recursos por Horas Trabalhadas", "👥", body_fn=body, png_bytes=img, png_filename="resource_workload.png")
+        card("Top Recursos por Horas Trabalhadas", "👥", body_fn=body, png_bytes=img, png_filename="resource_workload.png", card_key="resource_workload")
     with row7[1]:
         img = st.session_state.plots_pre_mining['resource_avg_events']
         def body(): st.image(img, use_column_width=True)
-        card("Recursos por Média de Tarefas por Projeto", "🧮", body_fn=body, png_bytes=img, png_filename="resource_avg_events.png")
+        card("Recursos por Média de Tarefas por Projeto", "🧮", body_fn=body, png_bytes=img, png_filename="resource_avg_events.png", card_key="resource_avg_events")
 
     row8 = st.columns(2)
     with row8[0]:
         img = st.session_state.plots_pre_mining['resource_handoffs']
         def body(): st.image(img, use_column_width=True)
-        card("Top Handoffs entre Recursos", "🔀", body_fn=body, png_bytes=img, png_filename="resource_handoffs.png")
+        card("Top Handoffs entre Recursos", "🔀", body_fn=body, png_bytes=img, png_filename="resource_handoffs.png", card_key="resource_handoffs")
     with row8[1]:
         img = st.session_state.plots_pre_mining['cost_by_resource_type']
         def body(): st.image(img, use_column_width=True)
-        card("Custo por Tipo de Recurso", "🏷️", body_fn=body, png_bytes=img, png_filename="cost_by_resource_type.png")
+        card("Custo por Tipo de Recurso", "🏷️", body_fn=body, png_bytes=img, png_filename="cost_by_resource_type.png", card_key="cost_by_resource_type")
 
-    # Heatmap wide
     img = st.session_state.plots_pre_mining['resource_activity_matrix']
     def body_hm(): st.image(img, use_column_width=True)
-    card("Heatmap de Esforço por Recurso e Atividade", "🔥", body_fn=body_hm, png_bytes=img, png_filename="resource_activity_matrix.png")
+    card("Heatmap de Esforço por Recurso e Atividade", "🔥", body_fn=body_hm, png_bytes=img, png_filename="resource_activity_matrix.png", card_key="resource_activity_matrix")
 
-    # Variants & rework
     row9 = st.columns(2)
     with row9[0]:
         df = st.session_state.tables_pre_mining['rework_loops_table']
         def body(): st.dataframe(df, use_container_width=True)
-        card("Principais Loops de Rework", "♻️", body_fn=body, csv_df=df, csv_filename="rework_loops.csv")
+        card("Principais Loops de Rework", "♻️", body_fn=body, csv_df=df, csv_filename="rework_loops.csv", card_key="rework_loops")
     with row9[1]:
         img = st.session_state.plots_pre_mining['variants_frequency']
         def body(): st.image(img, use_column_width=True)
-        card("Frequência das Variantes", "🧬", body_fn=body, png_bytes=img, png_filename="variants_frequency.png")
+        card("Frequência das Variantes", "🧬", body_fn=body, png_bytes=img, png_filename="variants_frequency.png", card_key="variants_frequency")
 
-    # Cost of delay KPIs
     delay_kpis = st.session_state.tables_pre_mining['cost_of_delay_kpis']
     row10 = st.columns(3)
     with row10[0]:
         def body(): st.metric("Custo Total em Atraso", delay_kpis['Custo Total Projetos Atrasados'])
-        card("Custo Total em Atraso", "💶", body_fn=body)
+        card("Custo Total em Atraso", "💶", body_fn=body, card_key="delay_total_cost")
     with row10[1]:
         def body(): st.metric("Atraso Médio (dias)", delay_kpis['Atraso Médio (dias)'], help="em dias")
-        card("Atraso Médio (dias)", "⏳", body_fn=body)
+        card("Atraso Médio (dias)", "⏳", body_fn=body, card_key="delay_avg_days")
     with row10[2]:
         def body(): st.metric("Custo Médio/Dia Atraso", delay_kpis['Custo Médio/Dia Atraso'])
-        card("Custo Médio/Dia de Atraso", "📆", body_fn=body)
+        card("Custo Médio/Dia de Atraso", "📆", body_fn=body, card_key="delay_avg_cost_day")
 
-    # Deep benchmarking
     row11 = st.columns(2)
     with row11[0]:
         img = st.session_state.plots_pre_mining['delay_by_teamsize']
         def body(): st.image(img, use_column_width=True)
-        card("Atraso por Tamanho da Equipa", "👥", body_fn=body, png_bytes=img, png_filename="delay_by_teamsize.png")
+        card("Atraso por Tamanho da Equipa", "👥", body_fn=body, png_bytes=img, png_filename="delay_by_teamsize.png", card_key="delay_by_team")
     with row11[1]:
         img = st.session_state.plots_pre_mining['median_duration_by_teamsize']
         def body(): st.image(img, use_column_width=True)
-        card("Duração Mediana por Tamanho da Equipa", "📏", body_fn=body, png_bytes=img, png_filename="median_duration_by_teamsize.png")
+        card("Duração Mediana por Tamanho da Equipa", "📏", body_fn=body, png_bytes=img, png_filename="median_duration_by_teamsize.png", card_key="median_duration_team")
 
     row12 = st.columns(2)
     with row12[0]:
         img = st.session_state.plots_pre_mining['weekly_efficiency']
         def body(): st.image(img, use_column_width=True)
-        card("Eficiência Semanal (Horas Trabalhadas)", "📅", body_fn=body, png_bytes=img, png_filename="weekly_efficiency.png")
+        card("Eficiência Semanal (Horas Trabalhadas)", "📅", body_fn=body, png_bytes=img, png_filename="weekly_efficiency.png", card_key="weekly_efficiency")
     with row12[1]:
         img = st.session_state.plots_pre_mining['bottleneck_by_resource']
         def body(): st.image(img, use_column_width=True)
-        card("Recursos com Maior Espera", "🛑", body_fn=body, png_bytes=img, png_filename="bottleneck_by_resource.png")
+        card("Recursos com Maior Espera", "🛑", body_fn=body, png_bytes=img, png_filename="bottleneck_by_resource.png", card_key="bottleneck_resource")
 
     row13 = st.columns(2)
     with row13[0]:
         img = st.session_state.plots_pre_mining['service_vs_wait_stacked']
         def body(): st.image(img, use_column_width=True)
-        card("Gargalos: Serviço vs Espera", "🧱", body_fn=body, png_bytes=img, png_filename="service_vs_wait_stacked.png")
+        card("Gargalos: Serviço vs Espera", "🧱", body_fn=body, png_bytes=img, png_filename="service_vs_wait_stacked.png", card_key="service_vs_wait")
     with row13[1]:
         img = st.session_state.plots_pre_mining['wait_vs_service_scatter']
         def body(): st.image(img, use_column_width=True)
-        card("Tempo de Espera vs Execução", "⚖️", body_fn=body, png_bytes=img, png_filename="wait_vs_service_scatter.png")
+        card("Tempo de Espera vs Execução", "⚖️", body_fn=body, png_bytes=img, png_filename="wait_vs_service_scatter.png", card_key="wait_vs_exec")
 
     row14 = st.columns(2)
     with row14[0]:
         img = st.session_state.plots_pre_mining['wait_time_evolution']
         def body(): st.image(img, use_column_width=True)
-        card("Evolução do Tempo Médio de Espera", "📈", body_fn=body, png_bytes=img, png_filename="wait_time_evolution.png")
+        card("Evolução do Tempo Médio de Espera", "📈", body_fn=body, png_bytes=img, png_filename="wait_time_evolution.png", card_key="wait_evolution")
     with row14[1]:
         img = st.session_state.plots_pre_mining['throughput_benchmark_by_teamsize']
         def body(): st.image(img, use_column_width=True)
-        card("Benchmark de Throughput por Equipa", "🏷️", body_fn=body, png_bytes=img, png_filename="throughput_benchmark_by_teamsize.png")
+        card("Benchmark de Throughput por Equipa", "🏷️", body_fn=body, png_bytes=img, png_filename="throughput_benchmark_by_teamsize.png", card_key="throughput_benchmark_team")
 
     img = st.session_state.plots_pre_mining['cycle_time_breakdown']
     def body_cycle(): st.image(img, use_column_width=True)
-    card("Duração Média por Fase do Processo", "📊", body_fn=body_cycle, png_bytes=img, png_filename="cycle_time_breakdown.png")
+    card("Duração Média por Fase do Processo", "📊", body_fn=body_cycle, png_bytes=img, png_filename="cycle_time_breakdown.png", card_key="cycle_time_phase")
 
 def render_dashboard_post():
     st.markdown("<h2>🏠 Dashboard Geral — Pós-mineração</h2>", unsafe_allow_html=True)
@@ -872,119 +783,115 @@ def render_dashboard_post():
         st.info("Execute a análise primeiro em 'Configurações'.")
         return
 
-    # Models & metrics
     row = st.columns(2)
     with row[0]:
         img = st.session_state.plots_post_mining['model_inductive_petrinet']
         def body(): st.image(img, use_column_width=True)
-        card("Modelo de Processo (Petri Net) — Inductive Miner", "🧩", body_fn=body, png_bytes=img, png_filename="model_inductive.png")
+        card("Modelo de Processo (Petri Net) — Inductive Miner", "🧩", body_fn=body, png_bytes=img, png_filename="model_inductive.png", card_key="model_inductive")
     with row[1]:
         img = st.session_state.plots_post_mining['model_heuristic_petrinet']
         def body(): st.image(img, use_column_width=True)
-        card("Modelo de Processo (Petri Net) — Heuristics Miner", "🧩", body_fn=body, png_bytes=img, png_filename="model_heuristics.png")
+        card("Modelo de Processo (Petri Net) — Heuristics Miner", "🧩", body_fn=body, png_bytes=img, png_filename="model_heuristics.png", card_key="model_heuristics")
 
     row2 = st.columns(2)
     with row2[0]:
         img = st.session_state.plots_post_mining['metrics_inductive']
         def body(): st.image(img, use_column_width=True)
-        card("Métricas de Qualidade — Inductive Miner", "📏", body_fn=body, png_bytes=img, png_filename="metrics_inductive.png")
+        card("Métricas de Qualidade — Inductive Miner", "📏", body_fn=body, png_bytes=img, png_filename="metrics_inductive.png", card_key="metrics_inductive")
     with row2[1]:
         img = st.session_state.plots_post_mining['metrics_heuristic']
         def body(): st.image(img, use_column_width=True)
-        card("Métricas de Qualidade — Heuristics Miner", "📏", body_fn=body, png_bytes=img, png_filename="metrics_heuristics.png")
+        card("Métricas de Qualidade — Heuristics Miner", "📏", body_fn=body, png_bytes=img, png_filename="metrics_heuristics.png", card_key="metrics_heuristics")
 
-    # Performance, cycle time, bottlenecks
     row3 = st.columns(2)
     with row3[0]:
         img = st.session_state.plots_post_mining['kpi_time_series']
         def body(): st.image(img, use_column_width=True)
-        card("Séries Temporais de KPIs", "⏱️", body_fn=body, png_bytes=img, png_filename="kpi_time_series.png")
+        card("Séries Temporais de KPIs", "⏱️", body_fn=body, png_bytes=img, png_filename="kpi_time_series.png", card_key="kpi_time_series")
     with row3[1]:
         img = st.session_state.plots_post_mining['temporal_heatmap_fixed']
         def body(): st.image(img, use_column_width=True)
-        card("Atividades por Dia da Semana", "📆", body_fn=body, png_bytes=img, png_filename="temporal_heatmap.png")
+        card("Atividades por Dia da Semana", "📆", body_fn=body, png_bytes=img, png_filename="temporal_heatmap.png", card_key="temporal_heatmap")
 
     img = st.session_state.plots_post_mining['performance_heatmap']
     def body_ph(): st.image(img, use_column_width=True)
-    card("Heatmap de Performance no Processo (DFG)", "🔥", body_fn=body_ph, png_bytes=img, png_filename="performance_heatmap.png")
+    card("Heatmap de Performance no Processo (DFG)", "🔥", body_fn=body_ph, png_bytes=img, png_filename="performance_heatmap.png", card_key="performance_heatmap")
 
     if 'gantt_chart_all_projects' in st.session_state.plots_post_mining:
         img = st.session_state.plots_post_mining['gantt_chart_all_projects']
         def body_g(): st.image(img, use_column_width=True)
-        card("Gantt Chart de Todos os Projetos", "📋", body_fn=body_g, png_bytes=img, png_filename="gantt_all_projects.png")
+        card("Gantt Chart de Todos os Projetos", "📋", body_fn=body_g, png_bytes=img, png_filename="gantt_all_projects.png", card_key="gantt_all_projects")
 
-    # Advanced resource analysis
     row4 = st.columns(2)
     with row4[0]:
         img = st.session_state.plots_post_mining['resource_network_adv']
         def body(): st.image(img, use_column_width=True)
-        card("Rede Social de Recursos (Handover)", "🌐", body_fn=body, png_bytes=img, png_filename="resource_network.png")
+        card("Rede Social de Recursos (Handover)", "🌐", body_fn=body, png_bytes=img, png_filename="resource_network.png", card_key="resource_network")
     with row4[1]:
         if 'skill_vs_performance_adv' in st.session_state.plots_post_mining:
             img = st.session_state.plots_post_mining['skill_vs_performance_adv']
             def body(): st.image(img, use_column_width=True)
-            card("Relação entre Skill e Performance", "🎯", body_fn=body, png_bytes=img, png_filename="skill_vs_performance.png")
+            card("Relação entre Skill e Performance", "🎯", body_fn=body, png_bytes=img, png_filename="skill_vs_performance.png", card_key="skill_vs_performance")
 
     row5 = st.columns(2)
     with row5[0]:
         if 'resource_network_bipartite' in st.session_state.plots_post_mining:
             img = st.session_state.plots_post_mining['resource_network_bipartite']
             def body(): st.image(img, use_column_width=True)
-            card("Rede de Recursos por Função (Bipartida)", "🪢", body_fn=body, png_bytes=img, png_filename="resource_bipartite.png")
+            card("Rede de Recursos por Função (Bipartida)", "🪢", body_fn=body, png_bytes=img, png_filename="resource_bipartite.png", card_key="resource_bipartite")
     with row5[1]:
         if 'resource_efficiency_plot' in st.session_state.plots_post_mining:
             img = st.session_state.plots_post_mining['resource_efficiency_plot']
             def body(): st.image(img, use_column_width=True)
-            card("Eficiência Individual por Recurso", "⚙️", body_fn=body, png_bytes=img, png_filename="resource_efficiency.png")
+            card("Eficiência Individual por Recurso", "⚙️", body_fn=body, png_bytes=img, png_filename="resource_efficiency.png", card_key="resource_efficiency")
 
-    # Variants & conformance
     row6 = st.columns(2)
     with row6[0]:
         img = st.session_state.plots_post_mining['variant_duration_plot']
         def body(): st.image(img, use_column_width=True)
-        card("Duração Média das Variantes", "🧬", body_fn=body, png_bytes=img, png_filename="variant_duration.png")
+        card("Duração Média das Variantes", "🧬", body_fn=body, png_bytes=img, png_filename="variant_duration.png", card_key="variant_duration")
     with row6[1]:
         img = st.session_state.plots_post_mining['deviation_scatter_plot']
         def body(): st.image(img, use_column_width=True)
-        card("Fitness vs Desvios", "📎", body_fn=body, png_bytes=img, png_filename="deviation_scatter.png")
+        card("Fitness vs Desvios", "📎", body_fn=body, png_bytes=img, png_filename="deviation_scatter.png", card_key="deviation_scatter")
 
     row7 = st.columns(2)
     with row7[0]:
         img = st.session_state.plots_post_mining['conformance_over_time_plot']
         def body(): st.image(img, use_column_width=True)
-        card("Conformidade ao Longo do Tempo", "📈", body_fn=body, png_bytes=img, png_filename="conformance_over_time.png")
+        card("Conformidade ao Longo do Tempo", "📈", body_fn=body, png_bytes=img, png_filename="conformance_over_time.png", card_key="conformance_over_time")
     with row7[1]:
         img = st.session_state.plots_post_mining['cost_per_day_time_series']
         def body(): st.image(img, use_column_width=True)
-        card("Custo por Dia ao Longo do Tempo", "💵", body_fn=body, png_bytes=img, png_filename="cost_per_day.png")
+        card("Custo por Dia ao Longo do Tempo", "💵", body_fn=body, png_bytes=img, png_filename="cost_per_day.png", card_key="cost_per_day")
 
     row8 = st.columns(2)
     with row8[0]:
         img = st.session_state.plots_post_mining['cumulative_throughput_plot']
         def body(): st.image(img, use_column_width=True)
-        card("Throughput Acumulado", "🪜", body_fn=body, png_bytes=img, png_filename="cumulative_throughput.png")
+        card("Throughput Acumulado", "🪜", body_fn=body, png_bytes=img, png_filename="cumulative_throughput.png", card_key="cumulative_throughput")
     with row8[1]:
         if 'milestone_time_analysis_plot' in st.session_state.plots_post_mining:
             img = st.session_state.plots_post_mining['milestone_time_analysis_plot']
             def body(): st.image(img, use_column_width=True)
-            card("Análise de Tempo entre Marcos", "🎯", body_fn=body, png_bytes=img, png_filename="milestone_time.png")
+            card("Análise de Tempo entre Marcos", "🎯", body_fn=body, png_bytes=img, png_filename="milestone_time.png", card_key="milestone_time")
 
     row9 = st.columns(2)
     with row9[0]:
         if 'waiting_time_matrix_plot' in st.session_state.plots_post_mining:
             img = st.session_state.plots_post_mining['waiting_time_matrix_plot']
             def body(): st.image(img, use_column_width=True)
-            card("Matriz de Tempo de Espera (horas)", "🧩", body_fn=body, png_bytes=img, png_filename="waiting_time_matrix.png")
+            card("Matriz de Tempo de Espera (horas)", "🧩", body_fn=body, png_bytes=img, png_filename="waiting_time_matrix.png", card_key="waiting_time_matrix")
     with row9[1]:
         if 'avg_waiting_time_by_activity_plot' in st.session_state.plots_post_mining:
             img = st.session_state.plots_post_mining['avg_waiting_time_by_activity_plot']
             def body(): st.image(img, use_column_width=True)
-            card("Tempo de Espera Médio por Atividade", "⏳", body_fn=body, png_bytes=img, png_filename="avg_waiting_time_by_activity.png")
+            card("Tempo de Espera Médio por Atividade", "⏳", body_fn=body, png_bytes=img, png_filename="avg_waiting_time_by_activity.png", card_key="avg_waiting_time_by_activity")
 
     if 'custom_variants_sequence_plot' in st.session_state.plots_post_mining:
         img = st.session_state.plots_post_mining['custom_variants_sequence_plot']
         def body(): st.image(img, use_column_width=True)
-        card("Sequência de Atividades das Variantes", "🧭", body_fn=body, png_bytes=img, png_filename="variants_sequence.png")
+        card("Sequência de Atividades das Variantes", "🧭", body_fn=body, png_bytes=img, png_filename="variants_sequence.png", card_key="variants_sequence")
 
 # --- 6. APP FLOW ---
 if not st.session_state.is_auth:
