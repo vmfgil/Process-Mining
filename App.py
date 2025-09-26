@@ -515,22 +515,27 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
     return plots, metrics
 
 # --- 2. COMPONENTE DE CARTÃO: HEADER + EXPORTAÇÕES ---
-def card_header(title: str, icon: str = "📊", png_bytes: io.BytesIO = None, csv_df: pd.DataFrame = None, png_filename: str = "grafico.png", csv_filename: str = "tabela.csv"):
-    """
-    Renders a card header with:
-    - Title + icon
-    - Export buttons for PNG (if png_bytes) and CSV (if csv_df)
-    - A subtle "..." button for future options
-    """
-    # Header HTML
+def card_header(title: str, icon: str = "📊", png_bytes: io.BytesIO = None,
+                csv_df: pd.DataFrame = None, png_filename: str = "grafico.png",
+                csv_filename: str = "tabela.csv"):
     st.markdown(f"""
     <div class="card-header">
       <div class="card-title">{icon} {title}</div>
-      <div class="card-actions">
-        {" " if (png_bytes or csv_df) else ""}
-      </div>
+      <div class="card-actions"></div>
     </div>
     """, unsafe_allow_html=True)
+
+    c_exp = st.columns([1, 1, 0.2])
+    if png_bytes is not None:
+        with c_exp[0]:
+            st.download_button("⬇️ Exportar PNG", data=png_bytes,
+                               file_name=png_filename, mime="image/png")
+    if csv_df is not None:
+        with c_exp[1]:
+            st.download_button("⬇️ Exportar CSV", data=to_csv_bytes(csv_df),
+                               file_name=csv_filename, mime="text/csv")
+    with c_exp[2]:
+        st.button("⋯", help="Mais opções", key=f"more_options_{title}")
 
     # Actions row
     c_exp = st.columns([1, 1, 0.2])
