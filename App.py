@@ -32,18 +32,18 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- ESTILO CSS ---
+# --- ESTILO CSS COM NOVA ABORDAGEM ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
     html, body, [class*="st-"] { font-family: 'Poppins', sans-serif; }
     :root {
-        --primary-color: #EF4444; /* Vermelho para destaque ATIVO */
+        --primary-color: #EF4444; 
         --secondary-color: #3B82F6;
-        --baby-blue-bg: #A0E9FF; /* Azul bebé para botões de ação */
+        --baby-blue-bg: #A0E9FF; /* A cor azul bebé que pretendemos */
         --background-color: #0F172A;
         --sidebar-background: #1E293B;
-        --inactive-button-bg: rgba(51, 65, 85, 0.5); /* Fundo de botão inativo */
+        --inactive-button-bg: rgba(51, 65, 85, 0.5);
         --text-color-dark-bg: #FFFFFF;
         --text-color-light-bg: #0F172A;
         --border-color: #334155;
@@ -59,7 +59,6 @@ st.markdown("""
     }
 
     /* --- ESTILOS PARA BOTÕES DE NAVEGAÇÃO ATIVOS E INATIVOS --- */
-    /* Botão Inativo (Default) */
     .stButton>button {
         border: 1px solid var(--border-color) !important;
         background-color: var(--inactive-button-bg) !important;
@@ -71,14 +70,12 @@ st.markdown("""
         border-color: var(--primary-color) !important;
         background-color: rgba(239, 68, 68, 0.2) !important;
     }
-    /* Botão Ativo (sobrescreve o estilo geral) */
     div.active-button .stButton>button {
         background-color: var(--primary-color) !important;
         color: var(--text-color-dark-bg) !important;
         border: 1px solid var(--primary-color) !important;
         font-weight: 700 !important;
     }
-    /* Impede que o hover no botão ativo mude a sua cor */
     div.active-button .stButton>button:hover {
         background-color: var(--primary-color) !important;
         border-color: var(--primary-color) !important;
@@ -98,7 +95,7 @@ st.markdown("""
         border-radius: 12px;
         padding: 20px 25px;
         border: 1px solid var(--card-border-color);
-        height: 100%; /* Faz o cartão ocupar toda a altura da coluna */
+        height: 100%;
         display: flex;
         flex-direction: column;
         margin-bottom: 25px;
@@ -111,32 +108,38 @@ st.markdown("""
     .dataframe-card-body {
         padding-top: 0 !important;
     }
-    .dataframe-card-body [data-testid="stDataFrame"] {
-        border: none !important;
-    }
-    .dataframe-card-body [data-testid="stDataFrame"] .col-header {
-        background-color: var(--card-background-color) !important;
-    }
-     .dataframe-card-body [data-testid="stDataFrame"] .blank {
+    .dataframe-card-body [data-testid="stDataFrame"] { border: none !important; }
+    .dataframe-card-body [data-testid="stDataFrame"] .col-header, 
+    .dataframe-card-body [data-testid="stDataFrame"] .blank {
         background-color: var(--card-background-color) !important;
     }
 
-    /* --- CORREÇÃO DEFINITIVA 1: Cor dos botões 'Browse files' para azul bebé --- */
-    section[data-testid="stFileUploader"] button {
+    /* --- NOVA ABORDAGEM: VÁRIOS SELETORES PARA OS BOTÕES DE UPLOAD ---
+    Vamos tentar várias combinações para garantir que uma delas funciona.
+    */
+    section[data-testid="stFileUploader"] button,
+    div[data-testid="stFileUploader"] button,
+    div[data-baseweb="file-uploader"] button {
         background-color: var(--baby-blue-bg) !important;
         color: var(--text-color-light-bg) !important;
         border: none !important;
-        font-weight: 600;
+        font-weight: 600 !important;
     }
-    section[data-testid="stFileUploader"] button:hover {
-        background-color: #89DFF3 !important;
+    section[data-testid="stFileUploader"] button:hover,
+    div[data-testid="stFileUploader"] button:hover,
+    div[data-baseweb="file-uploader"] button:hover {
+        background-color: #89DFF3 !important; /* Cor ligeiramente mais escura no hover */
     }
-    section[data-testid="stFileUploader"] label, section[data-testid="stFileUploader"] small {
+    section[data-testid="stFileUploader"] label, 
+    section[data-testid="stFileUploader"] small {
         color: var(--text-color-light-bg) !important;
     }
 
-    /* --- CORREÇÃO DEFINITIVA 2: Cor do botão 'Iniciar Análise' para azul bebé --- */
-    #iniciar-analise-button .stButton>button {
+    /* --- NOVA ABORDAGEM: VÁRIOS SELETORES PARA O BOTÃO DE ANÁLISE ---
+    Apesar de o ID ser específico, vamos adicionar um seletor mais genérico para garantir.
+    */
+    #iniciar-analise-button .stButton>button,
+    #iniciar-analise-button button {
         background-color: var(--baby-blue-bg) !important;
         color: var(--text-color-light-bg) !important;
         border: 2px solid var(--baby-blue-bg) !important;
@@ -151,12 +154,8 @@ st.markdown("""
         border-radius: 12px;
         padding: 20px;
     }
-    [data-testid="stMetric"] label {
-        color: var(--card-text-color);
-    }
-    [data-testid="stMetric"] [data-testid="stMetricValue"] {
-        color: var(--card-text-color);
-    }
+    [data-testid="stMetric"] label { color: var(--card-text-color); }
+    [data-testid="stMetric"] [data-testid="stMetricValue"] { color: var(--card-text-color); }
     
     /* Alertas */
     [data-testid="stAlert"] {
