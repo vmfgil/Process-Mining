@@ -33,7 +33,6 @@ st.set_page_config(
 )
 
 # --- ESTILO CSS ---
-# --- ESTILO CSS ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
@@ -45,8 +44,8 @@ st.markdown("""
         --background-color: #0F172A;
         --sidebar-background: #1E293B;
         --inactive-button-bg: rgba(51, 65, 85, 0.5);
-        --text-color-dark-bg: #FFFFFF;
-        --text-color-light-bg: #0F172A;
+        --text-color-dark-bg: #FFFFFF; /* BRANCO */
+        --text-color-light-bg: #0F172A; /* AZUL ESCURO/PRETO */
         --border-color: #334155;
         --card-background-color: #FFFFFF;
         --card-text-color: #0F172A;
@@ -57,7 +56,8 @@ st.markdown("""
     
     [data-testid="stSidebar"] h3 { color: var(--text-color-dark-bg) !important; }
 
-    /* --- ESTILOS PARA BOTÕES DE NAVEGAÇÃO --- */
+    /* --- ESTILOS PARA BOTÕES DE NAVEGAÇÃO E SEÇÃO --- */
+    /* Estilo Base dos botões no stHorizontalBlock */
     div[data-testid="stHorizontalBlock"] .stButton>button {
         border: 1px solid var(--border-color) !important;
         background-color: var(--inactive-button-bg) !important;
@@ -65,17 +65,19 @@ st.markdown("""
         font-weight: 600;
         transition: all 0.2s ease-in-out;
     }
+    /* Estilo Hover */
     div[data-testid="stHorizontalBlock"] .stButton>button:hover {
         border-color: var(--primary-color) !important;
         background-color: rgba(239, 68, 68, 0.2) !important;
     }
+    /* Estilo Ativo (Permanente) */
     div.active-button .stButton>button {
         background-color: var(--primary-color) !important;
         color: var(--text-color-dark-bg) !important;
         border: 1px solid var(--primary-color) !important;
         font-weight: 700 !important;
     }
-
+    
     /* Painel Lateral */
     [data-testid="stSidebar"] { background-color: var(--sidebar-background); border-right: 1px solid var(--border-color); }
     [data-testid="stSidebar"] .stButton>button {
@@ -84,13 +86,17 @@ st.markdown("""
     }
     
     /* --- CARTÕES --- */
+    /* Aplica Flexbox para garantir que colunas têm o mesmo tamanho e que o corpo do card cresce */
+    [data-testid="stVerticalBlock"] > [data-testid="stVerticalBlock"] > [data-testid="stHorizontalBlock"] {
+        align-items: stretch;
+    }
     .card {
         background-color: var(--card-background-color);
         color: var(--card-text-color);
         border-radius: 12px;
         padding: 20px 25px;
         border: 1px solid var(--card-border-color);
-        height: 100%;
+        height: 100%; /* Garante altura total na coluna */
         display: flex;
         flex-direction: column;
         margin-bottom: 25px;
@@ -100,37 +106,44 @@ st.markdown("""
     .card-body { flex-grow: 1; padding-top: 15px; }
     .dataframe-card-body [data-testid="stDataFrame"] { border: none !important; }
     
+    /* Corrigir stDataFrame e stTable */
+    .dataframe-card-body .st-emotion-cache-16ids9s.e1nzilvr4 {
+        color: var(--card-text-color) !important; /* Cor do texto dentro do cartão */
+    }
+    
     /* --- BOTÕES DE UPLOAD --- */
     section[data-testid="stFileUploader"] button,
     div[data-baseweb="file-uploader"] button {
         background-color: var(--baby-blue-bg) !important;
-        color: var(--text-color-light-bg) !important;
+        color: var(--text-color-light-bg) !important; /* Texto escuro no fundo azul claro */
         border: none !important;
         font-weight: 600 !important;
+    }
+    
+    /* Corrigir texto de upload */
+    .stFileUploader > div > label > div > div.st-emotion-cache-1g8x7v1.e1nzilvr1 {
+        color: var(--text-color-dark-bg) !important; /* "Carregar nome.csv" em branco */
+        font-weight: 700 !important;
+    }
+    /* Corrigir cor do texto de sucesso após upload */
+    .st-emotion-cache-l9b9p0.e1gfclks1 {
+        color: var(--text-color-dark-bg) !important;
+        font-weight: 700 !important;
+    }
+    /* Corrigir toggle e outros textos */
+    label[data-testid="stConfigurableLabel"], 
+    [data-testid="stToggleV1"] label span,
+    [data-testid="stSubheader"] {
+        color: var(--text-color-dark-bg) !important;
+        font-weight: 700 !important;
     }
     
     /* --- BOTÃO DE ANÁLISE --- */
     .iniciar-analise-button .stButton>button {
         background-color: var(--baby-blue-bg) !important;
-        color: var(--text-color-light-bg) !important;
+        color: var(--text-color-light-bg) !important; /* Corrigido para cor escura */
         border: 2px solid var(--baby-blue-bg) !important;
         font-weight: 700 !important;
-    }
-    
-/* NOVO ESTILO ISOLADO PARA O BOTÃO DE LOGIN */
-    .login-button button {
-        /* Fundo Azul Bebé (Força a cor de fundo permanente) */
-        background-color: var(--baby-blue-bg) !important; 
-        /* Texto Azul Escuro/Preto (Para alto contraste) */
-        color: var(--text-color-light-bg) !important;
-        border: 2px solid var(--baby-blue-bg) !important;
-        font-weight: 700 !important;
-    }
-    
-    /* Garantir que, mesmo ao passar o cursor (hover), o texto escuro se mantém */
-    .login-button button:hover {
-        background-color: #8DD9FF !important; /* Ligeiramente diferente no hover, mas ainda visível */
-        color: var(--text-color-light-bg) !important;
     }
     
     /* --- CARTÕES DE MÉTRICAS (KPIs) --- */
@@ -151,8 +164,38 @@ st.markdown("""
         border-radius: 8px !important;
     }
     [data-testid="stAlert"] * { color: #BFDBFE !important; }
+    
+    /* --- BOTÃO DE LOGIN (CORREÇÃO FINAL) --- */
+    /* Garante que o fundo do botão e o texto são forçados */
+    .login-button button,
+    .login-button button[data-testid="stButton"] {
+        background-color: var(--baby-blue-bg) !important;
+        color: var(--text-color-light-bg) !important; /* Texto Escuro */
+        border: 2px solid var(--baby-blue-bg) !important;
+        font-weight: 700 !important;
+    }
+    
+    /* Mantém o contraste no estado de "mouse over" */
+    .login-button button:hover {
+        background-color: #8DD9FF !important; /* Um tom de azul claro diferente no hover */
+        color: var(--text-color-light-bg) !important;
+        border-color: #8DD9FF !important;
+    }
+    
+    /* Estilo para caixas de texto (st.text_input) - Para garantir que também têm fundo escuro e não branco */
+    [data-testid="stTextInput"] > div > div > input,
+    [data-testid="stTextInput"] > div > input,
+    [data-testid="stTextInput"] > div > div,
+    [data-testid="stTextArea"] > div > div > textarea,
+    [data-testid="stTextArea"] > div > textarea {
+        background-color: var(--sidebar-background) !important; 
+        color: var(--text-color-dark-bg) !important;
+        border: 1px solid var(--border-color) !important;
+    }
+
 </style>
 """, unsafe_allow_html=True)
+
 
 # --- FUNÇÕES AUXILIARES ---
 def convert_fig_to_bytes(fig, format='png'):
@@ -174,7 +217,7 @@ def convert_fig_to_bytes(fig, format='png'):
 def convert_gviz_to_bytes(gviz, format='png'):
     return io.BytesIO(gviz.pipe(format=format))
 
-# Função create_card ajustada para renderizar st.dataframe DENTRO da div (Problema 2)
+# Função create_card ajustada para renderizar st.dataframe DENTRO da div
 def create_card(title, icon, chart_bytes=None, dataframe=None):
     if chart_bytes:
         b64_image = base64.b64encode(chart_bytes.getvalue()).decode()
@@ -548,9 +591,8 @@ def login_page():
     st.markdown("<h2>✨ Transformação Inteligente de Processos</h2>", unsafe_allow_html=True)
     username = st.text_input("Utilizador", placeholder="admin", value="admin")
     password = st.text_input("Senha", type="password", placeholder="admin", value="admin")
-    
-    # É fundamental que o botão esteja envolvido nesta DIV:
-    st.markdown('<div class="login-button">', unsafe_allow_html=True) 
+    # Adicionado div para aplicar o CSS do botão de login (CORRIGIDO)
+    st.markdown('<div class="login-button">', unsafe_allow_html=True)
     if st.button("Entrar", use_container_width=True):
         if username == "admin" and password == "admin":
             st.session_state.authenticated = True
@@ -558,7 +600,7 @@ def login_page():
             st.rerun()
         else:
             st.error("Utilizador ou senha inválidos.")
-    st.markdown('</div>', unsafe_allow_html=True) 
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
 # --- PÁGINA DE CONFIGURAÇÕES / UPLOAD ---
@@ -575,21 +617,21 @@ def settings_page():
             uploaded_file = st.file_uploader(f"Carregar `{name}.csv`", type="csv", key=f"upload_{name}")
             if uploaded_file:
                 st.session_state.dfs[name] = pd.read_csv(uploaded_file)
-                # Mantido o markdown para cor/estilo do texto pós-upload, mas o CSS global deve cobrir (Problema 4)
+                # Mantido o markdown para cor/estilo do texto pós-upload
                 st.markdown(f'<p style="font-size: small; color: var(--text-color-dark-bg); font-weight: 700;">`{name}.csv` carregado.</p>', unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
     all_files_uploaded = all(st.session_state.dfs.get(name) is not None for name in file_names)
     
     if all_files_uploaded:
-        # O toggle label já é tratado no CSS global (Problema 4)
+        # O toggle label já é tratado no CSS global
         if st.toggle("Visualizar as primeiras 5 linhas dos ficheiros", value=False):
             for name, df in st.session_state.dfs.items():
                 st.markdown(f"**Ficheiro: `{name}.csv`**")
                 st.dataframe(df.head())
         
         st.subheader("Execução da Análise")
-        # Adicionado div para aplicar o CSS do botão de análise (Problema 6)
+        # Adicionado div para aplicar o CSS do botão de análise
         st.markdown('<div class="iniciar-analise-button">', unsafe_allow_html=True)
         if st.button("🚀 Iniciar Análise Completa", use_container_width=True):
             with st.spinner("A analisar os dados... Este processo pode demorar alguns minutos."):
@@ -616,7 +658,7 @@ def dashboard_page():
     st.title("🏠 Dashboard Geral")
     is_pre_mining_active = st.session_state.current_dashboard == "Pré-Mineração"
     
-    # Lógica para navegação de Dashboard (Problema 1)
+    # Lógica para navegação de Dashboard
     c1, c2 = st.columns(2)
     with c1:
         # A classe 'active-button' é aplicada condicionalmente
@@ -647,7 +689,7 @@ def dashboard_page():
 def render_pre_mining_dashboard():
     sections = { "overview": "Visão Geral", "performance": "Performance", "activities": "Atividades", "resources": "Recursos", "variants": "Variantes", "advanced": "Avançado" }
     nav_cols = st.columns(len(sections))
-    # Lógica para navegação de Seções (Problema 1)
+    # Lógica para navegação de Seções
     for i, (key, name) in enumerate(sections.items()):
         is_active = st.session_state.current_section == key
         with nav_cols[i]:
@@ -742,7 +784,7 @@ def render_pre_mining_dashboard():
 def render_post_mining_dashboard():
     sections = { "discovery": "Descoberta", "performance": "Performance", "resources": "Recursos", "conformance": "Conformidade" }
     nav_cols = st.columns(len(sections))
-    # Lógica para navegação de Seções (Problema 1)
+    # Lógica para navegação de Seções
     for i, (key, name) in enumerate(sections.items()):
         is_active = st.session_state.current_section == key
         with nav_cols[i]:
