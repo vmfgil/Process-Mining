@@ -165,20 +165,21 @@ st.markdown("""
     }
     [data-testid="stAlert"] * { color: #BFDBFE !important; }
     
-    /* --- BOTÃO DE LOGIN (CORREÇÃO FINAL) --- */
-    /* Garante que o fundo do botão e o texto são forçados */
-    .login-button button,
-    .login-button button[data-testid="stButton"] {
-        background-color: var(--baby-blue-bg) !important;
-        color: var(--text-color-light-bg) !important; /* Texto Escuro */
+/* --- BOTÃO DE LOGIN (CORREÇÃO FINAL E INESCAPÁVEL) --- */
+    /* Targeta o elemento stButton dentro da nossa classe customizada */
+    .login-button [data-testid="stButton"] > button {
+        /* Fundo Azul Bebé (Força a cor de fundo) */
+        background-color: var(--baby-blue-bg) !important; 
+        /* Texto Preto (Alto Contraste) */
+        color: #000000 !important; 
         border: 2px solid var(--baby-blue-bg) !important;
         font-weight: 700 !important;
     }
     
-    /* Mantém o contraste no estado de "mouse over" */
-    .login-button button:hover {
-        background-color: #8DD9FF !important; /* Um tom de azul claro diferente no hover */
-        color: var(--text-color-light-bg) !important;
+    /* Hover state - Mantém o contraste no estado ativo/hover */
+    .login-button [data-testid="stButton"] > button:hover {
+        background-color: #8DD9FF !important; 
+        color: #000000 !important; /* Texto Preto */
         border-color: #8DD9FF !important;
     }
     
