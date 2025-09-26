@@ -679,11 +679,13 @@ def card_header(title: str, icon: str = "📊", png_bytes: io.BytesIO = None, cs
                 st.download_button("📥 CSV", data=to_csv_bytes(csv_df), file_name=csv_filename, mime="text/csv", key=f"dl_csv_{card_key or title}_{uuid.uuid4()}")
 
 def card(title: str, icon: str = "📊", body_fn=None, png_bytes: io.BytesIO = None, csv_df: pd.DataFrame = None, png_filename: str = "grafico.png", csv_filename: str = "tabela.csv", card_key: str = None, extra_class: str = ""):
-  st.markdown(f'<div class="card {extra_class}">', unsafe_allow_html=True)
-  card_header(title, icon, png_bytes, csv_df, png_filename, csv_filename, card_key=card_key or str(uuid.uuid4()))
-  if body_fn is not None:
-    body_fn()
-  st.markdown('</div>', unsafe_allow_html=True)
+  # A correção é adicionar o "with st.container():" a envolver toda a lógica.
+  with st.container():
+    st.markdown(f'<div class="card {extra_class}">', unsafe_allow_html=True)
+    card_header(title, icon, png_bytes, csv_df, png_filename, csv_filename, card_key=card_key or str(uuid.uuid4()))
+    if body_fn is not None:
+      body_fn()
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # Login
 def render_login():
