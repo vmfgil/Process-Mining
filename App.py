@@ -59,7 +59,7 @@ st.markdown("""
         color: var(--text-color-dark-bg) !important;
     }
 
-    /* --- ESTILOS PARA BOTÕES DE NAVEGAÇÃO ATIVOS E INATIVOS --- */
+    /* --- ESTILOS PARA BOTÕES DE NAVEGAÇÃO --- */
     div[data-testid="stHorizontalBlock"] .stButton>button {
         border: 1px solid var(--border-color) !important;
         background-color: var(--inactive-button-bg) !important;
@@ -123,6 +123,14 @@ st.markdown("""
         color: var(--text-color-light-bg) !important;
         border: none !important;
         font-weight: 600 !important;
+    }
+    
+    /* --- CORREÇÃO FINAL E DEFINITIVA PARA O BOTÃO DE ANÁLISE --- */
+    .iniciar-analise-button .stButton>button {
+        background-color: var(--baby-blue-bg) !important;
+        color: var(--text-color-light-bg) !important;
+        border: 2px solid var(--baby-blue-bg) !important;
+        font-weight: 700 !important;
     }
     
     /* --- ESTILO DOS CARTÕES DE MÉTRICAS (KPIs) PARA FUNDO BRANCO --- */
@@ -380,9 +388,9 @@ def run_pre_mining_analysis(dfs):
     plots['cycle_time_breakdown'] = convert_fig_to_bytes(fig)
     return plots, tables, event_log_pm4py, df_projects, df_tasks, df_resources, df_full_context
 
-# ... (O resto das funções, como run_post_mining_analysis, login_page, dashboard_page, etc., permanecem exatamente iguais) ...
 @st.cache_data
 def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_resources, _df_full_context):
+    # ... (Esta função não foi alterada) ...
     plots = {}
     metrics = {}
     df_start_events = _df_tasks_raw[['project_id', 'task_id', 'task_name', 'start_date']].rename(columns={'start_date': 'time:timestamp', 'task_name': 'concept:name', 'project_id': 'case:concept:name'})
@@ -515,6 +523,7 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
 
 # --- PÁGINA DE LOGIN ---
 def login_page():
+    # ... (Esta função não foi alterada) ...
     st.markdown("<h2>✨ Transformação inteligente de processos</h2>", unsafe_allow_html=True)
     username = st.text_input("Utilizador", placeholder="admin", value="admin")
     password = st.text_input("Senha", type="password", placeholder="admin", value="admin")
@@ -547,7 +556,7 @@ def settings_page():
 
     st.markdown("<br>", unsafe_allow_html=True)
     
-    all_files_uploaded = all(st.session_state.dfs[name] is not None for name in file_names)
+    all_files_uploaded = all(st.session_state.dfs.get(name) is not None for name in file_names)
     
     if all_files_uploaded:
         st.subheader("Pré-visualização dos Dados Carregados")
@@ -563,8 +572,8 @@ def settings_page():
         
         # --- ABORDAGEM FINAL: BOTÃO ORIGINAL + JAVASCRIPT PARA ESTILO ---
         
-        # 1. Colocamos o botão original do Streamlit que funciona
-        st.markdown('<div id="iniciar-analise-button">', unsafe_allow_html=True)
+        # 1. Colocamos o botão original do Streamlit que funciona, envolvido num div com uma CLASS
+        st.markdown('<div class="iniciar-analise-button">', unsafe_allow_html=True)
         if st.button("🚀 Iniciar Análise Completa", use_container_width=True, key="start_analysis_button"):
             with st.spinner("A analisar os dados... Este processo pode demorar alguns minutos."):
                 plots_pre, tables_pre, event_log, df_p, df_t, df_r, df_fc = run_pre_mining_analysis(st.session_state.dfs)
@@ -582,36 +591,13 @@ def settings_page():
             st.balloons()
         st.markdown('</div>', unsafe_allow_html=True)
 
-        # 2. Injetamos JavaScript para encontrar e pintar o botão com !important
-        js_code = """
-        <script>
-            // Damos um pequeno atraso para garantir que o botão já foi desenhado pelo Streamlit
-            setTimeout(() => {
-                // Encontramos o div que envolve o botão pelo ID que lhe demos
-                const wrapper = document.getElementById('iniciar-analise-button');
-                if (wrapper) {
-                    // Encontramos o elemento <button> dentro desse div
-                    const button = wrapper.querySelector('button');
-                    if (button) {
-                        // Aplicamos os estilos diretamente no elemento usando setProperty com '!important'
-                        // Isto força o estilo a sobrepor-se a quaisquer outras regras do Streamlit.
-                        button.style.setProperty('background-color', '#A0E9FF', 'important');
-                        button.style.setProperty('color', '#0F172A', 'important');
-                        button.style.setProperty('border', '2px solid #A0E9FF', 'important');
-                        button.style.setProperty('font-weight', '700', 'important');
-                    }
-                }
-            }, 300); // Atraso ligeiramente aumentado por segurança
-        </script>
-        """
-        components.html(js_code, height=0, width=0)
-            
     else:
         st.warning("Aguardando o carregamento de todos os ficheiros CSV para poder iniciar a análise.")
 
 
 # --- PÁGINAS DO DASHBOARD ---
 def dashboard_page():
+    # ... (Esta função não foi alterada) ...
     st.title("🏠 Dashboard Geral")
 
     is_pre_mining_active = st.session_state.current_dashboard == "Pré-Mineração"
@@ -645,6 +631,7 @@ def dashboard_page():
         render_post_mining_dashboard()
 
 def render_pre_mining_dashboard():
+    # ... (Esta função não foi alterada) ...
     sections = { "overview": "Visão Geral", "performance": "Performance", "activities": "Atividades", "resources": "Recursos", "variants": "Variantes", "advanced": "Avançado" }
     nav_cols = st.columns(len(sections))
     for i, (key, name) in enumerate(sections.items()):
@@ -729,6 +716,7 @@ def render_pre_mining_dashboard():
             create_card("Top Recursos por Tempo de Espera Gerado", "🛑", chart_bytes=plots.get('bottleneck_by_resource'))
 
 def render_post_mining_dashboard():
+    # ... (Esta função não foi alterada) ...
     sections = { "discovery": "Descoberta", "performance": "Performance", "resources": "Recursos", "conformance": "Conformidade" }
     nav_cols = st.columns(len(sections))
     for i, (key, name) in enumerate(sections.items()):
