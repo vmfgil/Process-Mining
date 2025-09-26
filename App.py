@@ -145,10 +145,34 @@ st.markdown("""
     }
     [data-testid="stAlert"] * { color: var(--text-color-dark-bg) !important; }
     
-    /* Melhorar legibilidade de dataframes */
+/* Melhorar legibilidade de dataframes NATIVOS do Streamlit */
     .stDataFrame {
         color: var(--text-color-dark-bg) !important;
         background-color: var(--card-background-color) !important;
+    }
+
+    /* Adicionar estilos para o DataFrame HTML gerado pela correção */
+    .pandas-df-card {
+        width: 100%;
+        border-collapse: collapse;
+        color: var(--text-color-dark-bg);
+        font-size: 0.85rem;
+    }
+    .pandas-df-card th {
+        background-color: var(--sidebar-background); /* Fundo da sidebar */
+        color: var(--text-color-dark-bg);
+        border: 1px solid var(--border-color);
+        padding: 8px;
+        text-align: left;
+    }
+    .pandas-df-card td {
+        background-color: var(--card-background-color);
+        color: var(--text-color-dark-bg);
+        border: 1px solid var(--border-color);
+        padding: 8px;
+    }
+    .pandas-df-card tr:nth-child(even) td {
+        background-color: #2F394B; /* Linhas pares ligeiramente mais escuras */
     }
     
     .stTextInput>div>div>input, .stTextInput>div>div>textarea {
@@ -197,16 +221,20 @@ def create_card(title, icon, chart_bytes=None, dataframe=None):
         </div>
         """, unsafe_allow_html=True)
     elif dataframe is not None:
+        # CONVERTER O DATAFRAME PARA HTML E APLICAR UMA CLASSE PARA ESTILOS
+        # Este método preserva o estilo básico do DataFrame do Pandas,
+        # mas precisa de estilos CSS adicionais para o modo escuro, que já tem no seu código.
+        # Adicionamos a classe 'pandas-df-card' para controlo de estilo.
+        df_html = dataframe.to_html(classes=['pandas-df-card'], index=False)
+        
         st.markdown(f"""
         <div class="card">
             <div class="card-header"><h4>{icon} {title}</h4></div>
             <div class="card-body dataframe-card-body">
+                {df_html}
+            </div>
+        </div>
         """, unsafe_allow_html=True)
-        # O st.dataframe será renderizado fora do bloco de markdown, mas
-        # os estilos CSS globais (acima) irão estilizá-lo
-        st.dataframe(dataframe, use_container_width=True)
-        st.markdown("</div></div>", unsafe_allow_html=True)
-
 
 # --- INICIALIZAÇÃO DO ESTADO DA SESSÃO ---
 if 'authenticated' not in st.session_state: st.session_state.authenticated = False
