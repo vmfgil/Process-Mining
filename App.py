@@ -38,11 +38,12 @@ st.markdown("""
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
     html, body, [class*="st-"] { font-family: 'Poppins', sans-serif; }
     :root {
-        --primary-color: #EF4444; /* Vermelho para destaque */
-        --secondary-color: #3B82F6; /* Azul para botões */
-        --baby-blue-bg: #A0E9FF; /* Azul bebé para o botão de análise */
+        --primary-color: #EF4444; /* Vermelho para destaque ATIVO */
+        --secondary-color: #3B82F6;
+        --baby-blue-bg: #A0E9FF; /* Azul bebé para botões de ação */
         --background-color: #0F172A;
         --sidebar-background: #1E293B;
+        --inactive-button-bg: rgba(51, 65, 85, 0.5); /* Fundo de botão inativo */
         --text-color-dark-bg: #FFFFFF;
         --text-color-light-bg: #0F172A;
         --border-color: #334155;
@@ -52,25 +53,31 @@ st.markdown("""
     }
     .stApp { background-color: var(--background-color); color: var(--text-color-dark-bg); }
     h1, h2, h3 { color: var(--text-color-dark-bg); font-weight: 600; }
+    
+    /* --- Correção 6 (Adicional): Cor do nome 'Admin' na sidebar --- */
+    [data-testid="stSidebar"] h3 {
+        color: var(--text-color-dark-bg) !important;
+    }
 
-    /* --- Correção 6: Estilos para botões de navegação ativos e inativos --- */
+    /* --- Correção 4: Estilos para botões de navegação ativos e inativos --- */
     /* Botão Inativo (Default) */
     .stButton>button {
         border: 1px solid var(--border-color) !important;
-        background-color: transparent !important;
+        background-color: var(--inactive-button-bg) !important;
         color: var(--text-color-dark-bg) !important;
         font-weight: 600;
         transition: all 0.2s ease-in-out;
     }
     .stButton>button:hover {
         border-color: var(--primary-color) !important;
-        background-color: rgba(239, 68, 68, 0.1) !important;
+        background-color: rgba(239, 68, 68, 0.2) !important;
     }
     /* Botão Ativo (sobrescreve o estilo geral) */
-    .active-button .stButton>button {
+    div.active-button .stButton>button {
         background-color: var(--primary-color) !important;
         color: var(--text-color-dark-bg) !important;
         border: 1px solid var(--primary-color) !important;
+        font-weight: 700 !important;
     }
 
     /* Painel Lateral */
@@ -78,14 +85,9 @@ st.markdown("""
     [data-testid="stSidebar"] .stButton>button {
         background-color: var(--card-background-color) !important;
         color: var(--card-text-color) !important;
-        border: 1px solid var(--border-color) !important;
-    }
-    [data-testid="stSidebar"] .stButton>button:hover {
-        background-color: var(--primary-color) !important;
-        color: var(--text-color-dark-bg) !important;
     }
     
-    /* --- Correção 7: Cartões com tamanho e espaçamento uniformes --- */
+    /* Cartões */
     .card {
         background-color: var(--card-background-color);
         color: var(--card-text-color);
@@ -95,53 +97,56 @@ st.markdown("""
         height: 100%;
         display: flex;
         flex-direction: column;
-        min-height: 450px; /* Garante uma altura mínima uniforme */
-        margin-bottom: 25px; /* Espaçamento vertical entre cartões */
+        min-height: 450px;
+        margin-bottom: 25px;
     }
     .card-header { padding-bottom: 10px; border-bottom: 1px solid var(--card-border-color); }
     .card .card-header h4 { color: var(--card-text-color); font-size: 1.1rem; margin: 0; display: flex; align-items: center; gap: 8px; }
     .card-body { flex-grow: 1; padding-top: 15px; }
 
-    /* Métricas (KPIs) */
-    [data-testid="stMetric"] { background-color: var(--card-background-color); border: 1px solid var(--card-border-color); border-radius: 12px; padding: 15px 20px; }
+    /* --- Correção 5: Integração da tabela (dataframe) dentro do cartão --- */
+    .dataframe-card-body {
+        padding-top: 0 !important;
+    }
+    .dataframe-card-body [data-testid="stDataFrame"] {
+        border: none !important;
+    }
+    .dataframe-card-body [data-testid="stDataFrame"] .col-header {
+        background-color: var(--card-background-color) !important;
+    }
+     .dataframe-card-body [data-testid="stDataFrame"] .blank {
+        background-color: var(--card-background-color) !important;
+    }
 
-    /* --- Correção 1 & 2: Estilo e compactação do Upload --- */
-    section[data-testid="stFileUploader"] {
-        background-color: #F0F2F6; /* Fundo claro */
-        border-radius: 8px;
-        padding: 10px;
-        border: 1px dashed #A0AEC0;
+    /* --- Correção 1: Cor dos botões 'Browse files' --- */
+    section[data-testid="stFileUploader"] button {
+        background-color: var(--baby-blue-bg) !important;
+        color: var(--text-color-light-bg) !important;
+        border: none !important;
     }
-    section[data-testid="stFileUploader"] p,
-    [data-testid="stFileUploader"] label,
-    [data-testid="stFileUploader"] span,
-    [data-testid="stFileUploader"] small {
-        color: var(--text-color-light-bg) !important; /* Texto escuro */
+    section[data-testid="stFileUploader"] button:hover {
+        background-color: #89DFF3 !important;
     }
-    
-    /* --- Correção 4: Botão Iniciar Análise com fundo azul bebé --- */
+    section[data-testid="stFileUploader"] label, section[data-testid="stFileUploader"] small {
+        color: var(--text-color-light-bg) !important;
+    }
+
+    /* --- Correção 3: Botão Iniciar Análise com fundo azul bebé --- */
     #iniciar-analise-button .stButton>button {
         background-color: var(--baby-blue-bg) !important;
         color: var(--text-color-light-bg) !important;
-        border: 2px solid #1E293B !important;
+        border: 2px solid var(--baby-blue-bg) !important;
         font-weight: 700 !important;
     }
     
-    /* --- Correção 3: Estilo do Expander sem sobreposição --- */
-    /* Removido CSS customizado que causava o bug. Deixando o default do Streamlit. */
-    .st-expander header {
-        font-weight: 600 !important;
-        color: var(--text-color-dark-bg) !important;
-    }
-
-    /* --- Correção 8: Cor das caixas de alerta/info --- */
+    /* Alertas */
     [data-testid="stAlert"] {
-        background-color: #1E293B !important; /* Fundo azul escuro */
+        background-color: #1E293B !important;
         border: 1px solid var(--secondary-color) !important;
         border-radius: 8px !important;
     }
     [data-testid="stAlert"] p, [data-testid="stAlert"] div, [data-testid="stAlert"] li {
-        color: #BFDBFE !important; /* Texto azul claro */
+        color: #BFDBFE !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -173,7 +178,8 @@ def convert_gviz_to_bytes(gviz, format='png'):
 def convert_df_to_csv(df):
     return df.to_csv(index=False).encode('utf-8')
 
-def create_card(title, icon, chart_bytes=None, dataframe=None, key_suffix=""):
+# --- Correção 5: Função `create_card` refatorada para lidar com tabelas ---
+def create_card(title, icon, chart_bytes=None, dataframe=None):
     if chart_bytes:
         b64_image = base64.b64encode(chart_bytes.getvalue()).decode()
         card_html = f"""
@@ -186,15 +192,19 @@ def create_card(title, icon, chart_bytes=None, dataframe=None, key_suffix=""):
         """
         st.markdown(card_html, unsafe_allow_html=True)
     elif dataframe is not None:
-        card_html_header = f"""
+        # Abordagem para renderizar a tabela visualmente dentro do cartão
+        st.markdown(f"""
         <div class="card">
             <div class="card-header"><h4>{icon} {title}</h4></div>
-            <div class="card-body">
-        """
-        card_html_footer = '</div></div>'
-        st.markdown(card_html_header, unsafe_allow_html=True)
+            <div class="card-body dataframe-card-body">
+        """, unsafe_allow_html=True)
+        
         st.dataframe(dataframe, use_container_width=True)
-        st.markdown(card_html_footer, unsafe_allow_html=True)
+        
+        st.markdown("""
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
 
 # --- INICIALIZAÇÃO DO ESTADO DA SESSÃO ---
@@ -528,19 +538,14 @@ def settings_page():
     st.info("Por favor, carregue os 5 ficheiros CSV necessários para a análise.")
     file_names = ['projects', 'tasks', 'resources', 'resource_allocations', 'dependencies']
     
-    # --- Correção 2: Layout compacto com 5 colunas para os uploaders ---
     upload_cols = st.columns(5)
 
     for i, name in enumerate(file_names):
         with upload_cols[i]:
-            uploaded_file = st.file_uploader(f"`{name}.csv`", type="csv", key=f"upload_{name}", label_visibility="collapsed")
+            uploaded_file = st.file_uploader(f"Carregar `{name}.csv`", type="csv", key=f"upload_{name}")
             if uploaded_file:
                 st.session_state.dfs[name] = pd.read_csv(uploaded_file)
-                # Usar st.markdown para um feedback mais discreto e consistente
-                st.markdown(f"<p style='color: #4A5568; text-align: center;'>✅ `{name}.csv`</p>", unsafe_allow_html=True)
-            else:
-                st.markdown(f"<p style='color: #A0AEC0; text-align: center;'>Carregar `{name}.csv`</p>", unsafe_allow_html=True)
-
+                st.success(f"`{name}.csv` carregado.")
 
     st.markdown("<br>", unsafe_allow_html=True)
     
@@ -548,10 +553,13 @@ def settings_page():
     
     if all_files_uploaded:
         st.subheader("Pré-visualização dos Dados Carregados")
-        with st.expander("Visualizar as primeiras 5 linhas dos ficheiros", expanded=False):
+
+        # --- Correção 2: Substituir o st.expander por st.toggle para evitar o bug ---
+        if st.toggle("Visualizar as primeiras 5 linhas dos ficheiros", value=False):
             for name, df in st.session_state.dfs.items():
                 st.markdown(f"**Ficheiro: `{name}.csv`**")
                 st.dataframe(df.head())
+                st.markdown("---")
         
         st.subheader("Execução da Análise")
         st.success("Todos os ficheiros estão carregados. Pode iniciar a análise.")
@@ -586,7 +594,6 @@ def dashboard_page():
     
     sub_nav1, sub_nav2 = st.columns(2)
     with sub_nav1:
-        # --- Correção 6: Uso de 'active-button' para destacar o botão ativo ---
         button_class = "active-button" if is_pre_mining_active else ""
         st.markdown(f'<div class="{button_class}">', unsafe_allow_html=True)
         if st.button("📊 Análise Pré-Mineração", use_container_width=True):
@@ -659,10 +666,14 @@ def render_pre_mining_dashboard():
         c1, c2 = st.columns(2)
         with c1:
             create_card("Tempo Médio de Execução por Atividade", "🛠️", chart_bytes=plots.get('activity_service_times'))
-            create_card("Top 10 Handoffs por Custo de Espera", "💸", chart_bytes=plots.get('top_handoffs_cost'))
         with c2:
             create_card("Top 10 Handoffs por Tempo de Espera", "⏳", chart_bytes=plots.get('top_handoffs'))
-    
+
+        # Cartão de largura total para o segundo gráfico de handoffs
+        c_full, _ = st.columns([2, 0.01]) # Truque para o layout
+        with c_full:
+            create_card("Top 10 Handoffs por Custo de Espera", "💸", chart_bytes=plots.get('top_handoffs_cost'))
+
     elif st.session_state.current_section == "resources":
         c1, c2 = st.columns(2)
         with c1:
@@ -671,10 +682,8 @@ def render_pre_mining_dashboard():
         with c2:
             create_card("Top 10 Recursos por Horas Trabalhadas", "💪", chart_bytes=plots.get('resource_workload'))
             create_card("Top 10 Handoffs entre Recursos", "🔄", chart_bytes=plots.get('resource_handoffs'))
-        # Cartão de largura total
-        c_full, _ = st.columns(2)
-        with c_full:
-            create_card("Heatmap de Esforço (Recurso vs Atividade)", "🗺️", chart_bytes=plots.get('resource_activity_matrix'))
+        
+        create_card("Heatmap de Esforço (Recurso vs Atividade)", "🗺️", chart_bytes=plots.get('resource_activity_matrix'))
 
     elif st.session_state.current_section == "variants":
         c1, c2 = st.columns(2)
@@ -686,9 +695,9 @@ def render_pre_mining_dashboard():
     elif st.session_state.current_section == "advanced":
         kpi_data = tables.get('cost_of_delay_kpis', {})
         kpi_cols = st.columns(3)
-        kpi_cols[0].metric(label="Custo Total em Atraso", value=kpi_data.get('Custo Total Projetos Atrasados'))
-        kpi_cols[1].metric(label="Atraso Médio", value=kpi_data.get('Atraso Médio (dias)'))
-        kpi_cols[2].metric(label="Custo Médio/Dia de Atraso", value=kpi_data.get('Custo Médio/Dia Atraso'))
+        kpi_cols[0].metric(label="Custo Total em Atraso", value=kpi_data.get('Custo Total Projetos Atrasados', 'N/A'))
+        kpi_cols[1].metric(label="Atraso Médio", value=kpi_data.get('Atraso Médio (dias)', 'N/A'))
+        kpi_cols[2].metric(label="Custo Médio/Dia de Atraso", value=kpi_data.get('Custo Médio/Dia Atraso', 'N/A'))
         
         c1, c2 = st.columns(2)
         with c1:
@@ -724,11 +733,8 @@ def render_post_mining_dashboard():
             create_card("Métricas (Heuristics Miner)", "📈", chart_bytes=plots.get('metrics_heuristic'))
             
     elif st.session_state.current_section == "performance":
-        c1, c2 = st.columns(2)
-        with c1:
-            create_card("Heatmap de Performance no Processo", "🔥", chart_bytes=plots.get('performance_heatmap'))
+        create_card("Heatmap de Performance no Processo", "🔥", chart_bytes=plots.get('performance_heatmap'))
         if 'gantt_chart_all_projects' in plots:
-             # Este gráfico é muito largo, por isso fica sozinho
              create_card("Linha do Tempo de Todos os Projetos (Gantt Chart)", "📊", chart_bytes=plots.get('gantt_chart_all_projects'))
              
     elif st.session_state.current_section == "resources":
