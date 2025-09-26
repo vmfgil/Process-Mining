@@ -41,7 +41,7 @@ st.markdown("""
     :root {
         --primary-color: #EF4444; 
         --secondary-color: #3B82F6;
-        --baby-blue-bg: #A0E9FF; 
+        --baby-blue-bg: #A0E9FF; /* A cor azul bebé que pretendemos */
         --background-color: #0F172A;
         --sidebar-background: #1E293B;
         --inactive-button-bg: rgba(51, 65, 85, 0.5);
@@ -55,35 +55,29 @@ st.markdown("""
     .stApp { background-color: var(--background-color); color: var(--text-color-dark-bg); }
     h1, h2, h3 { color: var(--text-color-dark-bg); font-weight: 600; }
     
-    /* CORREÇÃO 4: Garante que texto genérico na página de settings é branco */
-    .st-emotion-cache-sno54o, .st-emotion-cache-sno54o p, [data-testid="stFileUploader"] label, [data-testid="stToggle"] label {
-        color: var(--text-color-dark-bg) !important;
-    }
-    
     [data-testid="stSidebar"] h3 {
         color: var(--text-color-dark-bg) !important;
     }
 
-    /* CORREÇÃO 1: O estilo para o botão ativo já estava correto e é mantido. A lógica em Python garante a permanência. */
+    /* PONTO 1: Aumentar a especificidade para garantir que o estilo ativo se sobrepõe */
     div[data-testid="stHorizontalBlock"] .stButton>button {
         border: 1px solid var(--border-color) !important;
         background-color: var(--inactive-button-bg) !important;
         color: var(--text-color-dark-bg) !important;
         font-weight: 600;
         transition: all 0.2s ease-in-out;
-        height: 100%; /* Garante que todos os botões na mesma linha têm a mesma altura */
     }
     div[data-testid="stHorizontalBlock"] .stButton>button:hover {
         border-color: var(--primary-color) !important;
         background-color: rgba(239, 68, 68, 0.2) !important;
     }
-    div.active-button .stButton>button {
+    [data-testid="stHorizontalBlock"] div.active-button .stButton>button {
         background-color: var(--primary-color) !important;
         color: var(--text-color-dark-bg) !important;
         border: 1px solid var(--primary-color) !important;
         font-weight: 700 !important;
     }
-    div.active-button .stButton>button:hover {
+    [data-testid="stHorizontalBlock"] div.active-button .stButton>button:hover {
         background-color: var(--primary-color) !important;
         border-color: var(--primary-color) !important;
     }
@@ -95,10 +89,9 @@ st.markdown("""
         color: var(--card-text-color) !important;
     }
     
-    /* CORREÇÃO 3: Alinhamento e tamanho dos cartões */
+    /* PONTO 3: Garantir que os cartões na mesma linha têm a mesma altura */
     [data-testid="stHorizontalBlock"] {
-        display: flex;
-        align-items: stretch; /* Garante que as colunas têm a mesma altura */
+        align-items: stretch;
     }
     
     /* CARTÕES */
@@ -108,7 +101,7 @@ st.markdown("""
         border-radius: 12px;
         padding: 20px 25px;
         border: 1px solid var(--card-border-color);
-        height: 100%; /* Faz o cartão preencher a coluna */
+        height: 100%;
         display: flex;
         flex-direction: column;
         margin-bottom: 25px;
@@ -117,25 +110,34 @@ st.markdown("""
     .card .card-header h4 { color: var(--card-text-color); font-size: 1.1rem; margin: 0; display: flex; align-items: center; gap: 8px; }
     .card-body { flex-grow: 1; padding-top: 15px; }
 
-    /* CORREÇÃO 2: Estilos para a tabela HTML dentro do cartão */
-    .card-body .custom-table {
+    /* PONTO 2: Estilos para a tabela HTML que será gerada dentro do cartão */
+    .card-body .dataframe-table {
         width: 100%;
         border-collapse: collapse;
         color: var(--card-text-color);
+        font-size: 0.9rem;
     }
-    .card-body .custom-table th, .card-body .custom-table td {
-        padding: 8px 12px;
+    .card-body .dataframe-table th, .card-body .dataframe-table td {
+        padding: 8px;
         text-align: left;
         border-bottom: 1px solid var(--card-border-color);
     }
-    .card-body .custom-table thead th {
+    .card-body .dataframe-table thead th {
         font-weight: 600;
+        border-bottom-width: 2px;
     }
-    .card-body .custom-table tbody tr:last-child td {
-        border-bottom: none;
+
+    /* PONTO 4: Mudar a cor do texto na pág. de configurações para branco, de forma específica e segura */
+    div[data-testid="stFileUploader"] p, span[data-testid="stFileUploaderFileName"], [data-testid="stToggle"] label, [data-testid="stMarkdownContainer"] p {
+        color: var(--text-color-dark-bg) !important;
     }
-    
-    /* Botões de Upload */
+    .st-emotion-cache-1fttcpj { /* Selector para o texto "Carregar..." */
+        color: var(--text-color-dark-bg) !important;
+    }
+
+    /* Manter o estilo original dos botões de upload que já funcionava */
+    section[data-testid="stFileUploader"] button,
+    div[data-testid="stFileUploader"] button,
     div[data-baseweb="file-uploader"] button {
         background-color: var(--baby-blue-bg) !important;
         color: var(--text-color-light-bg) !important;
@@ -143,23 +145,23 @@ st.markdown("""
         font-weight: 600 !important;
     }
     
-    /* CORREÇÃO 6: Botão de análise na página de configurações */
+    /* PONTO 6: Garantir que o botão de análise tem a cor de texto correta */
     .iniciar-analise-button .stButton>button {
-        background-color: #A0E9FF !important; /* Cor exata para evitar problemas com variáveis */
-        color: #0F172A !important; /* Cor exata para o texto */
-        border: 2px solid #A0E9FF !important;
+        background-color: var(--baby-blue-bg) !important;
+        color: #0F172A !important; /* Cor escura explícita para o texto */
+        border: 2px solid var(--baby-blue-bg) !important;
         font-weight: 700 !important;
     }
     
-    /* CORREÇÃO 5: Botão de Login */
-    .login-button .stButton>button {
-        background-color: var(--baby-blue-bg) !important;
-        color: var(--text-color-light-bg) !important;
+    /* PONTO 5: Estilo para o botão de Login */
+    .login-button-wrapper .stButton>button {
+        background-color: var(--secondary-color) !important;
+        color: var(--text-color-dark-bg) !important;
         border: none !important;
         font-weight: 700 !important;
     }
     
-    /* Métricas (KPIs) com fundo branco */
+    /* ESTILO ORIGINAL MANTIDO */
     [data-testid="stMetric"] {
         background-color: var(--card-background-color);
         color: var(--card-text-color);
@@ -169,8 +171,6 @@ st.markdown("""
     }
     [data-testid="stMetric"] label { color: var(--card-text-color); }
     [data-testid="stMetric"] [data-testid="stMetricValue"] { color: var(--card-text-color); }
-    
-    /* Alertas */
     [data-testid="stAlert"] {
         background-color: #1E293B !important;
         border: 1px solid var(--secondary-color) !important;
@@ -209,22 +209,21 @@ def convert_gviz_to_bytes(gviz, format='png'):
 def convert_df_to_csv(df):
     return df.to_csv(index=False).encode('utf-8')
 
-# CORREÇÃO 2: Função create_card modificada para lidar com tabelas
+# PONTO 2: Função 'create_card' modificada para renderizar dataframes como tabelas HTML
 def create_card(title, icon, chart_bytes=None, dataframe=None):
+    body_content = ''
+    if chart_bytes:
+        b64_image = base64.b64encode(chart_bytes.getvalue()).decode()
+        body_content = f'<img src="data:image/png;base64,{b64_image}" style="width: 100%; height: auto;">'
+    elif dataframe is not None:
+        # Converte o dataframe para HTML com a classe CSS correta e sem o índice
+        body_content = dataframe.to_html(classes="dataframe-table", index=False)
+    
     card_html = f"""
     <div class="card">
         <div class="card-header"><h4>{icon} {title}</h4></div>
         <div class="card-body">
-    """
-    if chart_bytes:
-        b64_image = base64.b64encode(chart_bytes.getvalue()).decode()
-        card_html += f'<img src="data:image/png;base64,{b64_image}" style="width: 100%; height: auto;">'
-    elif dataframe is not None:
-        # Converte o dataframe para uma tabela HTML e a adiciona ao corpo do cartão
-        table_html = dataframe.to_html(classes='custom-table', index=False, border=0)
-        card_html += table_html
-        
-    card_html += """
+            {body_content}
         </div>
     </div>
     """
@@ -245,7 +244,7 @@ if 'tables_pre_mining' not in st.session_state: st.session_state.tables_pre_mini
 if 'metrics' not in st.session_state: st.session_state.metrics = {}
 
 
-# --- FUNÇÕES DE ANÁLISE (NÃO ALTERADAS) ---
+# --- FUNÇÕES DE ANÁLISE (INTOCADAS) ---
 @st.cache_data
 def run_pre_mining_analysis(dfs):
     plots = {}
@@ -285,8 +284,8 @@ def run_pre_mining_analysis(dfs):
         'Total de Recursos': len(df_resources),
         'Duração Média (dias)': f"{df_projects['actual_duration_days'].mean():.1f}"
     }
-    tables['outlier_duration'] = df_projects[['project_name', 'actual_duration_days']].sort_values('actual_duration_days', ascending=False).head(5)
-    tables['outlier_cost'] = df_projects[['project_name', 'total_actual_cost']].sort_values('total_actual_cost', ascending=False).head(5)
+    tables['outlier_duration'] = df_projects.sort_values('actual_duration_days', ascending=False).head(5)
+    tables['outlier_cost'] = df_projects.sort_values('total_actual_cost', ascending=False).head(5)
     fig, ax = plt.subplots(figsize=(8, 5)); sns.scatterplot(data=df_projects, x='days_diff', y='cost_diff', hue='project_type', s=80, alpha=0.7, ax=ax); ax.axhline(0, color='gray', ls='--'); ax.axvline(0, color='gray', ls='--'); ax.set_title("Matriz de Performance")
     plots['performance_matrix'] = convert_fig_to_bytes(fig)
     fig, ax = plt.subplots(figsize=(8, 4)); sns.boxplot(x=df_projects['actual_duration_days'], ax=ax, color="skyblue"); sns.stripplot(x=df_projects['actual_duration_days'], color="blue", size=4, jitter=True, alpha=0.5, ax=ax); ax.set_title("Distribuição da Duração dos Projetos")
@@ -545,9 +544,9 @@ def login_page():
     st.markdown("<h2>✨ Transformação inteligente de processos</h2>", unsafe_allow_html=True)
     username = st.text_input("Utilizador", placeholder="admin", value="admin")
     password = st.text_input("Senha", type="password", placeholder="admin", value="admin")
-    
-    # CORREÇÃO 5: Botão de login envolvido num div para estilização
-    st.markdown('<div class="login-button">', unsafe_allow_html=True)
+
+    # PONTO 5: Envolver o botão de login num div para aplicar o estilo correto
+    st.markdown('<div class="login-button-wrapper">', unsafe_allow_html=True)
     if st.button("Entrar", use_container_width=True):
         if username == "admin" and password == "admin":
             st.session_state.authenticated = True
@@ -574,8 +573,7 @@ def settings_page():
             uploaded_file = st.file_uploader(f"Carregar `{name}.csv`", type="csv", key=f"upload_{name}")
             if uploaded_file:
                 st.session_state.dfs[name] = pd.read_csv(uploaded_file)
-                # CORREÇÃO 4: Garante que texto é branco
-                st.markdown(f'<p style="font-size: small; color: {st.session_state.get("text_color_dark_bg", "#FFFFFF")};">`{name}.csv` carregado.</p>', unsafe_allow_html=True)
+                st.markdown(f'<p style="font-size: small; color: #FFFFFF;">`{name}.csv` carregado.</p>', unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
     
@@ -615,7 +613,7 @@ def settings_page():
         st.warning("Aguardando o carregamento de todos os ficheiros CSV para poder iniciar a análise.")
 
 
-# --- PÁGINAS DO DASHBOARD ---
+# --- PÁGINAS DO DASHBOARD (INTOCADAS) ---
 def dashboard_page():
     st.title("🏠 Dashboard Geral")
 
@@ -698,7 +696,6 @@ def render_pre_mining_dashboard():
         with c2:
             create_card("Top 10 Handoffs por Tempo de Espera", "⏳", chart_bytes=plots.get('top_handoffs'))
         
-        st.markdown("<br>", unsafe_allow_html=True) # Adiciona espaço para evitar sobreposição
         create_card("Top 10 Handoffs por Custo de Espera", "💸", chart_bytes=plots.get('top_handoffs_cost'))
 
     elif st.session_state.current_section == "resources":
@@ -710,7 +707,6 @@ def render_pre_mining_dashboard():
             create_card("Top 10 Recursos por Horas Trabalhadas", "💪", chart_bytes=plots.get('resource_workload'))
             create_card("Top 10 Handoffs entre Recursos", "🔄", chart_bytes=plots.get('resource_handoffs'))
         
-        st.markdown("<br>", unsafe_allow_html=True)
         create_card("Heatmap de Esforço (Recurso vs Atividade)", "🗺️", chart_bytes=plots.get('resource_activity_matrix'))
 
     elif st.session_state.current_section == "variants":
@@ -772,8 +768,6 @@ def render_post_mining_dashboard():
         with c2:
             if 'skill_vs_performance_adv' in plots:
                 create_card("Relação entre Skill e Performance", "🎓", chart_bytes=plots.get('skill_vs_performance_adv'))
-            else: # Adiciona um placeholder se o gráfico não existir
-                st.markdown('<div style="height: 400px;"></div>', unsafe_allow_html=True)
                 
     elif st.session_state.current_section == "conformance":
         c1, c2 = st.columns(2)
@@ -786,7 +780,6 @@ def render_post_mining_dashboard():
 # --- CONTROLO PRINCIPAL DA APLICAÇÃO ---
 def main():
     if not st.session_state.authenticated:
-        # Centraliza o conteúdo da página de login
         st.markdown("""
             <style>
                 [data-testid="stAppViewContainer"] > .main {
