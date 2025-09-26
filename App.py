@@ -32,7 +32,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- ESTILO CSS ---
+# --- ESTILO CSS (CORRIGIDO) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
@@ -53,7 +53,6 @@ st.markdown("""
     }
     .stApp { background-color: var(--background-color); color: var(--text-color-dark-bg); }
     h1, h2, h3 { color: var(--text-color-dark-bg); font-weight: 600; }
-    
     [data-testid="stSidebar"] h3 { color: var(--text-color-dark-bg) !important; }
 
     /* --- ESTILOS PARA BOTÕES DE NAVEGAÇÃO --- */
@@ -68,7 +67,9 @@ st.markdown("""
         border-color: var(--primary-color) !important;
         background-color: rgba(239, 68, 68, 0.2) !important;
     }
-    div.active-button .stButton>button {
+    /* SOLUÇÃO 1: Cor permanente nos botões ativos */
+    div.active-button .stButton>button,
+    div.active-button .stButton>button:hover {
         background-color: var(--primary-color) !important;
         color: var(--text-color-dark-bg) !important;
         border: 1px solid var(--primary-color) !important;
@@ -76,7 +77,7 @@ st.markdown("""
     }
 
     /* Painel Lateral */
-    [data-testid="stSidebar"] { background-color: var(--sidebar-background); border-right: 1px solid var(--border-color); }
+    [data-testid="stSidebar"] { background-color: var(--sidebar-background); }
     [data-testid="stSidebar"] .stButton>button {
         background-color: var(--card-background-color) !important;
         color: var(--card-text-color) !important;
@@ -96,49 +97,70 @@ st.markdown("""
     }
     .card-header { padding-bottom: 10px; border-bottom: 1px solid var(--card-border-color); }
     .card .card-header h4 { color: var(--card-text-color); font-size: 1.1rem; margin: 0; display: flex; align-items: center; gap: 8px; }
-    .card-body { flex-grow: 1; padding-top: 15px; }
-    .dataframe-card-body [data-testid="stDataFrame"] { border: none !important; }
-    
-    /* --- BOTÕES DE UPLOAD --- */
-    section[data-testid="stFileUploader"] button,
-    div[data-baseweb="file-uploader"] button {
-        background-color: var(--baby-blue-bg) !important;
-        color: var(--text-color-light-bg) !important;
-        border: none !important;
-        font-weight: 600 !important;
+    .card-body { flex-grow: 1; padding-top: 15px; overflow: hidden; }
+
+    /* SOLUÇÃO 2: Estilo para tabelas DENTRO dos cartões */
+    .card .dataframe-container table {
+        width: 100%;
+        color: var(--card-text-color);
+        border-collapse: collapse;
+        font-size: 0.9rem;
+    }
+    .card .dataframe-container th {
+        background-color: #F8FAFC;
+        font-weight: 600;
+        text-align: left;
+        padding: 8px;
+    }
+    .card .dataframe-container td {
+        padding: 8px;
+        border-top: 1px solid var(--card-border-color);
     }
     
-    /* --- BOTÃO DE ANÁLISE --- */
+    /* SOLUÇÃO 3: Altura uniforme dos cartões e imagens */
+    .card .card-body img {
+        width: 100%;
+        height: 350px;
+        object-fit: contain; /* Mantém o aspect ratio sem distorcer */
+    }
+    /* Exceção para as redes de Petri */
+    .petri-net-card .card-body img {
+        height: auto; /* Permite que a imagem use a sua altura original */
+        object-fit: initial;
+    }
+
+    /* SOLUÇÃO 4: Cor do texto na página de Configurações */
+    section[data-testid="stFileUploader"] label, 
+    [data-testid="stFileUploader"] [data-testid="stText"],
+    [data-testid="stToggle"] label p {
+        color: white !important;
+        font-weight: bold;
+    }
+    
+    /* SOLUÇÃO 5: Cor do botão de Login */
+    .login-container .stButton>button {
+        background-color: var(--primary-color) !important;
+        color: white !important;
+    }
+
+    /* SOLUÇÃO 6: Cor do botão de Análise */
     .iniciar-analise-button .stButton>button {
         background-color: var(--baby-blue-bg) !important;
-        color: var(--text-color-light-bg) !important;
-        border: 2px solid var(--baby-blue-bg) !important;
+        color: var(--text-color-light-bg) !important; /* Azul escuro/preto */
+        border: none !important;
         font-weight: 700 !important;
     }
     
-    /* --- CARTÕES DE MÉTRICAS (KPIs) --- */
-    [data-testid="stMetric"] {
-        background-color: var(--card-background-color);
-        border: 1px solid var(--card-border-color);
-        border-radius: 12px;
-        padding: 20px;
-    }
-    [data-testid="stMetric"] label, [data-testid="stMetric"] [data-testid="stMetricValue"] {
-        color: var(--card-text-color) !important;
-    }
-    
-    /* Alertas */
-    [data-testid="stAlert"] {
-        background-color: #1E293B !important;
-        border: 1px solid var(--secondary-color) !important;
-        border-radius: 8px !important;
-    }
+    /* Outros estilos */
+    [data-testid="stMetric"] { background-color: var(--card-background-color); border: 1px solid var(--card-border-color); border-radius: 12px; padding: 20px; }
+    [data-testid="stMetric"] label, [data-testid="stMetric"] [data-testid="stMetricValue"] { color: var(--card-text-color) !important; }
+    [data-testid="stAlert"] { background-color: #1E293B !important; border: 1px solid var(--secondary-color) !important; border-radius: 8px !important; }
     [data-testid="stAlert"] * { color: #BFDBFE !important; }
 </style>
 """, unsafe_allow_html=True)
 
 
-# --- FUNÇÕES AUXILIARES ---
+# --- FUNÇÕES AUXILIARES (CORRIGIDA) ---
 def convert_fig_to_bytes(fig, format='png'):
     buf = io.BytesIO()
     fig.patch.set_facecolor('#FFFFFF')
@@ -157,25 +179,22 @@ def convert_fig_to_bytes(fig, format='png'):
 def convert_gviz_to_bytes(gviz, format='png'):
     return io.BytesIO(gviz.pipe(format=format))
 
-def create_card(title, icon, chart_bytes=None, dataframe=None):
+# FUNÇÃO MODIFICADA para resolver problemas 2 e 3
+def create_card(title, icon, chart_bytes=None, dataframe=None, card_class=""):
+    card_html_start = f'<div class="card {card_class}">'
+    st.markdown(card_html_start, unsafe_allow_html=True)
+    
+    st.markdown(f'<div class="card-header"><h4>{icon} {title}</h4></div>', unsafe_allow_html=True)
+
     if chart_bytes:
         b64_image = base64.b64encode(chart_bytes.getvalue()).decode()
-        st.markdown(f"""
-        <div class="card">
-            <div class="card-header"><h4>{icon} {title}</h4></div>
-            <div class="card-body">
-                <img src="data:image/png;base64,{b64_image}" style="width: 100%; height: auto;">
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(f'<div class="card-body"><img src="data:image/png;base64,{b64_image}"></div>', unsafe_allow_html=True)
+    
     elif dataframe is not None:
-        st.markdown(f"""
-        <div class="card">
-            <div class="card-header"><h4>{icon} {title}</h4></div>
-            <div class="card-body dataframe-card-body">
-        """, unsafe_allow_html=True)
-        st.dataframe(dataframe, use_container_width=True)
-        st.markdown("</div></div>", unsafe_allow_html=True)
+        table_html = dataframe.to_html(index=False, classes=None, border=0)
+        st.markdown(f'<div class="card-body dataframe-container">{table_html}</div>', unsafe_allow_html=True)
+        
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 # --- INICIALIZAÇÃO DO ESTADO DA SESSÃO ---
@@ -192,7 +211,7 @@ if 'tables_pre_mining' not in st.session_state: st.session_state.tables_pre_mini
 if 'metrics' not in st.session_state: st.session_state.metrics = {}
 
 
-# --- FUNÇÕES DE ANÁLISE (DO SCRIPT ORIGINAL) ---
+# --- FUNÇÕES DE ANÁLISE (COMPLETAS) ---
 @st.cache_data
 def run_pre_mining_analysis(dfs):
     plots = {}
@@ -240,8 +259,8 @@ def run_pre_mining_analysis(dfs):
         'Total de Recursos': len(df_resources),
         'Duração Média (dias)': f"{df_projects['actual_duration_days'].mean():.1f}"
     }
-    tables['outlier_duration'] = df_projects.sort_values('actual_duration_days', ascending=False).head(5)
-    tables['outlier_cost'] = df_projects.sort_values('total_actual_cost', ascending=False).head(5)
+    tables['outlier_duration'] = df_projects.sort_values('actual_duration_days', ascending=False).head(5)[['project_name', 'actual_duration_days']]
+    tables['outlier_cost'] = df_projects.sort_values('total_actual_cost', ascending=False).head(5)[['project_name', 'total_actual_cost']]
     fig, ax = plt.subplots(figsize=(8, 5)); sns.scatterplot(data=df_projects, x='days_diff', y='cost_diff', hue='project_type', s=80, alpha=0.7, ax=ax); ax.axhline(0, color='black', ls='--'); ax.axvline(0, color='black', ls='--'); ax.set_title("Matriz de Performance")
     plots['performance_matrix'] = convert_fig_to_bytes(fig)
     fig, ax = plt.subplots(figsize=(8, 4)); sns.boxplot(x=df_projects['actual_duration_days'], ax=ax, color="skyblue"); sns.stripplot(x=df_projects['actual_duration_days'], color="blue", size=4, jitter=True, alpha=0.5, ax=ax); ax.set_title("Distribuição da Duração dos Projetos")
@@ -522,8 +541,9 @@ def run_post_mining_analysis(_event_log_pm4py, _df_projects, _df_tasks_raw, _df_
     return plots, metrics
 
 
-# --- PÁGINA DE LOGIN ---
+# --- PÁGINA DE LOGIN (CORRIGIDA) ---
 def login_page():
+    st.markdown('<div class="login-container">', unsafe_allow_html=True)
     st.markdown("<h2>✨ Transformação Inteligente de Processos</h2>", unsafe_allow_html=True)
     username = st.text_input("Utilizador", placeholder="admin", value="admin")
     password = st.text_input("Senha", type="password", placeholder="admin", value="admin")
@@ -534,6 +554,7 @@ def login_page():
             st.rerun()
         else:
             st.error("Utilizador ou senha inválidos.")
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
 # --- PÁGINA DE CONFIGURAÇÕES / UPLOAD ---
@@ -583,7 +604,7 @@ def settings_page():
         st.warning("Aguardando o carregamento de todos os ficheiros CSV para poder iniciar a análise.")
 
 
-# --- PÁGINAS DO DASHBOARD ---
+# --- PÁGINAS DO DASHBOARD (CORRIGIDAS) ---
 def dashboard_page():
     st.title("🏠 Dashboard Geral")
     is_pre_mining_active = st.session_state.current_dashboard == "Pré-Mineração"
@@ -630,12 +651,13 @@ def render_pre_mining_dashboard():
     tables = st.session_state.tables_pre_mining
 
     if st.session_state.current_section == "overview":
-        kpi_data = tables['kpi_data']
+        kpi_data = tables.get('kpi_data', {})
         kpi_cols = st.columns(4)
         kpi_cols[0].metric(label="Total de Projetos", value=kpi_data.get('Total de Projetos'))
         kpi_cols[1].metric(label="Total de Tarefas", value=kpi_data.get('Total de Tarefas'))
         kpi_cols[2].metric(label="Total de Recursos", value=kpi_data.get('Total de Recursos'))
         kpi_cols[3].metric(label="Duração Média", value=f"{kpi_data.get('Duração Média (dias)')} dias")
+        
         c1, c2 = st.columns(2)
         with c1:
             create_card("Matriz de Performance (Custo vs Prazo)", "🎯", chart_bytes=plots.get('performance_matrix'))
@@ -721,10 +743,10 @@ def render_post_mining_dashboard():
     if st.session_state.current_section == "discovery":
         c1, c2 = st.columns(2)
         with c1:
-            create_card("Modelo - Inductive Miner", "🧭", chart_bytes=plots.get('model_inductive_petrinet'))
+            create_card("Modelo - Inductive Miner", "🧭", chart_bytes=plots.get('model_inductive_petrinet'), card_class="petri-net-card")
             create_card("Métricas (Inductive Miner)", "📊", chart_bytes=plots.get('metrics_inductive'))
         with c2:
-            create_card("Modelo - Heuristics Miner", "🛠️", chart_bytes=plots.get('model_heuristic_petrinet'))
+            create_card("Modelo - Heuristics Miner", "🛠️", chart_bytes=plots.get('model_heuristic_petrinet'), card_class="petri-net-card")
             create_card("Métricas (Heuristics Miner)", "📈", chart_bytes=plots.get('metrics_heuristic'))
         create_card("Sequência de Atividades das Variantes", "🎶", chart_bytes=plots.get('custom_variants_sequence_plot'))
             
@@ -763,6 +785,7 @@ def render_post_mining_dashboard():
             if 'milestone_time_analysis_plot' in plots:
                 create_card("Análise de Tempo entre Marcos do Processo", "🚩", chart_bytes=plots.get('milestone_time_analysis_plot'))
 
+
 # --- CONTROLO PRINCIPAL DA APLICAÇÃO ---
 def main():
     if not st.session_state.authenticated:
@@ -786,9 +809,10 @@ def main():
                 st.rerun()
             st.markdown("<br><br>", unsafe_allow_html=True)
             if st.button("🚪 Sair", use_container_width=True):
-                st.session_state.authenticated = False
                 for key in list(st.session_state.keys()):
-                    if key not in ['authenticated']: del st.session_state[key]
+                    if key != 'authenticated':
+                        del st.session_state[key]
+                st.session_state.authenticated = False
                 st.rerun()
                 
         if st.session_state.current_page == "Dashboard":
