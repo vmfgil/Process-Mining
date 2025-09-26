@@ -28,6 +28,9 @@ from pm4py.algo.evaluation.simplicity import algorithm as simplicity_evaluator
 from pm4py.algo.filtering.log.variants import variants_filter
 from pm4py.algo.conformance.alignments.petri_net import algorithm as alignments_miner
 
+# Imports para Análise Exploratória (EDA)
+import missingno as msno
+
 # --- 1. CONFIGURAÇÃO DA PÁGINA E ESTILO ---
 st.set_page_config(
     page_title="Transformação Inteligente de Processos",
@@ -144,6 +147,9 @@ st.markdown("""
         color: var(--metric-value-color) !important;
         font-weight: 700;
     }
+    [data-testid="stMetric"] [data-testid="stMetricDelta"] {
+        color: var(--text-color-dark-bg) !important;
+    }
     
     /* Alertas */
     [data-testid="stAlert"] {
@@ -242,6 +248,7 @@ if 'dfs' not in st.session_state:
     st.session_state.dfs = {'projects': None, 'tasks': None, 'resources': None, 'resource_allocations': None, 'dependencies': None}
 if 'analysis_run' not in st.session_state: st.session_state.analysis_run = False
 if 'rl_analysis_run' not in st.session_state: st.session_state.rl_analysis_run = False
+if 'rl_params_expanded' not in st.session_state: st.session_state.rl_params_expanded = True
 if 'plots_pre_mining' not in st.session_state: st.session_state.plots_pre_mining = {}
 if 'plots_post_mining' not in st.session_state: st.session_state.plots_post_mining = {}
 if 'tables_pre_mining' not in st.session_state: st.session_state.tables_pre_mining = {}
@@ -257,7 +264,6 @@ if 'logs_rl' not in st.session_state: st.session_state.logs_rl = {}
 # ... (As funções run_pre_mining_analysis, run_post_mining_analysis, e run_eda_analysis permanecem as mesmas da versão anterior)
 @st.cache_data
 def run_pre_mining_analysis(dfs):
-    # (O código desta função permanece exatamente o mesmo do ficheiro que forneceu)
     plots = {}
     tables = {}
     df_projects = dfs['projects'].copy()
@@ -789,8 +795,8 @@ def run_eda_analysis(dfs):
     return plots, tables
 
 # --- NOVA FUNÇÃO DE ANÁLISE (REINFORCEMENT LEARNING) ---
-@st.cache_data
-def run_rl_analysis(dfs, project_id_to_simulate, num_episodes, reward_config):
+#@st.cache_data # Removido para permitir interatividade e barra de progresso
+def run_rl_analysis(dfs, project_id_to_simulate, num_episodes, reward_config, progress_bar, status_text):
     # Dicionários para guardar os resultados
     plots = {}
     tables = {}
@@ -985,8 +991,6 @@ def run_rl_analysis(dfs, project_id_to_simulate, num_episodes, reward_config):
     env = ProjectManagementEnv(df_tasks, df_resources, df_dependencies, reward_config=reward_config)
     agent = QLearningAgent(actions=env.all_actions)
     
-    progress_bar = st.progress(0)
-    status_text = st.empty()
     time_per_episode = 0.06 
     
     for episode in range(num_episodes):
@@ -1017,7 +1021,7 @@ def run_rl_analysis(dfs, project_id_to_simulate, num_episodes, reward_config):
         progress = (episode + 1) / num_episodes
         progress_bar.progress(progress)
         remaining_time = (num_episodes - (episode + 1)) * time_per_episode
-        status_text.text(f"Episódio {episode + 1}/{num_episodes}... Tempo estimado restante: {remaining_time:.0f} segundos.")
+        status_text.info(f"A treinar... Episódio {episode + 1}/{num_episodes}. Tempo estimado restante: {remaining_time:.0f} segundos.")
     
     status_text.success("Treino e simulação concluídos!")
     
@@ -1079,10 +1083,12 @@ def run_rl_analysis(dfs, project_id_to_simulate, num_episodes, reward_config):
         real_duration = results_df['real_duration'].sum(); sim_duration = results_df['simulated_duration'].sum()
         real_cost = results_df['real_cost'].sum(); sim_cost = results_df['simulated_cost'].sum()
         dur_improv = real_duration - sim_duration; cost_improv = real_cost - sim_cost
+        dur_improv_perc = (dur_improv / real_duration) * 100 if real_duration > 0 else 0
+        cost_improv_perc = (cost_improv / real_cost) * 100 if real_cost > 0 else 0
         perf_data = {'Métrica': ['Duração Total (dias úteis)', 'Custo Total (€)'],
                      'Real (Histórico)': [f"{real_duration:.0f}", f"€{real_cost:,.2f}"],
                      'Simulado (RL)': [f"{sim_duration:.0f}", f"€{sim_cost:,.2f}"],
-                     'Melhoria': [f"{dur_improv:.0f} ({dur_improv/real_duration:.1%})", f"€{cost_improv:,.2f} ({cost_improv/real_cost:.1%})"]}
+                     'Melhoria': [f"{dur_improv:.0f} ({dur_improv_perc:.1f}%)", f"€{cost_improv:,.2f} ({cost_improv_perc:.1f}%)"]}
         return pd.DataFrame(perf_data)
         
     tables['global_performance_test'] = get_global_performance_df(test_results_df)
@@ -1110,8 +1116,8 @@ def run_rl_analysis(dfs, project_id_to_simulate, num_episodes, reward_config):
     
     tables['project_summary'] = pd.DataFrame({
         'Métrica': ['Duração (dias úteis)', 'Custo (€)'],
-        'Real (Histórico)': [f"{real_duration:.0f}", f"€{real_cost:,.2f}"],
-        'Simulado (RL)': [f"{sim_duration:.0f}", f"€{sim_cost:,.2f}"]
+        'Real (Histórico)': [real_duration, real_cost],
+        'Simulado (RL)': [sim_duration, sim_cost]
     })
     
     # Gráfico de comparação detalhada
@@ -1408,7 +1414,8 @@ def rl_page():
     st.info("Esta secção permite treinar um agente de IA para otimizar a gestão de projetos, com base nos dados históricos. Pode ajustar os parâmetros para testar diferentes cenários.")
 
     # --- Parâmetros de Entrada ---
-    with st.expander("⚙️ Parâmetros da Simulação", expanded=True):
+    with st.expander("⚙️ Parâmetros da Simulação", expanded=st.session_state.rl_params_expanded):
+        st.subheader("Parâmetros Gerais")
         project_ids = st.session_state.dfs['projects']['project_id'].unique()
         
         c1, c2 = st.columns(2)
@@ -1424,30 +1431,45 @@ def rl_page():
         st.markdown("<h6>Parâmetros de Recompensa e Penalização do Agente</h6>", unsafe_allow_html=True)
         rc1, rc2, rc3 = st.columns(3)
         with rc1:
-            reward_config = {
-                'cost_impact_factor': st.number_input("Fator de Impacto do Custo", value=1.0),
-                'daily_time_penalty': st.number_input("Penalização Diária por Tempo", value=20.0),
-                'idle_penalty': st.number_input("Penalização por Inatividade", value=10.0),
-            }
+            cost_impact_factor = st.number_input("Fator de Impacto do Custo", value=1.0)
+            daily_time_penalty = st.number_input("Penalização Diária por Tempo", value=20.0)
+            idle_penalty = st.number_input("Penalização por Inatividade", value=10.0)
         with rc2:
-            reward_config.update({
-                'per_day_early_bonus': st.number_input("Bónus por Dia de Adiantamento", value=500.0),
-                'completion_base': st.number_input("Recompensa Base por Conclusão", value=5000.0),
-                'per_day_late_penalty': st.number_input("Penalização por Dia de Atraso", value=1500.0),
-            })
+            per_day_early_bonus = st.number_input("Bónus por Dia de Adiantamento", value=500.0)
+            completion_base = st.number_input("Recompensa Base por Conclusão", value=5000.0)
+            per_day_late_penalty = st.number_input("Penalização por Dia de Atraso", value=1500.0)
         with rc3:
-            reward_config.update({
-                'priority_task_bonus_factor': st.number_input("Bónus por Tarefa Prioritária", value=500),
-                'pending_task_penalty_factor': st.number_input("Penalização por Tarefa Pendente", value=20)
-            })
+            priority_task_bonus_factor = st.number_input("Bónus por Tarefa Prioritária", value=500)
+            pending_task_penalty_factor = st.number_input("Penalização por Tarefa Pendente", value=20)
+        
+        reward_config = {
+            'cost_impact_factor': cost_impact_factor, 'daily_time_penalty': daily_time_penalty, 'idle_penalty': idle_penalty,
+            'per_day_early_bonus': per_day_early_bonus, 'completion_base': completion_base, 'per_day_late_penalty': per_day_late_penalty,
+            'priority_task_bonus_factor': priority_task_bonus_factor, 'pending_task_penalty_factor': pending_task_penalty_factor
+        }
+
+    status_container = st.empty()
 
     if st.button("▶️ Iniciar Treino e Simulação do Agente", use_container_width=True):
-        with st.spinner("A treinar o agente de RL... Por favor, aguarde."):
-            plots_rl, tables_rl, logs_rl = run_rl_analysis(st.session_state.dfs, project_id_to_simulate, num_episodes, reward_config)
-            st.session_state.plots_rl = plots_rl
-            st.session_state.tables_rl = tables_rl
-            st.session_state.logs_rl = logs_rl
-            st.session_state.rl_analysis_run = True
+        st.session_state.rl_params_expanded = False
+        
+        progress_bar = st.progress(0)
+        status_text = status_container.info("A iniciar o treino do agente de RL...")
+
+        plots_rl, tables_rl, logs_rl = run_rl_analysis(
+            st.session_state.dfs, 
+            project_id_to_simulate, 
+            num_episodes, 
+            reward_config,
+            progress_bar,
+            status_text
+        )
+        st.session_state.plots_rl = plots_rl
+        st.session_state.tables_rl = tables_rl
+        st.session_state.logs_rl = logs_rl
+        st.session_state.rl_analysis_run = True
+        st.rerun()
+
     
     if st.session_state.rl_analysis_run:
         st.markdown("---")
@@ -1455,6 +1477,21 @@ def rl_page():
         
         plots_rl = st.session_state.plots_rl
         tables_rl = st.session_state.tables_rl
+        
+        st.markdown(f"<h4>Análise Detalhada da Simulação (Projeto {st.session_state.get('project_id_simulated')})</h4>", unsafe_allow_html=True)
+        
+        summary_df = tables_rl.get('project_summary')
+        if summary_df is not None:
+            real_duration = summary_df.loc[summary_df['Métrica'] == 'Duração (dias úteis)', 'Real (Histórico)'].iloc[0]
+            sim_duration = summary_df.loc[summary_df['Métrica'] == 'Duração (dias úteis)', 'Simulado (RL)'].iloc[0]
+            real_cost = summary_df.loc[summary_df['Métrica'] == 'Custo (€)', 'Real (Histórico)'].iloc[0]
+            sim_cost = summary_df.loc[summary_df['Métrica'] == 'Custo (€)', 'Simulado (RL)'].iloc[0]
+            
+            metric_cols = st.columns(2)
+            with metric_cols[0]:
+                st.metric(label="Duração (dias úteis)", value=f"{sim_duration:.0f}", delta=f"{sim_duration - real_duration:.0f} vs Real")
+            with metric_cols[1]:
+                st.metric(label="Custo (€)", value=f"{sim_cost:,.2f}", delta=f"{sim_cost - real_cost:,.2f} vs Real")
 
         st.markdown("<h4>Desempenho Global</h4>", unsafe_allow_html=True)
         res1, res2 = st.columns(2)
@@ -1470,9 +1507,7 @@ def rl_page():
         create_card("Comparação do Desempenho (Conjunto de Teste)", "🎯", chart_bytes=plots_rl.get('evaluation_comparison_test'))
         create_card("Comparação do Desempenho (Todos os Projetos)", "🌍", chart_bytes=plots_rl.get('evaluation_comparison_all'))
         
-        st.markdown(f"<h4>Análise Detalhada da Simulação (Projeto {project_id_to_simulate})</h4>", unsafe_allow_html=True)
-        st.table(tables_rl.get('project_summary'))
-        create_card(f"Comparação Detalhada (Projeto {project_id_to_simulate})", "🔍", chart_bytes=plots_rl.get('project_detailed_comparison'))
+        create_card(f"Comparação Detalhada (Projeto {st.session_state.get('project_id_simulated')})", "🔍", chart_bytes=plots_rl.get('project_detailed_comparison'))
 
 # --- CONTROLO PRINCIPAL DA APLICAÇÃO ---
 def main():
