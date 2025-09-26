@@ -1,19 +1,4 @@
 import streamlit as st
-
-import io, zipfile
-
-def export_all_csvs(named_dfs):
-  mem = io.BytesIO()
-  with zipfile.ZipFile(mem, mode='w', compression=zipfile.ZIP_DEFLATED) as zf:
-    for name, df in named_dfs:
-      try:
-        csv_bytes = df.to_csv(index=False).encode('utf-8')
-      except Exception:
-        continue
-      zf.writestr(str(name) + '.csv', csv_bytes)
-  mem.seek(0)
-  return mem
-
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -45,26 +30,102 @@ st.set_page_config(page_title="Painel de Análise de Processos de IT", page_icon
 
 # CSS
 st.markdown("""
-
 <style>
-  /* Layout grid and equal heights */
-  .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; align-items: stretch; }
-  .card { background: #FFFFFF; color: #0F172A; border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; height: 100%; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
-  .card .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-  .card .card-title { font-weight: 700; color: #0F172A; }
-  .card .card-body { flex: 1; }
-  .card.kpi, .stMetric { background: #FFFFFF !important; color: #0F172A !important; border-radius: 12px; border: 1px solid #e5e7eb; padding: 10px; }
+  :root{
+    --bg:#0B1220; --panel:#111827; --text:#FFFFFF;
+    --accent:#3B82F6; --border:#1f2a37;
+    --card:#FFFFFF; --card-text:#0F172A;
+  }
 
-  /* Buttons in headers */
-  .card .stDownloadButton, .card [data-testid="stDownloadButton"] { margin-left: 8px; }
+  html, body, .stApp{
+    background-color:var(--bg)!important;
+    color:var(--text)!important;
+    font-family:'Inter', -apple-system, BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,'Helvetica Neue',Arial,sans-serif;
+  }
 
-  /* Improve contrast on dark sections without forcing all text white */
-  .stApp [data-theme="dark"] &, body.dark, .dark .stApp { color: #E5E7EB; }
-  .stApp input, .stApp textarea, .stApp select { color: #0F172A; background: #FFFFFF; }
-  [data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"] { background: #FFFFFF !important; border: 1px dashed #cbd5e1 !important; }
-  [data-testid="stFileUploader"] button { background: #111827 !important; color: #FFFFFF !important; border-color: #111827 !important; }
+  /* Sidebar: texto branco forte e bold */
+  [data-testid="stSidebar"]{
+    background:linear-gradient(180deg,#0F172A 0%,#0B1220 100%)!important;
+    border-right:1px solid var(--border);
+  }
+  [data-testid="stSidebar"] *{
+    color:#FFFFFF!important; font-weight:800!important;
+  }
+
+  /* Inputs legíveis no dark */
+  .stTextInput>div>div>input, .stSelectbox, .stTextArea textarea{
+    color:#FFFFFF!important; background-color:var(--panel)!important;
+    border:1px solid var(--border)!important; font-weight:800!important;
+  }
+  .stTextInput label, .stSelectbox label, .stTextArea label{
+    color:#FFFFFF!important; font-weight:800!important;
+  }
+
+  /* Uploaders: botão azul, texto branco; dropzone legível */
+  .stFileUploader{
+    background-color:var(--panel)!important; border:1px solid var(--border)!important;
+    border-radius:10px; padding:10px;
+  }
+  .stFileUploader label{ color:#FFFFFF!important; font-weight:800!important; }
+  .stFileUploader button{
+    background-color:var(--accent)!important; color:#FFFFFF!important;
+    font-weight:900!important; border-radius:8px!important;
+    border:1px solid rgba(59,130,246,0.5)!important;
+  }
+  section[data-testid="stFileUploadDropzone"] *{
+    color:#FFFFFF!important; font-weight:800!important;
+  }
+
+  /* Remover avisos/caixas amarelas e placeholders */
+  [data-testid="stWarning"]{ display:none!important; }
+  div[role="alert"]{ display:none!important; }
+
+  /* Cartão branco com header e ações dentro */
+  .card{
+    background-color:var(--card)!important; color:var(--card-text)!important;
+    border:1px solid #e5e7eb; border-radius:14px; padding:18px;
+    box-shadow:0 6px 18px rgba(0,0,0,0.20); margin-bottom:16px;
+  }
+  .card *{ color:var(--card-text)!important; }
+  .card-header{
+    display:flex; align-items:center; justify-content:space-between;
+    border-bottom:1px solid #e5e7eb; padding-bottom:10px; margin-bottom:14px;
+  }
+  .card-title{
+    display:inline-flex; align-items:center; gap:10px;
+    font-weight:900; font-size:1.05rem;
+  }
+  .card-actions{ display:inline-flex; gap:8px; align-items:center; }
+
+  /* Conteúdo não “sai” do cartão */
+  .card img{ display:block; width:100%; height:auto; border-radius:8px; }
+  .card [data-testid="stDataFrame"]{ border-radius:8px; }
+
+  /* KPIs legíveis (texto escuro sobre branco) */
+  .stMetric, .metric-container, .metric-label, .metric-value{
+    color:var(--card-text)!important; font-weight:800!important;
+  }
+
+  /* Botões (inclui export) sempre azul com texto branco */
+  .stButton>button, [data-testid="stDownloadButton"] button{
+    background-color:var(--accent)!important; color:#FFFFFF!important;
+    font-weight:900!important; border-radius:8px!important;
+    border:1px solid rgba(59,130,246,0.5)!important; padding:8px 12px!important;
+  }
+  /* Botões de export discreto (pequeno) dentro do header */
+  .card-actions [data-testid="stDownloadButton"] button{
+    padding:6px 10px!important; min-width:auto!important;
+  }
+
+  /* Dashboard: cartões alinhados e consistentes */
+  .dashboard-grid .card{ min-height:380px; }
+  .dashboard-grid .card.kpi{ min-height:150px; }
+  .dashboard-grid .card.tall{ min-height:520px; }
+  .dashboard-grid .card.wide{ min-height:460px; }
+
+  /* Remover espaçamento extra que cria “caixas vazias” */
+  .element-container:has(.card){ margin-bottom:0!important; }
 </style>
-
 """, unsafe_allow_html=True)
 
 # Helpers
@@ -717,6 +778,7 @@ def render_config():
 def render_dashboard_pre():
   st.markdown("<h2>🏠 Dashboard Geral — Pré-mineração</h2>", unsafe_allow_html=True)
   if not st.session_state.tables_pre_mining:
+    st.markdown("")
     return
 
   kpis = st.session_state.tables_pre_mining['kpi_data']
@@ -888,6 +950,7 @@ def render_dashboard_pre():
 def render_dashboard_post():
   st.markdown("<h2>🏠 Dashboard Geral — Pós-mineração</h2>", unsafe_allow_html=True)
   if not st.session_state.plots_post_mining:
+    st.markdown("")
     return
 
   st.markdown('<div class="dashboard-grid">', unsafe_allow_html=True)
