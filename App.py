@@ -110,14 +110,12 @@ st.markdown("""
         padding: 0; /* Remover padding padrão para evitar barra de scroll dupla */
     }
     
-    /* --- BOTÕES DE UPLOAD (AGORA COM ESTILO AZUL) --- */
+    /* --- BOTÕES DE UPLOAD (CSS INICIAL) --- */
     section[data-testid="stFileUploader"] button,
     div[data-baseweb="file-uploader"] button {
-        background-color: var(--primary-color) !important; /* Azul */
+        /* Este estilo pode não ser aplicado devido à especificidade do Streamlit */
+        background-color: var(--primary-color) !important;
         color: var(--text-color-dark-bg) !important;
-        border: none !important;
-        font-weight: 600 !important;
-        border-radius: 8px !important;
     }
     
     /* --- BOTÃO DE ANÁLISE --- */
@@ -227,12 +225,7 @@ def create_card(title, icon, chart_bytes=None, dataframe=None):
         </div>
         """, unsafe_allow_html=True)
     elif dataframe is not None:
-        # CONVERTER O DATAFRAME PARA HTML E APLICAR UMA CLASSE PARA ESTILOS
-        # Este método preserva o estilo básico do DataFrame do Pandas,
-        # mas precisa de estilos CSS adicionais para o modo escuro, que já tem no seu código.
-        # Adicionamos a classe 'pandas-df-card' para controlo de estilo.
         df_html = dataframe.to_html(classes=['pandas-df-card'], index=False)
-        
         st.markdown(f"""
         <div class="card">
             <div class="card-header"><h4>{icon} {title}</h4></div>
@@ -242,11 +235,35 @@ def create_card(title, icon, chart_bytes=None, dataframe=None):
         </div>
         """, unsafe_allow_html=True)
 
+def force_button_style():
+    # As cores vêm das variáveis CSS que já definiu
+    primary_color = "#2563EB"
+    text_color = "#E5E7EB"
+
+    # Pequeno código JS que encontra os botões e força o estilo
+    st.components.v1.html(f"""
+    <script>
+        // Espera um instante para garantir que o Streamlit já desenhou os botões
+        setTimeout(() => {{
+            // Acede aos elementos da página principal a partir do iframe do componente
+            const buttons = window.parent.document.querySelectorAll('section[data-testid="stFileUploader"] button');
+            
+            buttons.forEach(button => {{
+                button.style.backgroundColor = '{primary_color}';
+                button.style.color = '{text_color}';
+                button.style.fontWeight = '600';
+                button.style.border = 'none';
+                button.style.borderRadius = '8px';
+            }});
+        }}, 200);
+    </script>
+    """, height=0)
+
 # --- INICIALIZAÇÃO DO ESTADO DA SESSÃO ---
 if 'authenticated' not in st.session_state: st.session_state.authenticated = False
 if 'current_page' not in st.session_state: st.session_state.current_page = "Dashboard"
-if 'current_dashboard' not in st.session_state: st.session_state.current_dashboard = "Pré-Mineração" # Mantido por compatibilidade
-if 'current_section' not in st.session_state: st.session_state.current_section = "visao_geral" # Novo default
+if 'current_dashboard' not in st.session_state: st.session_state.current_dashboard = "Pré-Mineração"
+if 'current_section' not in st.session_state: st.session_state.current_section = "visao_geral"
 if 'dfs' not in st.session_state:
     st.session_state.dfs = {'projects': None, 'tasks': None, 'resources': None, 'resource_allocations': None, 'dependencies': None}
 if 'analysis_run' not in st.session_state: st.session_state.analysis_run = False
@@ -307,13 +324,9 @@ def run_pre_mining_analysis(dfs):
     tables['outlier_duration'] = df_projects.sort_values('actual_duration_days', ascending=False).head(5)
     tables['outlier_cost'] = df_projects.sort_values('total_actual_cost', ascending=False).head(5)
     
-    # Reformulação das Cores dos Gráficos:
-    
-    # Gráfico 1: Matriz de Performance
     fig, ax = plt.subplots(figsize=(8, 5)); sns.scatterplot(data=df_projects, x='days_diff', y='cost_diff', hue='project_type', s=80, alpha=0.7, ax=ax, palette='viridis'); ax.axhline(0, color='#FBBF24', ls='--'); ax.axvline(0, color='#FBBF24', ls='--'); ax.set_title("Matriz de Performance")
     plots['performance_matrix'] = convert_fig_to_bytes(fig)
     
-    # Gráfico 2: Distribuição da Duração dos Projetos
     fig, ax = plt.subplots(figsize=(8, 4)); sns.boxplot(x=df_projects['actual_duration_days'], ax=ax, color="#2563EB"); sns.stripplot(x=df_projects['actual_duration_days'], color="#FBBF24", size=4, jitter=True, alpha=0.7, ax=ax); ax.set_title("Distribuição da Duração dos Projetos")
     plots['case_durations_boxplot'] = convert_fig_to_bytes(fig)
     
@@ -327,26 +340,21 @@ def run_pre_mining_analysis(dfs):
     perf_df = pd.merge(lead_times, throughput_per_case, on="case:concept:name")
     tables['perf_stats'] = perf_df[["lead_time_days", "avg_throughput_hours"]].describe()
     
-    # Gráfico 3: Distribuição do Lead Time
     fig, ax = plt.subplots(figsize=(8, 4)); sns.histplot(perf_df["lead_time_days"], bins=20, kde=True, ax=ax, color="#2563EB"); ax.set_title("Distribuição do Lead Time (dias)")
     plots['lead_time_hist'] = convert_fig_to_bytes(fig)
     
-    # Gráfico 4: Distribuição do Throughput
     fig, ax = plt.subplots(figsize=(8, 4)); sns.histplot(perf_df["avg_throughput_hours"], bins=20, kde=True, color='#06B6D4', ax=ax); ax.set_title("Distribuição do Throughput (horas)")
     plots['throughput_hist'] = convert_fig_to_bytes(fig)
     
-    # Gráfico 5: Boxplot do Throughput
     fig, ax = plt.subplots(figsize=(8, 4)); sns.boxplot(x=perf_df["avg_throughput_hours"], color='#FBBF24', ax=ax); ax.set_title("Boxplot do Throughput (horas)")
     plots['throughput_boxplot'] = convert_fig_to_bytes(fig)
     
-    # Gráfico 6: Relação Lead Time vs Throughput
     fig, ax = plt.subplots(figsize=(8, 5)); sns.regplot(x="avg_throughput_hours", y="lead_time_days", data=perf_df, ax=ax, scatter_kws={'color': '#06B6D4'}, line_kws={'color': '#FBBF24'}); ax.set_title("Relação Lead Time vs Throughput")
     plots['lead_time_vs_throughput'] = convert_fig_to_bytes(fig)
     
     service_times = df_full_context.groupby('task_name')['hours_worked'].mean().reset_index()
     service_times['service_time_days'] = service_times['hours_worked'] / 8
     
-    # Gráfico 7: Tempo Médio de Execução por Atividade
     fig, ax = plt.subplots(figsize=(8, 5)); sns.barplot(x='service_time_days', y='task_name', data=service_times.sort_values('service_time_days', ascending=False).head(10), ax=ax, hue='task_name', legend=False, palette='coolwarm'); ax.set_title("Tempo Médio de Execução por Atividade")
     plots['activity_service_times'] = convert_fig_to_bytes(fig)
     
@@ -357,38 +365,32 @@ def run_pre_mining_analysis(dfs):
     handoff_stats = df_handoff.groupby(['previous_activity', 'concept:name'])['handoff_time_days'].mean().reset_index().sort_values('handoff_time_days', ascending=False)
     handoff_stats['transition'] = handoff_stats['previous_activity'].fillna('') + ' -> ' + handoff_stats['concept:name'].fillna('')
     
-    # Gráfico 8: Top 10 Handoffs por Tempo de Espera
     fig, ax = plt.subplots(figsize=(8, 5)); sns.barplot(data=handoff_stats.head(10), y='transition', x='handoff_time_days', ax=ax, hue='transition', legend=False, palette='viridis'); ax.set_title("Top 10 Handoffs por Tempo de Espera")
     plots['top_handoffs'] = convert_fig_to_bytes(fig)
     
     handoff_stats['estimated_cost_of_wait'] = handoff_stats['handoff_time_days'] * df_projects['cost_per_day'].mean()
     
-    # Gráfico 9: Top 10 Handoffs por Custo de Espera
     fig, ax = plt.subplots(figsize=(8, 5)); sns.barplot(data=handoff_stats.sort_values('estimated_cost_of_wait', ascending=False).head(10), y='transition', x='estimated_cost_of_wait', ax=ax, hue='transition', legend=False, palette='magma'); ax.set_title("Top 10 Handoffs por Custo de Espera")
     plots['top_handoffs_cost'] = convert_fig_to_bytes(fig)
 
     activity_counts = df_tasks["task_name"].value_counts()
     
-    # Gráfico 10: Atividades Mais Frequentes
     fig, ax = plt.subplots(figsize=(8, 5)); sns.barplot(x=activity_counts.head(10).values, y=activity_counts.head(10).index, ax=ax, palette='YlGnBu'); ax.set_title("Atividades Mais Frequentes")
     plots['top_activities_plot'] = convert_fig_to_bytes(fig)
     
     resource_workload = df_full_context.groupby('resource_name')['hours_worked'].sum().sort_values(ascending=False).reset_index()
     
-    # Gráfico 11: Top 10 Recursos por Horas Trabalhadas
     fig, ax = plt.subplots(figsize=(8, 5)); sns.barplot(x='hours_worked', y='resource_name', data=resource_workload.head(10), ax=ax, hue='resource_name', legend=False, palette='plasma'); ax.set_title("Top 10 Recursos por Horas Trabalhadas")
     plots['resource_workload'] = convert_fig_to_bytes(fig)
     
     resource_metrics = df_full_context.groupby("resource_name").agg(unique_cases=('project_id', 'nunique'), event_count=('task_id', 'count')).reset_index()
     resource_metrics["avg_events_per_case"] = resource_metrics["event_count"] / resource_metrics["unique_cases"]
     
-    # Gráfico 12: Recursos por Média de Tarefas por Projeto
     fig, ax = plt.subplots(figsize=(8, 5)); sns.barplot(x='avg_events_per_case', y='resource_name', data=resource_metrics.sort_values('avg_events_per_case', ascending=False).head(10), ax=ax, hue='resource_name', legend=False, palette='coolwarm'); ax.set_title("Recursos por Média de Tarefas por Projeto")
     plots['resource_avg_events'] = convert_fig_to_bytes(fig)
     
     resource_activity_matrix_pivot = df_full_context.pivot_table(index='resource_name', columns='task_name', values='hours_worked', aggfunc='sum').fillna(0)
     
-    # Gráfico 13: Heatmap de Esforço por Recurso e Atividade
     fig, ax = plt.subplots(figsize=(12, 8)); sns.heatmap(resource_activity_matrix_pivot, cmap='Blues', annot=True, fmt=".0f", ax=ax, annot_kws={"size": 8}, linewidths=.5, linecolor='#374151'); ax.set_title("Heatmap de Esforço por Recurso e Atividade")
     plots['resource_activity_matrix'] = convert_fig_to_bytes(fig)
     
@@ -396,13 +398,11 @@ def run_pre_mining_analysis(dfs):
     df_resource_handoffs = pd.DataFrame(handoff_counts.most_common(10), columns=['Handoff', 'Contagem'])
     df_resource_handoffs['Handoff'] = df_resource_handoffs['Handoff'].apply(lambda x: f"{x[0]} -> {x[1]}")
     
-    # Gráfico 14: Top 10 Handoffs entre Recursos
     fig, ax = plt.subplots(figsize=(8, 5)); sns.barplot(x='Contagem', y='Handoff', data=df_resource_handoffs, ax=ax, hue='Handoff', legend=False, palette='rocket'); ax.set_title("Top 10 Handoffs entre Recursos")
     plots['resource_handoffs'] = convert_fig_to_bytes(fig)
     
     cost_by_resource_type = df_full_context.groupby('resource_type')['cost_of_work'].sum().sort_values(ascending=False).reset_index()
     
-    # Gráfico 15: Custo por Tipo de Recurso
     fig, ax = plt.subplots(figsize=(8, 4)); sns.barplot(data=cost_by_resource_type, x='cost_of_work', y='resource_type', ax=ax, hue='resource_type', legend=False, palette='magma'); ax.set_title("Custo por Tipo de Recurso")
     plots['cost_by_resource_type'] = convert_fig_to_bytes(fig)
     
@@ -412,7 +412,6 @@ def run_pre_mining_analysis(dfs):
     variant_analysis['percentage'] = (variant_analysis['frequency'] / variant_analysis['frequency'].sum()) * 100
     tables['variants_table'] = variant_analysis.head(10)
     
-    # Gráfico 16: Top 10 Variantes de Processo por Frequência
     fig, ax = plt.subplots(figsize=(12, 6)); sns.barplot(x='frequency', y='variant_str', data=variant_analysis.head(10), ax=ax, orient='h', hue='variant_str', legend=False, palette='coolwarm'); ax.set_title("Top 10 Variantes de Processo por Frequência")
     plots['variants_frequency'] = convert_fig_to_bytes(fig)
     
@@ -429,20 +428,17 @@ def run_pre_mining_analysis(dfs):
     bins = np.linspace(min_res, max_res, 5, dtype=int) if max_res > min_res else [min_res, max_res]
     df_projects['team_size_bin_dynamic'] = pd.cut(df_projects['num_resources'], bins=bins, include_lowest=True, duplicates='drop').astype(str)
     
-    # Gráfico 17: Impacto do Tamanho da Equipa no Atraso
     fig, ax = plt.subplots(figsize=(8, 5)); sns.boxplot(data=df_projects.dropna(subset=['team_size_bin_dynamic']), x='team_size_bin_dynamic', y='days_diff', ax=ax, hue='team_size_bin_dynamic', legend=False, palette='flare'); ax.set_title("Impacto do Tamanho da Equipa no Atraso")
     plots['delay_by_teamsize'] = convert_fig_to_bytes(fig)
     
     median_duration_by_team_size = df_projects.groupby('team_size_bin_dynamic')['actual_duration_days'].median().reset_index()
     
-    # Gráfico 18: Duração Mediana por Tamanho da Equipa
     fig, ax = plt.subplots(figsize=(8, 5)); sns.barplot(data=median_duration_by_team_size, x='team_size_bin_dynamic', y='actual_duration_days', ax=ax, hue='team_size_bin_dynamic', legend=False, palette='crest'); ax.set_title("Duração Mediana por Tamanho da Equipa")
     plots['median_duration_by_teamsize'] = convert_fig_to_bytes(fig)
     
     df_alloc_costs['day_of_week'] = df_alloc_costs['allocation_date'].dt.day_name()
     weekday_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
     
-    # Gráfico 19: Eficiência Semanal (Horas Trabalhadas)
     fig, ax = plt.subplots(figsize=(8, 5)); sns.barplot(data=df_alloc_costs.groupby('day_of_week')['hours_worked'].sum().reindex(weekday_order).reset_index(), x='day_of_week', y='hours_worked', ax=ax, hue='day_of_week', legend=False, palette='viridis'); ax.set_title("Eficiência Semanal (Horas Trabalhadas)"); plt.xticks(rotation=45)
     plots['weekly_efficiency'] = convert_fig_to_bytes(fig)
     
@@ -453,30 +449,25 @@ def run_pre_mining_analysis(dfs):
     df_tasks_with_resources = df_tasks_analysis.merge(df_full_context[['task_id', 'resource_name']], on='task_id', how='left').drop_duplicates()
     bottleneck_by_resource = df_tasks_with_resources.groupby('resource_name')['waiting_time_days'].mean().sort_values(ascending=False).head(15).reset_index()
     
-    # Gráfico 20: Top 15 Recursos por Tempo Médio de Espera
     fig, ax = plt.subplots(figsize=(8, 5)); sns.barplot(data=bottleneck_by_resource, y='resource_name', x='waiting_time_days', ax=ax, hue='resource_name', legend=False, palette='rocket'); ax.set_title("Top 15 Recursos por Tempo Médio de Espera")
     plots['bottleneck_by_resource'] = convert_fig_to_bytes(fig)
     
     bottleneck_by_activity = df_tasks_analysis.groupby('task_type')[['service_time_days', 'waiting_time_days']].mean()
     
-    # Gráfico 21: Gargalos: Tempo de Serviço vs. Espera
     fig, ax = plt.subplots(figsize=(8, 5)); bottleneck_by_activity.plot(kind='bar', stacked=True, color=['#2563EB', '#FBBF24'], ax=ax); ax.set_title("Gargalos: Tempo de Serviço vs. Espera")
     plots['service_vs_wait_stacked'] = convert_fig_to_bytes(fig)
     
-    # Gráfico 22: Espera vs. Execução (Dispersão)
     fig, ax = plt.subplots(figsize=(8, 5)); sns.regplot(data=bottleneck_by_activity.reset_index(), x='service_time_days', y='waiting_time_days', ax=ax, scatter_kws={'color': '#06B6D4'}, line_kws={'color': '#FBBF24'}); ax.set_title("Tempo de Espera vs. Tempo de Execução")
     plots['wait_vs_service_scatter'] = convert_fig_to_bytes(fig)
     
     df_wait_over_time = df_tasks_analysis.merge(df_projects[['project_id', 'completion_month']], on='project_id')
     monthly_wait_time = df_wait_over_time.groupby('completion_month')['waiting_time_days'].mean().reset_index()
     
-    # Gráfico 23: Evolução do Tempo Médio de Espera
     fig, ax = plt.subplots(figsize=(8, 4)); sns.lineplot(data=monthly_wait_time, x='completion_month', y='waiting_time_days', marker='o', ax=ax, color='#06B6D4'); plt.xticks(rotation=45); ax.set_title("Evolução do Tempo Médio de Espera")
     plots['wait_time_evolution'] = convert_fig_to_bytes(fig)
     
     df_perf_full = perf_df.merge(df_projects, left_on='case:concept:name', right_on='project_id')
     
-    # Gráfico 24: Benchmark de Throughput por Tamanho da Equipa
     fig, ax = plt.subplots(figsize=(8, 5)); sns.boxplot(data=df_perf_full, x='team_size_bin_dynamic', y='avg_throughput_hours', ax=ax, hue='team_size_bin_dynamic', legend=False, palette='plasma'); ax.set_title("Benchmark de Throughput por Tamanho da Equipa")
     plots['throughput_benchmark_by_teamsize'] = convert_fig_to_bytes(fig)
     
@@ -490,7 +481,6 @@ def run_pre_mining_analysis(dfs):
     phase_times['cycle_time_days'] = (phase_times['end'] - phase_times['start']).dt.days
     avg_cycle_time_by_phase = phase_times.groupby('phase')['cycle_time_days'].mean()
     
-    # Gráfico 25: Duração Média por Fase do Processo
     fig, ax = plt.subplots(figsize=(8, 4)); avg_cycle_time_by_phase.plot(kind='bar', color=sns.color_palette('tab10'), ax=ax); ax.set_title("Duração Média por Fase do Processo"); plt.xticks(rotation=0)
     plots['cycle_time_breakdown'] = convert_fig_to_bytes(fig)
     
@@ -674,6 +664,7 @@ def login_page():
 
 # --- PÁGINA DE CONFIGURAÇÕES / UPLOAD ---
 def settings_page():
+    force_button_style() # Força o estilo azul nos botões de upload
     st.title("⚙️ Configurações e Upload de Dados")
     st.markdown("---")
     st.subheader("Upload dos Ficheiros de Dados (.csv)")
@@ -731,7 +722,6 @@ def dashboard_page():
         st.warning("A análise ainda não foi executada. Vá à página de 'Configurações' para carregar os dados e iniciar.")
         return
         
-    # --- Navegação das 5 secções ---
     sections = {
         "visao_geral": "1. Visão Geral e Custos",
         "performance": "2. Performance",
@@ -755,7 +745,6 @@ def dashboard_page():
     tables_pre = st.session_state.tables_pre_mining
     plots_post = st.session_state.plots_post_mining
 
-    # --- Renderização da secção ativa ---
     if st.session_state.current_section == "visao_geral":
         st.subheader("1. Visão Geral e Custos")
         kpi_data = tables_pre.get('kpi_data', {})
@@ -789,7 +778,6 @@ def dashboard_page():
             create_card("Séries Temporais de KPIs de Performance", "📈", chart_bytes=plots_post.get('kpi_time_series'))
         with c6:
             create_card("Custo Médio por Dia ao Longo do Tempo", "💸", chart_bytes=plots_post.get('cost_per_day_time_series'))
-
 
     elif st.session_state.current_section == "performance":
         st.subheader("2. Performance")
@@ -847,7 +835,6 @@ def dashboard_page():
         with c8:
             create_card("Top 10 Handoffs entre Recursos", "🔄", chart_bytes=plots_pre.get('resource_handoffs'))
         
-        # Coloca os dois gráficos seguintes lado a lado, se existirem
         col_skill, col_bipartite = st.columns(2)
         with col_skill:
             if 'skill_vs_performance_adv' in plots_post:
@@ -926,7 +913,6 @@ def dashboard_page():
             create_card("Dispersão: Fitness vs. Desvios", "🎯", chart_bytes=plots_post.get('deviation_scatter_plot'))
         
         create_card("Top 10 Variantes de Processo por Frequência", "📊", chart_bytes=plots_pre.get('variants_frequency'))
-
 
 # --- CONTROLO PRINCIPAL DA APLICAÇÃO ---
 def main():
